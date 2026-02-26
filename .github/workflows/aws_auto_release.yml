@@ -1,0 +1,239 @@
+name: Auto Release on Main Merge
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+          
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  auto_release:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.PAT }}
+
+      - name: Check if user is authorized
+        id: auth_check
+        run: |
+          merged_by="${{ github.event.pull_request.merged_by.login }}"
+          echo "PR was merged by: $merged_by"
+                    
+          # Get authorized users from CODEOWNERS file
+          authorized_users=()
+                    
+          # Read CODEOWNERS file if it exists
+          if [[ -f ".github/CODEOWNERS" ]]; then
+            echo "[INFO] Reading CODEOWNERS file..."
+            # Extract usernames from CODEOWNERS (remove @ prefix)
+            codeowners=$(grep -v '^#' .github/CODEOWNERS | grep -o '@[a-zA-Z0-9_-]*' | sed 's/@//' | sort -u)
+            for user in $codeowners; do
+              authorized_users+=("$user")
+              echo "  - CODEOWNER: $user"
+            done
+          else
+            echo "[WARN] No CODEOWNERS file found"
+          fi
+                    
+          # Get repository collaborators with admin/maintain permissions using GitHub API
+          echo "[CHECK] Checking repository permissions..."
+                    
+          # Check if user has admin or maintain permissions
+          user_permission=$(curl -s -H "Authorization: token ${{ secrets.PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/collaborators/$merged_by/permission" | \
+            jq -r '.permission // "none"')
+                    
+          echo "User $merged_by has permission level: $user_permission"
+                    
+          # Check if user is authorized
+          is_authorized=false
+                    
+          # Check if user is in CODEOWNERS
+          for user in "${authorized_users[@]}"; do
+            if [[ "$user" == "$merged_by" ]]; then
+              is_authorized=true
+              echo "[OK] User $merged_by is authorized via CODEOWNERS"
+              break
+            fi
+          done
+                    
+          # Check if user has admin or maintain permissions
+          if [[ "$user_permission" == "admin" || "$user_permission" == "maintain" ]]; then
+            is_authorized=true
+            echo "[OK] User $merged_by is authorized via repository permissions ($user_permission)"
+          fi
+                    
+          # Check if user is organization owner (for metaversecloud-com org)
+          org_response=$(curl -s -H "Authorization: token ${{ secrets.PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/orgs/metaversecloud-com/members/$merged_by" \
+            -w "%{http_code}")
+                    
+          # Extract HTTP status code from the response
+          http_code=${org_response: -3}
+                    
+          if [[ "$http_code" == "200" ]]; then
+            # Check if user is an owner
+            owner_status=$(curl -s -H "Authorization: token ${{ secrets.PAT }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/orgs/metaversecloud-com/memberships/$merged_by" | \
+              jq -r '.role // "none"')
+                      
+            if [[ "$owner_status" == "admin" ]]; then
+              is_authorized=true
+              echo "[OK] User $merged_by is authorized as organization owner"
+            fi
+          fi
+                    
+          echo "is_authorized=$is_authorized" >> $GITHUB_OUTPUT
+                    
+          if [[ "$is_authorized" == "false" ]]; then
+            echo "[ERROR] User $merged_by is not authorized to trigger releases"
+            echo "[TIP] Authorized users include:"
+            echo "  - CODEOWNERS: ${authorized_users[*]}"
+            echo "  - Repository admins and maintainers"
+            echo "  - Organization owners"
+            exit 0
+          else
+            echo "[SUCCESS] User $merged_by is authorized to trigger releases"
+          fi
+
+      - name: Check for release labels and determine version bumps
+        if: steps.auth_check.outputs.is_authorized == 'true'
+        id: check
+        run: |
+          labels='${{ toJson(github.event.pull_request.labels.*.name) }}'
+          echo "PR Labels: $labels"
+                    
+          has_release_label=false
+          has_major=false
+          has_minor=false
+          has_patch=false
+                    
+          # Check if release label exists
+          if echo "$labels" | grep -q "release"; then
+            has_release_label=true
+                      
+            # Check for each type of version bump
+            if echo "$labels" | grep -q "major"; then
+              has_major=true
+            fi
+            if echo "$labels" | grep -q "minor"; then
+              has_minor=true
+            fi
+            if echo "$labels" | grep -q "patch"; then
+              has_patch=true
+            fi
+                      
+            # If no specific version type is specified, default to patch
+            if [[ "$has_major" == "false" && "$has_minor" == "false" && "$has_patch" == "false" ]]; then
+              has_patch=true
+            fi
+          fi
+                    
+          echo "should_release=$has_release_label" >> $GITHUB_OUTPUT
+          echo "has_major=$has_major" >> $GITHUB_OUTPUT
+          echo "has_minor=$has_minor" >> $GITHUB_OUTPUT
+          echo "has_patch=$has_patch" >> $GITHUB_OUTPUT
+          echo "Should release: $has_release_label"
+          echo "Has major: $has_major, minor: $has_minor, patch: $has_patch"
+
+      - name: Setup Node.js
+        if: steps.auth_check.outputs.is_authorized == 'true' && steps.check.outputs.should_release == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.10
+
+      - name: Calculate new version with cumulative bumps
+        if: steps.auth_check.outputs.is_authorized == 'true' && steps.check.outputs.should_release == 'true'
+        id: version
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+                    
+          # Get the latest tag from git
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest git tag: $latest_tag"
+                    
+          # Remove 'v' prefix if present
+          current_version=${latest_tag#v}
+          echo "Current version: $current_version"
+                    
+          # Parse current version
+          IFS='.' read -r major minor patch <<< "$current_version"
+          echo "Parsed version - Major: $major, Minor: $minor, Patch: $patch"
+                    
+          # Apply cumulative version bumps
+          if [[ "${{ steps.check.outputs.has_major }}" == "true" ]]; then
+            major=$((major + 1))
+            minor=0  # Reset minor when major is bumped
+            patch=0  # Reset patch when major is bumped
+            echo "Applied major bump: $major.0.0"
+          fi
+                    
+          if [[ "${{ steps.check.outputs.has_minor }}" == "true" ]]; then
+            minor=$((minor + 1))
+            if [[ "${{ steps.check.outputs.has_major }}" != "true" ]]; then
+              patch=0  # Reset patch when minor is bumped (only if major wasn't bumped)
+            fi
+            echo "Applied minor bump: $major.$minor.$patch"
+          fi
+                    
+          if [[ "${{ steps.check.outputs.has_patch }}" == "true" ]]; then
+            patch=$((patch + 1))
+            echo "Applied patch bump: $major.$minor.$patch"
+          fi
+                    
+          new_version="$major.$minor.$patch"
+          echo "Final calculated version: $new_version"
+                    
+          # Create package.json if it doesn't exist
+          if [[ ! -f "package.json" ]]; then
+            echo '{"version": "0.0.0"}' > package.json
+          fi
+                    
+          # Update package.json with new version
+          npm version $new_version --no-git-tag-version --allow-same-version
+                    
+          echo "NEW_VERSION=v$new_version" >> $GITHUB_ENV
+          echo "New version will be: v$new_version"
+
+      - name: Create Release
+        if: steps.auth_check.outputs.is_authorized == 'true' && steps.check.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.PAT }}  # Use PAT to trigger other workflows
+          tag_name: ${{ env.NEW_VERSION }}
+          name: "Release ${{ env.NEW_VERSION }}"
+          generate_release_notes: true
+          make_latest: true
+          body: |
+            ## ? Release ${{ env.NEW_VERSION }}
+                      
+            **Version Bumps Applied:**
+            - Major: ${{ steps.check.outputs.has_major }}
+            - Minor: ${{ steps.check.outputs.has_minor }}
+            - Patch: ${{ steps.check.outputs.has_patch }}
+                      
+            **Triggered by:** PR #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}
+            **Merged by:** @${{ github.event.pull_request.merged_by.login }}
+                      
+            ### Changes in this PR
+            ${{ github.event.pull_request.body }}
+                      
+            ---
+            *This release was automatically created by the Auto Release workflow*
+
