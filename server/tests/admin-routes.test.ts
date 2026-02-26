@@ -1,0 +1,297 @@
+import express from "express";
+import request from "supertest";
+import router from "../routes.js";
+
+function makeApp() {
+  const app = express();
+  app.use(express.json());
+  app.use("/api", router);
+  return app;
+}
+
+const baseCreds = {
+  assetId: "asset-123",
+  interactivePublicKey: process.env.INTERACTIVE_KEY,
+  interactiveNonce: "nonce-xyz",
+  visitorId: 1,
+  urlSlug: "my-world",
+  profileId: "profile-1",
+  displayName: "AdminPlayer",
+};
+
+// Mock game logic (required by other controllers that share the route file)
+jest.mock("../utils/gameLogic/index.js", () => ({
+  generateIdealMeal: jest.fn().mockReturnValue([]),
+  generateBrownBag: jest.fn().mockReturnValue([]),
+  getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
+  isNewDay: jest.fn().mockReturnValue(false),
+  calculateNutritionScore: jest.fn().mockReturnValue(50),
+  getXpForAction: jest.fn().mockReturnValue(10),
+  calculateLevel: jest.fn().mockReturnValue(1),
+}));
+
+jest.mock("../utils/index.js", () => ({
+  errorHandler: jest.fn().mockImplementation(({ res }: any) => {
+    if (res) return res.status(500).json({ error: "Internal server error" });
+  }),
+  getCredentials: jest.fn(),
+  getDroppedAsset: jest.fn(),
+  Visitor: { get: jest.fn() },
+  World: { create: jest.fn() },
+  User: { create: jest.fn() },
+  DroppedAsset: { get: jest.fn(), drop: jest.fn() },
+  Asset: { create: jest.fn() },
+}));
+
+const mockUtils = jest.mocked(require("../utils/index.js"));
+
+function setupMocks(opts: { isAdmin?: boolean; foodAssets?: any[]; worldData?: any } = {}) {
+  const { isAdmin = true, foodAssets = [], worldData = {} } = opts;
+
+  mockUtils.getCredentials.mockReturnValue(baseCreds);
+  mockUtils.getDroppedAsset.mockResolvedValue({
+    id: "key-asset-123",
+    position: { x: 100, y: 200 },
+  });
+
+  const mockVisitor = {
+    isAdmin,
+    fetchDataObject: jest.fn().mockResolvedValue(undefined),
+    dataObject: {},
+  };
+
+  const mockWorld = {
+    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
+      this.dataObject = worldData;
+      return Promise.resolve();
+    }),
+    updateDataObject: jest.fn().mockResolvedValue(undefined),
+    incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
+    fetchDroppedAssetsWithUniqueName: jest.fn().mockResolvedValue(foodAssets),
+    dataObject: worldData,
+  };
+
+  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
+  mockUtils.World.create.mockReturnValue(mockWorld);
+  mockUtils.Asset.create.mockResolvedValue({ id: "new-asset" });
+  mockUtils.DroppedAsset.drop.mockResolvedValue({ id: "new-dropped" });
+
+  return { mockVisitor, mockWorld };
+}
+
+describe("Admin Routes", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  // ═══════════════════════════════════════════════════════════════
+  // POST /api/admin/remove-all-items
+  // ═══════════════════════════════════════════════════════════════
+  describe("POST /api/admin/remove-all-items", () => {
+    test("non-admin returns 403", async () => {
+      setupMocks({ isAdmin: false });
+
+      const app = makeApp();
+      const res = await request(app).post("/api/admin/remove-all-items").query(baseCreds);
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe("Admin access required");
+    });
+
+    test("admin removes all food assets and returns removedCount", async () => {
+      const mockFoodAssets = [
+        { id: "food-1", deleteDroppedAsset: jest.fn().mockResolvedValue(undefined) },
+        { id: "food-2", deleteDroppedAsset: jest.fn().mockResolvedValue(undefined) },
+        { id: "food-3", deleteDroppedAsset: jest.fn().mockResolvedValue(undefined) },
+      ];
+      const { mockWorld } = setupMocks({ isAdmin: true, foodAssets: mockFoodAssets });
+
+      const app = makeApp();
+      const res = await request(app).post("/api/admin/remove-all-items").query(baseCreds);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.removedCount).toBe(3);
+      expect(res.body.totalFound).toBe(3);
+      expect(mockWorld.fetchDroppedAssetsWithUniqueName).toHaveBeenCalledWith({
+        uniqueName: "lunch-swap-food",
+        isPartial: true,
+      });
+      for (const asset of mockFoodAssets) {
+        expect(asset.deleteDroppedAsset).toHaveBeenCalled();
+      }
+    });
+
+    test("handles empty world (0 items)", async () => {
+      setupMocks({ isAdmin: true, foodAssets: [] });
+
+      const app = makeApp();
+      const res = await request(app).post("/api/admin/remove-all-items").query(baseCreds);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.removedCount).toBe(0);
+      expect(res.body.totalFound).toBe(0);
+    });
+
+    test("skips already-deleted items without failing", async () => {
+      const mockFoodAssets = [
+        { id: "food-1", deleteDroppedAsset: jest.fn().mockResolvedValue(undefined) },
+        { id: "food-2", deleteDroppedAsset: jest.fn().mockRejectedValue(new Error("Already deleted")) },
+        { id: "food-3", deleteDroppedAsset: jest.fn().mockResolvedValue(undefined) },
+      ];
+      setupMocks({ isAdmin: true, foodAssets: mockFoodAssets });
+
+      const app = makeApp();
+      const res = await request(app).post("/api/admin/remove-all-items").query(baseCreds);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.removedCount).toBe(2);
+      expect(res.body.totalFound).toBe(3);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // POST /api/admin/spawn-items
+  // ═══════════════════════════════════════════════════════════════
+  describe("POST /api/admin/spawn-items", () => {
+    test("non-admin returns 403", async () => {
+      setupMocks({ isAdmin: false });
+
+      const app = makeApp();
+      const res = await request(app)
+        .post("/api/admin/spawn-items")
+        .query(baseCreds)
+        .send({ count: 5 });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe("Admin access required");
+    });
+
+    test("admin spawns requested number of items", async () => {
+      setupMocks({ isAdmin: true });
+
+      const app = makeApp();
+      const res = await request(app)
+        .post("/api/admin/spawn-items")
+        .query(baseCreds)
+        .send({ count: 3 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.spawnedCount).toBe(3);
+      expect(res.body.spawnedItems).toHaveLength(3);
+      for (const item of res.body.spawnedItems) {
+        expect(item).toHaveProperty("itemId");
+        expect(item).toHaveProperty("name");
+        expect(item).toHaveProperty("rarity");
+      }
+      expect(mockUtils.Asset.create).toHaveBeenCalledTimes(3);
+      expect(mockUtils.DroppedAsset.drop).toHaveBeenCalledTimes(3);
+    });
+
+    test("caps at 50 items max", async () => {
+      setupMocks({ isAdmin: true });
+
+      const app = makeApp();
+      const res = await request(app)
+        .post("/api/admin/spawn-items")
+        .query(baseCreds)
+        .send({ count: 100 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.spawnedCount).toBe(50);
+      expect(res.body.spawnedItems).toHaveLength(50);
+      expect(mockUtils.Asset.create).toHaveBeenCalledTimes(50);
+    });
+
+    test("defaults to 10 items when count not provided", async () => {
+      setupMocks({ isAdmin: true });
+
+      const app = makeApp();
+      const res = await request(app)
+        .post("/api/admin/spawn-items")
+        .query(baseCreds)
+        .send({});
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.spawnedCount).toBe(10);
+      expect(res.body.spawnedItems).toHaveLength(10);
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // GET /api/admin/stats
+  // ═══════════════════════════════════════════════════════════════
+  describe("GET /api/admin/stats", () => {
+    test("non-admin returns 403", async () => {
+      setupMocks({ isAdmin: false });
+
+      const app = makeApp();
+      const res = await request(app).get("/api/admin/stats").query(baseCreds);
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.message).toBe("Admin access required");
+    });
+
+    test("admin returns world stats including itemsInWorld count", async () => {
+      const mockFoodAssets = [
+        { id: "food-1" },
+        { id: "food-2" },
+        { id: "food-3" },
+        { id: "food-4" },
+        { id: "food-5" },
+      ];
+      setupMocks({
+        isAdmin: true,
+        foodAssets: mockFoodAssets,
+        worldData: {
+          gameVersion: 1,
+          currentDate: "2026-02-07",
+          totalStartsToday: 15,
+          totalCompletionsToday: 8,
+          totalPickups: 42,
+          totalDrops: 20,
+          totalMealSubmissions: 10,
+        },
+      });
+
+      const app = makeApp();
+      const res = await request(app).get("/api/admin/stats").query(baseCreds);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.stats).toEqual({
+        itemsInWorld: 5,
+        totalStartsToday: 15,
+        totalCompletionsToday: 8,
+        totalPickups: 42,
+        totalDrops: 20,
+        totalMealSubmissions: 10,
+        currentDate: "2026-02-07",
+        gameVersion: 1,
+      });
+    });
+
+    test("returns defaults when world data is empty", async () => {
+      setupMocks({ isAdmin: true, foodAssets: [], worldData: {} });
+
+      const app = makeApp();
+      const res = await request(app).get("/api/admin/stats").query(baseCreds);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.stats.itemsInWorld).toBe(0);
+      expect(res.body.stats.totalStartsToday).toBe(0);
+      expect(res.body.stats.totalCompletionsToday).toBe(0);
+      expect(res.body.stats.totalPickups).toBe(0);
+      expect(res.body.stats.totalDrops).toBe(0);
+      expect(res.body.stats.totalMealSubmissions).toBe(0);
+      expect(res.body.stats.gameVersion).toBe(1);
+    });
+  });
+});

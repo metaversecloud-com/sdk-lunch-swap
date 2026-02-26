@@ -14,6 +14,10 @@ const config: Config = {
     "^@rtsdk/topia$": "<rootDir>/mocks/@rtsdk/topia.ts",
     "^@rtsdk/topia/(.*)$": "<rootDir>/mocks/@rtsdk/topia.ts",
 
+    // 🔗 Map @shared/* to the shared workspace (strip .js extension for ts-jest)
+    "^@shared/(.*)\\.js$": "<rootDir>/../shared/$1",
+    "^@shared/(.*)$": "<rootDir>/../shared/$1",
+
     // ✅ Only strip `.js` from *relative* imports, so your runtime-friendly
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },

@@ -1,9 +1,14 @@
 import { DroppedAssetInterface } from "@rtsdk/topia";
-import { VisitorDataObject } from "@shared/types/VisitorData";
+import { BagItem, IdealMealItem } from "@shared/types/FoodItem";
+import { NearbyItem } from "@shared/types/NearbyItem";
 
 export const SET_HAS_INTERACTIVE_PARAMS = "SET_HAS_INTERACTIVE_PARAMS";
 export const SET_GAME_STATE = "SET_GAME_STATE";
 export const SET_ERROR = "SET_ERROR";
+export const SET_BROWN_BAG = "SET_BROWN_BAG";
+export const SET_IDEAL_MEAL = "SET_IDEAL_MEAL";
+export const SET_NEARBY_ITEMS = "SET_NEARBY_ITEMS";
+export const SET_COMPLETED = "SET_COMPLETED";
 
 export type InteractiveParams = {
   assetId: string;
@@ -20,11 +25,29 @@ export type InteractiveParams = {
 };
 
 export interface InitialState {
+  // Existing
   isAdmin?: boolean;
   error?: string;
   hasInteractiveParams?: boolean;
-  visitorData?: VisitorDataObject;
   droppedAsset?: DroppedAssetInterface;
+  // Game state (from server)
+  isNewDay?: boolean;
+  brownBag?: BagItem[];
+  idealMeal?: IdealMealItem[];
+  completedToday?: boolean;
+  nutritionScore?: number | null;
+  superCombosFound?: string[];
+  xp?: number;
+  level?: number;
+  currentStreak?: number;
+  longestStreak?: number;
+  // Nearby items (from polling)
+  nearbyItems?: NearbyItem[];
+  // Engagement
+  hasRewardToken?: boolean;
+  dailyBuff?: string | null;
+  hotStreakActive?: boolean;
+  idealPickupStreak?: number;
 }
 
 export type ActionType = {

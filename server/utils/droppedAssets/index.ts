@@ -1,2 +1,3 @@
-export * from "./getDroppedAsset.js";
-export * from "./initializeDroppedAssetDataObject.js";
+export * from "./dropFoodItem.js";
+export * from "./getKeyAsset.js";
+export * from "./initializeKeyAssetDataObject.js";

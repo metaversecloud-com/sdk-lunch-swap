@@ -6,3 +6,4 @@ export * from "./getVersion.js";
 export * from "./standardizeError.js";
 export * from "./getDevCredentials.js";
 export * from "./topiaInit.js";
+export * from "./gameLogic/index.js";

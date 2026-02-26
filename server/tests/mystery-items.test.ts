@@ -1,0 +1,321 @@
+import express from "express";
+import request from "supertest";
+import router from "../routes.js";
+
+function makeApp() {
+  const app = express();
+  app.use(express.json());
+  app.use("/api", router);
+  return app;
+}
+
+const baseCreds = {
+  assetId: "asset-123",
+  interactivePublicKey: process.env.INTERACTIVE_KEY,
+  interactiveNonce: "nonce-xyz",
+  visitorId: 1,
+  urlSlug: "my-world",
+  profileId: "profile-1",
+};
+
+// Mock game logic (required by handleGetGameState which shares the route file)
+jest.mock("../utils/gameLogic/index.js", () => ({
+  generateIdealMeal: jest.fn().mockReturnValue([]),
+  generateBrownBag: jest.fn().mockReturnValue([]),
+  getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
+  isNewDay: jest.fn().mockReturnValue(false),
+}));
+
+jest.mock("../utils/index.js", () => ({
+  errorHandler: jest.fn().mockImplementation(({ res }: any) => {
+    if (res) return res.status(500).json({ error: "Internal server error" });
+  }),
+  getCredentials: jest.fn(),
+  getDroppedAsset: jest.fn(),
+  Visitor: { get: jest.fn() },
+  World: { create: jest.fn() },
+  User: { create: jest.fn() },
+  DroppedAsset: { get: jest.fn(), drop: jest.fn() },
+  Asset: { create: jest.fn() },
+}));
+
+const mockUtils = jest.mocked(require("../utils/index.js"));
+
+// --- Helpers for nearby-items tests ---
+
+function setupNearbyMocks(opts: { foodAssets?: any[]; visitorData?: any; worldData?: any } = {}) {
+  const { foodAssets = [], visitorData = {}, worldData = {} } = opts;
+
+  mockUtils.getCredentials.mockReturnValue(baseCreds);
+
+  const mockVisitor = {
+    isAdmin: false,
+    moveTo: { x: 100, y: 200 },
+    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
+      this.dataObject = visitorData;
+      return Promise.resolve();
+    }),
+    dataObject: visitorData,
+  };
+
+  const mockWorld = {
+    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
+      this.dataObject = worldData;
+      return Promise.resolve();
+    }),
+    fetchDroppedAssetsWithUniqueName: jest.fn().mockResolvedValue(foodAssets),
+    dataObject: worldData,
+  };
+
+  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
+  mockUtils.World.create.mockReturnValue(mockWorld);
+
+  return { mockVisitor, mockWorld };
+}
+
+// --- Helpers for pickup-item tests ---
+
+function setupPickupMocks(opts: {
+  visitorData?: any;
+  foodAssetExists?: boolean;
+  foodAssetUniqueName?: string;
+  deleteThrows?: boolean;
+} = {}) {
+  const {
+    visitorData = {
+      brownBag: [],
+      idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
+      completedToday: false,
+      pickupsToday: 0,
+      idealPickupStreak: 0,
+      hotStreakActive: false,
+    },
+    foodAssetExists = true,
+    foodAssetUniqueName = `lunch-swap-food|apple|common|${Date.now()}|1`,
+    deleteThrows = false,
+  } = opts;
+
+  mockUtils.getCredentials.mockReturnValue(baseCreds);
+  mockUtils.getDroppedAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
+
+  const mockFoodAsset = foodAssetExists
+    ? {
+        id: "food-asset-1",
+        uniqueName: foodAssetUniqueName,
+        position: { x: 110, y: 210 },
+        fetchDataObject: jest.fn().mockImplementation(function (this: any) {
+          this.dataObject = { itemId: "apple", rarity: "common" };
+          return Promise.resolve();
+        }),
+        deleteDroppedAsset: deleteThrows
+          ? jest.fn().mockRejectedValue(new Error("Already deleted"))
+          : jest.fn().mockResolvedValue(undefined),
+        dataObject: {},
+      }
+    : null;
+
+  mockUtils.DroppedAsset.get.mockResolvedValue(mockFoodAsset);
+
+  const mockVisitor = {
+    isAdmin: false,
+    moveTo: { x: 100, y: 200 },
+    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
+      this.dataObject = visitorData;
+      return Promise.resolve();
+    }),
+    updateDataObject: jest.fn().mockResolvedValue(undefined),
+    incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
+    dataObject: visitorData,
+  };
+
+  const mockUser = {
+    incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockWorld = {
+    fireToast: jest.fn().mockResolvedValue(undefined),
+    fetchDataObject: jest.fn().mockResolvedValue(undefined),
+    dataObject: {},
+  };
+
+  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
+  mockUtils.User.create.mockReturnValue(mockUser);
+  mockUtils.World.create.mockReturnValue(mockWorld);
+
+  return { mockFoodAsset, mockVisitor, mockUser, mockWorld };
+}
+
+describe("Mystery Items", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  describe("GET /api/nearby-items — mystery item display", () => {
+    test("mystery items show '???' for name and 'mystery' for rarity", async () => {
+      const now = Date.now();
+      setupNearbyMocks({
+        foodAssets: [
+          {
+            id: "fa-1",
+            uniqueName: `lunch-swap-food|apple|common|${now}|1`,
+            position: { x: 110, y: 210 },
+            deleteDroppedAsset: jest.fn(),
+          },
+        ],
+        visitorData: { idealMeal: [{ itemId: "apple" }] },
+        worldData: { proximityRadius: 500 },
+      });
+
+      const app = makeApp();
+      const res = await request(app).get("/api/nearby-items").query(baseCreds);
+
+      expect(res.status).toBe(200);
+      expect(res.body.nearbyItems).toHaveLength(1);
+      const item = res.body.nearbyItems[0];
+      expect(item.name).toBe("???");
+      expect(item.rarity).toBe("mystery");
+      expect(item.isMystery).toBe(true);
+    });
+
+    test("mystery items still show correct foodGroup as a hint", async () => {
+      const now = Date.now();
+      setupNearbyMocks({
+        foodAssets: [
+          {
+            id: "fa-1",
+            uniqueName: `lunch-swap-food|apple|common|${now}|1`,
+            position: { x: 110, y: 210 },
+            deleteDroppedAsset: jest.fn(),
+          },
+        ],
+        visitorData: { idealMeal: [] },
+        worldData: { proximityRadius: 500 },
+      });
+
+      const app = makeApp();
+      const res = await request(app).get("/api/nearby-items").query(baseCreds);
+
+      expect(res.body.nearbyItems[0].foodGroup).toBe("fruit");
+    });
+
+    test("non-mystery items show real name and rarity with isMystery false", async () => {
+      const now = Date.now();
+      setupNearbyMocks({
+        foodAssets: [
+          {
+            id: "fa-1",
+            uniqueName: `lunch-swap-food|apple|common|${now}|0`,
+            position: { x: 110, y: 210 },
+            deleteDroppedAsset: jest.fn(),
+          },
+        ],
+        visitorData: { idealMeal: [] },
+        worldData: { proximityRadius: 500 },
+      });
+
+      const app = makeApp();
+      const res = await request(app).get("/api/nearby-items").query(baseCreds);
+
+      expect(res.body.nearbyItems).toHaveLength(1);
+      const item = res.body.nearbyItems[0];
+      expect(item.name).toBe("Apple");
+      expect(item.rarity).toBe("common");
+      expect(item.isMystery).toBe(false);
+    });
+
+    test("legacy 4-segment uniqueName treated as non-mystery", async () => {
+      const now = Date.now();
+      setupNearbyMocks({
+        foodAssets: [
+          {
+            id: "fa-1",
+            uniqueName: `lunch-swap-food|apple|common|${now}`,
+            position: { x: 110, y: 210 },
+            deleteDroppedAsset: jest.fn(),
+          },
+        ],
+        visitorData: { idealMeal: [] },
+        worldData: { proximityRadius: 500 },
+      });
+
+      const app = makeApp();
+      const res = await request(app).get("/api/nearby-items").query(baseCreds);
+
+      expect(res.body.nearbyItems[0].name).toBe("Apple");
+      expect(res.body.nearbyItems[0].isMystery).toBe(false);
+    });
+
+    test("mystery items show matchesIdealMeal as false (hidden)", async () => {
+      const now = Date.now();
+      setupNearbyMocks({
+        foodAssets: [
+          {
+            id: "fa-1",
+            uniqueName: `lunch-swap-food|apple|common|${now}|1`,
+            position: { x: 110, y: 210 },
+            deleteDroppedAsset: jest.fn(),
+          },
+        ],
+        visitorData: { idealMeal: [{ itemId: "apple" }] },
+        worldData: { proximityRadius: 500 },
+      });
+
+      const app = makeApp();
+      const res = await request(app).get("/api/nearby-items").query(baseCreds);
+
+      // Even though apple matches ideal meal, mystery hides this
+      expect(res.body.nearbyItems[0].matchesIdealMeal).toBe(false);
+    });
+  });
+
+  describe("POST /api/pickup-item — mystery item reveal", () => {
+    test("pickup of mystery item has wasMystery: true and reveals real item data", async () => {
+      setupPickupMocks({
+        foodAssetUniqueName: `lunch-swap-food|apple|common|${Date.now()}|1`,
+      });
+
+      const app = makeApp();
+      const res = await request(app)
+        .post("/api/pickup-item")
+        .query(baseCreds)
+        .send({ droppedAssetId: "food-asset-1" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.wasMystery).toBe(true);
+      // Real identity is revealed in the bag
+      expect(res.body.pickedUpItem.itemId).toBe("apple");
+      expect(res.body.pickedUpItem.name).toBe("Apple");
+      expect(res.body.pickedUpItem.rarity).toBe("common");
+    });
+
+    test("pickup of non-mystery item has wasMystery: false", async () => {
+      setupPickupMocks({
+        foodAssetUniqueName: `lunch-swap-food|apple|common|${Date.now()}|0`,
+      });
+
+      const app = makeApp();
+      const res = await request(app)
+        .post("/api/pickup-item")
+        .query(baseCreds)
+        .send({ droppedAssetId: "food-asset-1" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.wasMystery).toBe(false);
+      expect(res.body.pickedUpItem.itemId).toBe("apple");
+    });
+
+    test("legacy 4-segment uniqueName pickup has wasMystery: false", async () => {
+      setupPickupMocks({
+        foodAssetUniqueName: `lunch-swap-food|apple|common|${Date.now()}`,
+      });
+
+      const app = makeApp();
+      const res = await request(app)
+        .post("/api/pickup-item")
+        .query(baseCreds)
+        .send({ droppedAssetId: "food-asset-1" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.wasMystery).toBe(false);
+    });
+  });
+});
