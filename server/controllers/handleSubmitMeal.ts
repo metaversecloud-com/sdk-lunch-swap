@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, Visitor, World, dropFoodItem } from "../utils/index.js";
-import { VISITOR_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
+import { errorHandler, getCredentials, World, dropFoodItem, getVisitor, removeFoodFromVisitor } from "../utils/index.js";
 import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG } from "@shared/types/FoodItem.js";
@@ -9,14 +8,12 @@ import { calculateNutritionScore, detectSuperCombos, getCurrentDateMT } from "..
 export const handleSubmitMeal = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { urlSlug, visitorId } = credentials;
+    const { urlSlug } = credentials;
 
     const world = World.create(urlSlug, { credentials });
 
-    // Fetch visitor data
-    const visitor = await Visitor.get(visitorId, urlSlug, { credentials });
-    await visitor.fetchDataObject();
-    const visitorData = { ...VISITOR_DATA_DEFAULTS, ...visitor.dataObject };
+    // Fetch visitor with data and bag
+    const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
 
     // Already completed?
     if (visitorData.completedToday) {
@@ -24,7 +21,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     }
 
     // Validate: bag contains all ideal meal items
-    const bagItemIds = new Set(visitorData.brownBag.map((i: any) => i.itemId));
+    const bagItemIds = new Set(brownBag.map((i) => i.itemId));
     const missingItems = visitorData.idealMeal.filter((item: any) => !bagItemIds.has(item.itemId));
 
     if (missingItems.length > 0) {
@@ -45,7 +42,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     const nutritionResult = calculateNutritionScore(mealItemIds);
 
     // Detect super combos
-    const allBagItemIds = visitorData.brownBag.map((i: any) => i.itemId);
+    const allBagItemIds = brownBag.map((i) => i.itemId);
     const superCombos = detectSuperCombos(allBagItemIds);
     const superComboNames = superCombos.map((c) => c.name);
 
@@ -88,10 +85,20 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     const newLongestStreak = Math.max(visitorData.longestStreak, newStreak);
     const newBestNutrition = Math.max(visitorData.bestNutritionScore, nutritionResult.score);
 
-    // Update visitor data
+    // Separate meal items from remaining bag items
     const idealMealItemIds = new Set(mealItemIds);
-    const remainingBag = visitorData.brownBag.filter((i: any) => !idealMealItemIds.has(i.itemId));
+    const remainingBag = brownBag.filter((i) => !idealMealItemIds.has(i.itemId));
 
+    // Remove all items from inventory
+    for (const item of brownBag) {
+      try {
+        await removeFoodFromVisitor(visitor, credentials, item.itemId);
+      } catch (err) {
+        console.warn("Failed to remove bag item from inventory:", item.itemId, err);
+      }
+    }
+
+    // Update visitor data
     await visitor.updateDataObject({
       totalXp: newTotalXp,
       level: newLevel,
@@ -105,7 +112,6 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
       completionTimestamp: new Date().toISOString(),
       nutritionScore: nutritionResult.score,
       superCombosFound: superComboNames,
-      brownBag: [], // Clear bag — remaining items will be auto-dropped
     });
 
     // Auto-drop remaining non-meal items into world

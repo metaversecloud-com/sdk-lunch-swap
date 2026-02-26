@@ -1,34 +1,29 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, Visitor, dropFoodItem, World } from "../utils/index.js";
-import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
+import { errorHandler, getCredentials, dropFoodItem, World, getVisitor, removeFoodFromVisitor, getVisitorBag } from "../utils/index.js";
+import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { XP_ACTIONS } from "@shared/data/xpConfig.js";
 
 export const handleDropItem = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { urlSlug, visitorId } = credentials;
+    const { urlSlug } = credentials;
     const { itemId } = req.body;
 
     if (!itemId) {
       return res.status(400).json({ success: false, message: "Missing itemId" });
     }
 
-    // Fetch visitor data
-    const visitor = await Visitor.get(visitorId, urlSlug, { credentials });
-    await visitor.fetchDataObject();
-    const visitorData = { ...VISITOR_DATA_DEFAULTS, ...visitor.dataObject };
+    // Fetch visitor with data and bag
+    const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
 
     // Find item in bag
-    const bagIndex = visitorData.brownBag.findIndex((i: any) => i.itemId === itemId);
-    if (bagIndex === -1) {
+    const droppedItem = brownBag.find((i) => i.itemId === itemId);
+    if (!droppedItem) {
       return res.status(400).json({ success: false, message: "Item not found in bag" });
     }
 
-    const droppedItem = visitorData.brownBag[bagIndex];
-
-    // Remove from bag
-    const updatedBag = [...visitorData.brownBag];
-    updatedBag.splice(bagIndex, 1);
+    // Remove from inventory
+    await removeFoodFromVisitor(visitor, credentials, itemId);
 
     // Drop item into world near visitor position
     const droppedAsset = await dropFoodItem({
@@ -43,7 +38,6 @@ export const handleDropItem = async (req: Request, res: Response) => {
 
     // Update visitor data (reset idealPickupStreak on drop)
     await visitor.updateDataObject({
-      brownBag: updatedBag,
       idealPickupStreak: 0,
       dropsToday: visitorData.dropsToday + 1,
       totalDrops: visitorData.totalDrops + 1,
@@ -59,6 +53,9 @@ export const handleDropItem = async (req: Request, res: Response) => {
     await world.updateDataObject({
       totalDrops: worldData.totalDrops + 1,
     });
+
+    // Read updated bag from inventory
+    const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal);
 
     return res.json({
       success: true,

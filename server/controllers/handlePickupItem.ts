@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, Visitor, World, DroppedAsset } from "../utils/index.js";
-import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
+import { errorHandler, getCredentials, World, DroppedAsset, getVisitor, grantFoodToVisitor, getVisitorBag } from "../utils/index.js";
+import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
 import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION, XP_ACTIONS } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG, Rarity, BagItem } from "@shared/types/FoodItem.js";
@@ -8,7 +8,7 @@ import { RARITY_CONFIG, Rarity, BagItem } from "@shared/types/FoodItem.js";
 export const handlePickupItem = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { urlSlug, visitorId } = credentials;
+    const { urlSlug } = credentials;
     const { droppedAssetId } = req.body;
 
     if (!droppedAssetId) {
@@ -50,17 +50,15 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "Unknown food item" });
     }
 
-    // Fetch visitor data
-    const visitor = await Visitor.get(visitorId, urlSlug, { credentials });
-    await visitor.fetchDataObject();
-    const visitorData = { ...VISITOR_DATA_DEFAULTS, ...visitor.dataObject };
+    // Fetch visitor with data and bag
+    const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
 
     // Check bag capacity (B13: dynamic message, D1: 8 pre-completion, 3 post-completion)
     const maxCapacity = visitorData.completedToday ? BAG_CAPACITY_POST_COMPLETION : BAG_CAPACITY;
-    if (visitorData.brownBag.length >= maxCapacity) {
+    if (brownBag.length >= maxCapacity) {
       return res.status(400).json({
         success: false,
-        message: `Bag is full (${visitorData.brownBag.length}/${maxCapacity})`,
+        message: `Bag is full (${brownBag.length}/${maxCapacity})`,
       });
     }
 
@@ -75,7 +73,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     const idealItemIds = new Set(visitorData.idealMeal?.map((i: any) => i.itemId) || []);
     const matchesIdealMeal = idealItemIds.has(itemId);
 
-    // Add item to bag
+    // Build bag item and grant to inventory
     const newBagItem: BagItem = {
       itemId: foodDef.itemId,
       name: foodDef.name,
@@ -84,7 +82,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       matchesIdealMeal,
     };
 
-    const updatedBag = [...visitorData.brownBag, newBagItem];
+    await grantFoodToVisitor(visitor, credentials, newBagItem);
 
     // Update ideal meal collected status
     const updatedIdealMeal = visitorData.idealMeal.map((item: any) => ({
@@ -98,7 +96,6 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     const wasHotStreak = visitorData.hotStreakActive || false;
 
     const updatedData = {
-      brownBag: updatedBag,
       idealMeal: updatedIdealMeal,
       pickupsToday: (visitorData.pickupsToday || 0) + 1,
       totalPickups: (visitorData.totalPickups || 0) + 1,
@@ -106,7 +103,6 @@ export const handlePickupItem = async (req: Request, res: Response) => {
 
     if (wasHotStreak) {
       xpMultiplier = 3;
-      // Reset hot streak after consuming it
       await visitor.updateDataObject({
         ...updatedData,
         hotStreakActive: false,
@@ -121,7 +117,6 @@ export const handlePickupItem = async (req: Request, res: Response) => {
         hotStreakActive: hotStreakActivated,
       });
       if (hotStreakActivated) {
-        // Fire "HOT STREAK!" toast
         const world2 = World.create(urlSlug, { credentials });
         world2
           .fireToast?.({
@@ -160,6 +155,9 @@ export const handlePickupItem = async (req: Request, res: Response) => {
         text: foodDef.funFact,
       })
       .catch(() => {});
+
+    // Read updated bag from inventory
+    const updatedBag = await getVisitorBag(visitor, updatedIdealMeal);
 
     return res.json({
       success: true,

@@ -38,8 +38,12 @@ jest.mock("../utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
-  Visitor: { get: jest.fn() },
+  getKeyAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn(),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  dropFoodItem: jest.fn().mockResolvedValue(undefined),
   World: { create: jest.fn() },
   User: { create: jest.fn() },
   DroppedAsset: { get: jest.fn(), drop: jest.fn() },
@@ -68,31 +72,26 @@ const completeBag = [
 ];
 
 function setupMocks(opts: {
+  brownBag?: any[];
   visitorData?: any;
-  userData?: any;
   worldData?: any;
 } = {}) {
   const {
+    brownBag = [...completeBag],
     visitorData = {
-      brownBag: [...completeBag],
       idealMeal: [...idealMeal],
       completedToday: false,
       pickupsToday: 5,
       nutritionScore: null,
       superCombosFound: [],
-    },
-    userData = {
       totalXp: 0,
       level: 1,
       totalMealsCompleted: 0,
-      totalPickups: 5,
-      totalDrops: 0,
       totalSuperCombos: 0,
       bestNutritionScore: 0,
       currentStreak: 0,
       longestStreak: 0,
       lastCompletionDate: "",
-      uniqueItemsCollected: [],
     },
     worldData = {
       totalCompletionsToday: 0,
@@ -100,28 +99,14 @@ function setupMocks(opts: {
   } = opts;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
-  mockUtils.getDroppedAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
+  mockUtils.getKeyAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
 
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = visitorData;
-      return Promise.resolve();
-    }),
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
     dataObject: visitorData,
-  };
-
-  const mockUser = {
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = userData;
-      return Promise.resolve();
-    }),
-    updateDataObject: jest.fn().mockResolvedValue(undefined),
-    incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
-    dataObject: userData,
   };
 
   const mockWorld = {
@@ -131,13 +116,11 @@ function setupMocks(opts: {
     dataObject: worldData,
   };
 
-  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
-  mockUtils.User.create.mockReturnValue(mockUser);
+  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
   mockUtils.World.create.mockReturnValue(mockWorld);
-  mockUtils.Asset.create.mockResolvedValue({ id: "new-asset-id" });
-  mockUtils.DroppedAsset.drop.mockResolvedValue(undefined);
+  mockUtils.dropFoodItem.mockResolvedValue(undefined);
 
-  return { mockVisitor, mockUser, mockWorld };
+  return { mockVisitor, mockWorld };
 }
 
 describe("POST /api/submit-meal", () => {
@@ -156,7 +139,7 @@ describe("POST /api/submit-meal", () => {
   });
 
   test("successful submission: nutrition score calculated, XP awarded, completedToday set", async () => {
-    const { mockVisitor, mockUser } = setupMocks();
+    const { mockVisitor } = setupMocks();
 
     const app = makeApp();
     const res = await request(app)
@@ -181,30 +164,23 @@ describe("POST /api/submit-meal", () => {
     expect(res.body.currentStreak).toBe(1);
     expect(res.body.longestStreak).toBe(1);
 
-    // Visitor data updated with completedToday
+    // Visitor data updated with completedToday and XP
     expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
       expect.objectContaining({
         completedToday: true,
         nutritionScore: 85,
         superCombosFound: [],
-        brownBag: [],
-      }),
-    );
-
-    // User data updated
-    expect(mockUser.updateDataObject).toHaveBeenCalledWith(
-      expect.objectContaining({
         totalXp: 160,
         currentStreak: 1,
         longestStreak: 1,
-        lastCompletionDate: "2026-02-07",
         bestNutritionScore: 85,
+        totalMealsCompleted: 1,
+        totalSuperCombos: 0,
       }),
     );
 
-    // Atomic increments on user
-    expect(mockUser.incrementDataObjectValue).toHaveBeenCalledWith("totalMealsCompleted", 1);
-    expect(mockUser.incrementDataObjectValue).toHaveBeenCalledWith("totalSuperCombos", 0);
+    // All bag items removed from inventory
+    expect(mockUtils.removeFoodFromVisitor).toHaveBeenCalledTimes(5);
   });
 
   test("incomplete meal: missing items returns 400", async () => {
@@ -216,13 +192,21 @@ describe("POST /api/submit-meal", () => {
     ];
 
     setupMocks({
+      brownBag: incompleteBag,
       visitorData: {
-        brownBag: incompleteBag,
         idealMeal: [...idealMeal],
         completedToday: false,
         pickupsToday: 3,
         nutritionScore: null,
         superCombosFound: [],
+        totalXp: 0,
+        level: 1,
+        totalMealsCompleted: 0,
+        totalSuperCombos: 0,
+        bestNutritionScore: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastCompletionDate: "",
       },
     });
 
@@ -247,12 +231,19 @@ describe("POST /api/submit-meal", () => {
   test("already completed today: returns 400", async () => {
     setupMocks({
       visitorData: {
-        brownBag: [...completeBag],
         idealMeal: [...idealMeal],
         completedToday: true,
         pickupsToday: 5,
         nutritionScore: 85,
         superCombosFound: [],
+        totalXp: 160,
+        level: 1,
+        totalMealsCompleted: 1,
+        totalSuperCombos: 0,
+        bestNutritionScore: 85,
+        currentStreak: 1,
+        longestStreak: 1,
+        lastCompletionDate: "2026-02-07",
       },
     });
 
@@ -293,18 +284,20 @@ describe("POST /api/submit-meal", () => {
     const yesterdayStr = yesterday.toLocaleDateString("en-CA", { timeZone: "America/Denver" });
 
     setupMocks({
-      userData: {
+      visitorData: {
+        idealMeal: [...idealMeal],
+        completedToday: false,
+        pickupsToday: 5,
+        nutritionScore: null,
+        superCombosFound: [],
         totalXp: 500,
         level: 3,
         totalMealsCompleted: 5,
-        totalPickups: 25,
-        totalDrops: 0,
         totalSuperCombos: 1,
         bestNutritionScore: 80,
         currentStreak: 3,
         longestStreak: 5,
         lastCompletionDate: yesterdayStr,
-        uniqueItemsCollected: [],
       },
     });
 
@@ -327,18 +320,20 @@ describe("POST /api/submit-meal", () => {
 
   test("streak logic: starting fresh when lastCompletionDate is older than yesterday", async () => {
     setupMocks({
-      userData: {
+      visitorData: {
+        idealMeal: [...idealMeal],
+        completedToday: false,
+        pickupsToday: 5,
+        nutritionScore: null,
+        superCombosFound: [],
         totalXp: 500,
         level: 3,
         totalMealsCompleted: 5,
-        totalPickups: 25,
-        totalDrops: 0,
         totalSuperCombos: 1,
         bestNutritionScore: 80,
         currentStreak: 7,
         longestStreak: 7,
         lastCompletionDate: "2026-01-01", // Long ago
-        uniqueItemsCollected: [],
       },
     });
 
@@ -367,13 +362,21 @@ describe("POST /api/submit-meal", () => {
     ];
 
     setupMocks({
+      brownBag: bagWithExtras,
       visitorData: {
-        brownBag: bagWithExtras,
         idealMeal: [...idealMeal],
         completedToday: false,
         pickupsToday: 7,
         nutritionScore: null,
         superCombosFound: [],
+        totalXp: 0,
+        level: 1,
+        totalMealsCompleted: 0,
+        totalSuperCombos: 0,
+        bestNutritionScore: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastCompletionDate: "",
       },
     });
 
@@ -384,24 +387,10 @@ describe("POST /api/submit-meal", () => {
       .send({});
 
     expect(res.status).toBe(200);
-    // 2 remaining non-meal items should be auto-dropped
-    expect(mockUtils.Asset.create).toHaveBeenCalledTimes(2);
-    expect(mockUtils.DroppedAsset.drop).toHaveBeenCalledTimes(2);
-    // Each drop should have a unique name with the item's id
-    expect(mockUtils.DroppedAsset.drop).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        uniqueName: expect.stringContaining("lunch-swap-food|popcorn|common|"),
-        urlSlug: "my-world",
-        isInteractive: true,
-      }),
-    );
-    expect(mockUtils.DroppedAsset.drop).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        uniqueName: expect.stringContaining("lunch-swap-food|banana|common|"),
-      }),
-    );
+    // All 7 bag items removed from inventory
+    expect(mockUtils.removeFoodFromVisitor).toHaveBeenCalledTimes(7);
+    // 2 remaining non-meal items should be auto-dropped via dropFoodItem
+    expect(mockUtils.dropFoodItem).toHaveBeenCalledTimes(2);
   });
 
   test("world totalCompletionsToday incremented (B12)", async () => {

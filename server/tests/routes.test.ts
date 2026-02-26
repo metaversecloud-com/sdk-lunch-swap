@@ -53,8 +53,12 @@ jest.mock("../utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
-  Visitor: { get: jest.fn() },
+  getKeyAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn(),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  dropFoodItem: jest.fn().mockResolvedValue(undefined),
   World: { create: jest.fn() },
   User: { create: jest.fn() },
   DroppedAsset: { get: jest.fn(), drop: jest.fn() },
@@ -63,21 +67,17 @@ jest.mock("../utils/index.js", () => ({
 
 const mockUtils = jest.mocked(require("../utils/index.js"));
 
-function setupMocks(overrides: { isNewDay?: boolean; visitorData?: any; userData?: any; worldData?: any } = {}) {
-  const { isNewDay: newDay = true, visitorData = {}, userData = {}, worldData = {} } = overrides;
+function setupMocks(overrides: { isNewDay?: boolean; brownBag?: any[]; visitorData?: any; userData?: any; worldData?: any } = {}) {
+  const { isNewDay: newDay = true, brownBag = [], visitorData = {}, worldData = {} } = overrides;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
-  mockUtils.getDroppedAsset.mockResolvedValue({
+  mockUtils.getKeyAsset.mockResolvedValue({
     id: "dropped-asset-123",
     position: { x: 100, y: 200 },
   });
 
   const mockVisitor = {
     isAdmin: false,
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = visitorData;
-      return Promise.resolve();
-    }),
     setDataObject: jest.fn().mockResolvedValue(undefined),
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     dataObject: visitorData,
@@ -94,24 +94,16 @@ function setupMocks(overrides: { isNewDay?: boolean; visitorData?: any; userData
     dataObject: worldData,
   };
 
-  const mockUser = {
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = userData;
-      return Promise.resolve();
-    }),
-    updateDataObject: jest.fn().mockResolvedValue(undefined),
-    dataObject: userData,
-  };
-
-  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
+  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
   mockUtils.World.create.mockReturnValue(mockWorld);
-  mockUtils.User.create.mockReturnValue(mockUser);
-  mockUtils.Asset.create.mockResolvedValue({ id: "new-asset" });
-  mockUtils.DroppedAsset.drop.mockResolvedValue({ id: "new-dropped" });
+
+  // For new day, getVisitorBag returns the generated brown bag
+  const generatedBag = mockGameLogic.generateBrownBag();
+  mockUtils.getVisitorBag.mockResolvedValue(generatedBag);
 
   mockGameLogic.isNewDay.mockReturnValue(newDay);
 
-  return { mockVisitor, mockWorld, mockUser };
+  return { mockVisitor, mockWorld };
 }
 
 describe("routes", () => {
@@ -154,15 +146,18 @@ describe("routes", () => {
 
       setupMocks({
         isNewDay: false,
+        brownBag: existingBag,
         visitorData: {
           lastPlayedDate: "2026-02-07",
-          brownBag: existingBag,
           idealMeal: existingMeal,
           completedToday: false,
           nutritionScore: null,
           superCombosFound: [],
+          totalXp: 50,
+          level: 1,
+          currentStreak: 2,
+          lastCompletionDate: "2026-02-06",
         },
-        userData: { totalXp: 50, level: 1, currentStreak: 2, lastCompletionDate: "2026-02-06" },
       });
 
       const app = makeApp();
@@ -180,13 +175,15 @@ describe("routes", () => {
         isNewDay: false,
         visitorData: {
           lastPlayedDate: "2026-02-07",
-          brownBag: [],
           idealMeal: [],
           completedToday: true,
           nutritionScore: 85,
           superCombosFound: ["Classic Combo"],
+          totalXp: 200,
+          level: 2,
+          currentStreak: 3,
+          lastCompletionDate: "2026-02-07",
         },
-        userData: { totalXp: 200, level: 2, currentStreak: 3, lastCompletionDate: "2026-02-07" },
       });
 
       const app = makeApp();
@@ -200,7 +197,7 @@ describe("routes", () => {
 
     test("handles errors gracefully", async () => {
       mockUtils.getCredentials.mockReturnValue(baseCreds);
-      mockUtils.getDroppedAsset.mockRejectedValue(new Error("Asset not found"));
+      mockUtils.getKeyAsset.mockRejectedValue(new Error("Asset not found"));
 
       const app = makeApp();
       await request(app).get("/api/game-state").query(baseCreds);

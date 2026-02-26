@@ -87,9 +87,14 @@ jest.mock("../utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
-  Visitor: { get: jest.fn() },
-  World: { create: jest.fn() },
+  getKeyAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn(),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  dropFoodItem: jest.fn().mockResolvedValue({ id: "new-dropped" }),
+  Visitor: { get: jest.fn(), create: jest.fn() },
+  World: { create: jest.fn(), deleteDroppedAssets: jest.fn() },
   User: { create: jest.fn() },
   DroppedAsset: { get: jest.fn(), drop: jest.fn() },
   Asset: { create: jest.fn() },
@@ -103,23 +108,38 @@ const mockUtils = jest.mocked(require("../utils/index.js"));
 // -----------------------------------------------------------------------
 
 let visitorData: Record<string, any>;
-let userData: Record<string, any>;
 let worldData: Record<string, any>;
+let currentBag: any[];
 
 function resetState() {
-  visitorData = {};
-  userData = {};
+  visitorData = {
+    totalXp: 0,
+    level: 1,
+    currentStreak: 0,
+    longestStreak: 0,
+    bestNutritionScore: 0,
+    totalMealsCompleted: 0,
+    totalPickups: 0,
+    totalDrops: 0,
+    totalSuperCombos: 0,
+    idealPickupStreak: 0,
+    hotStreakActive: false,
+    completedToday: false,
+    pickupsToday: 0,
+    dropsToday: 0,
+  };
   worldData = {};
+  currentBag = [];
 }
 
 /**
  * Wire up all mocks so they behave like a coherent in-memory store.
  * Each request gets fresh mock function instances but they all read/write
- * the shared `visitorData`, `userData`, `worldData` objects above.
+ * the shared `visitorData`, `worldData`, `currentBag` objects above.
  */
 function setupIntegrationMocks() {
   mockUtils.getCredentials.mockReturnValue(baseCreds);
-  mockUtils.getDroppedAsset.mockResolvedValue({
+  mockUtils.getKeyAsset.mockResolvedValue({
     id: "key-asset-1",
     position: { x: 0, y: 0 },
   });
@@ -144,27 +164,41 @@ function setupIntegrationMocks() {
       visitorData[key] = (visitorData[key] || 0) + amount;
       return Promise.resolve();
     }),
+    fetchInventoryItems: jest.fn().mockResolvedValue(undefined),
+    inventoryItems: [],
     dataObject: visitorData,
   });
-  mockUtils.Visitor.get.mockImplementation(() => Promise.resolve(makeVisitor()));
 
-  // User mock ----------------------------------------------------------
-  const makeUser = () => ({
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = { ...userData };
-      return Promise.resolve();
-    }),
-    updateDataObject: jest.fn().mockImplementation((data: any) => {
-      userData = { ...userData, ...data };
-      return Promise.resolve();
-    }),
-    incrementDataObjectValue: jest.fn().mockImplementation((key: string, amount: number) => {
-      userData[key] = (userData[key] || 0) + amount;
-      return Promise.resolve();
-    }),
-    dataObject: userData,
+  // getVisitor returns visitor + visitorData + brownBag from shared state
+  mockUtils.getVisitor.mockImplementation(() => {
+    const visitor = makeVisitor();
+    return Promise.resolve({
+      visitor,
+      visitorData: { ...visitorData },
+      brownBag: [...currentBag],
+    });
   });
-  mockUtils.User.create.mockImplementation(() => makeUser());
+
+  // getVisitorBag returns current bag state
+  mockUtils.getVisitorBag.mockImplementation(() => {
+    return Promise.resolve([...currentBag]);
+  });
+
+  // grantFoodToVisitor adds item to bag
+  mockUtils.grantFoodToVisitor.mockImplementation((_visitor: any, _creds: any, bagItem: any) => {
+    currentBag.push({ ...bagItem });
+    return Promise.resolve();
+  });
+
+  // removeFoodFromVisitor removes item from bag
+  mockUtils.removeFoodFromVisitor.mockImplementation((_visitor: any, _creds: any, itemId: string) => {
+    const idx = currentBag.findIndex((i: any) => i.itemId === itemId);
+    if (idx >= 0) currentBag.splice(idx, 1);
+    return Promise.resolve();
+  });
+
+  // dropFoodItem
+  mockUtils.dropFoodItem.mockResolvedValue({ id: "new-dropped" });
 
   // World mock ---------------------------------------------------------
   const makeWorld = () => ({
@@ -185,10 +219,6 @@ function setupIntegrationMocks() {
     dataObject: worldData,
   });
   mockUtils.World.create.mockImplementation(() => makeWorld());
-
-  // Asset create / drop (used during new-day spawn & submit auto-drop) -
-  mockUtils.Asset.create.mockResolvedValue({ id: "new-asset" });
-  mockUtils.DroppedAsset.drop.mockResolvedValue({ id: "new-dropped" });
 }
 
 // -----------------------------------------------------------------------
@@ -236,9 +266,8 @@ describe("Integration: Full Game Flow", () => {
     // First, initialize the game state (new day)
     await request(app).get("/api/game-state").query(baseCreds);
 
-    // Now simulate picking up a food item from the world.
-    // We need the visitor data to already have the bag from step 1,
-    // which our mock store handles.
+    // Trim bag to 4 items to make space for pickup
+    currentBag.splice(4);
 
     // Set up a food asset that exists in the world
     const foodAssetUniqueName = `lunch-swap-food|apple|common|${Date.now()}|0`;
@@ -255,10 +284,6 @@ describe("Integration: Full Game Flow", () => {
     };
     mockUtils.DroppedAsset.get.mockResolvedValue(mockFoodAsset);
 
-    // The visitor already has 8 items from the new-day state,
-    // so we need to simulate that bag has space. Let's trim the bag to 4 items
-    // by directly mutating the shared state (simulating the player dropped some items).
-    visitorData.brownBag = visitorData.brownBag.slice(0, 4);
     visitorData.pickupsToday = 0;
 
     const res = await request(app)
@@ -286,9 +311,9 @@ describe("Integration: Full Game Flow", () => {
     // Initialize game state
     await request(app).get("/api/game-state").query(baseCreds);
 
-    // Ensure the bag has items and dropsToday is set
+    // Ensure dropsToday is set
     visitorData.dropsToday = 0;
-    const bagSizeBefore = visitorData.brownBag.length;
+    const bagSizeBefore = currentBag.length;
 
     // Drop an extra item (banana) that is in the bag
     const res = await request(app)

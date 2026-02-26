@@ -31,8 +31,12 @@ jest.mock("../utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
-  Visitor: { get: jest.fn() },
+  getKeyAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn(),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  dropFoodItem: jest.fn().mockResolvedValue({ id: "new-dropped-asset" }),
   World: { create: jest.fn() },
   User: { create: jest.fn() },
   DroppedAsset: { get: jest.fn(), drop: jest.fn() },
@@ -42,57 +46,53 @@ jest.mock("../utils/index.js", () => ({
 const mockUtils = jest.mocked(require("../utils/index.js"));
 
 function setupMocks(opts: {
+  brownBag?: any[];
   visitorData?: any;
   dropReturns?: any;
-  assetCreateReturns?: any;
 } = {}) {
   const {
+    brownBag = [
+      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
+      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: true },
+    ],
     visitorData = {
-      brownBag: [
-        { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
-        { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: true },
-      ],
       idealMeal: [],
       completedToday: false,
       pickupsToday: 0,
       dropsToday: 0,
+      totalDrops: 0,
     },
     dropReturns = { id: "new-dropped-asset" },
-    assetCreateReturns = { id: "new-asset" },
   } = opts;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
-  mockUtils.getDroppedAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
+  mockUtils.getKeyAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
 
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = visitorData;
-      return Promise.resolve();
-    }),
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
     dataObject: visitorData,
   };
 
-  const mockUser = {
-    incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
-  };
-
   const mockWorld = {
     fireToast: jest.fn().mockResolvedValue(undefined),
-    fetchDataObject: jest.fn().mockResolvedValue(undefined),
+    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
+      this.dataObject = {};
+      return Promise.resolve();
+    }),
+    updateDataObject: jest.fn().mockResolvedValue(undefined),
     dataObject: {},
   };
 
-  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
-  mockUtils.User.create.mockReturnValue(mockUser);
+  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
+  // Default: after removing apple, only banana remains
+  mockUtils.getVisitorBag.mockResolvedValue(brownBag.filter(i => i.itemId !== "apple"));
+  mockUtils.dropFoodItem.mockResolvedValue(dropReturns);
   mockUtils.World.create.mockReturnValue(mockWorld);
-  mockUtils.Asset.create.mockResolvedValue(assetCreateReturns);
-  mockUtils.DroppedAsset.drop.mockResolvedValue(dropReturns);
 
-  return { mockVisitor, mockUser, mockWorld };
+  return { mockVisitor, mockWorld };
 }
 
 describe("POST /api/drop-item", () => {
@@ -115,11 +115,12 @@ describe("POST /api/drop-item", () => {
     expect(res.body.droppedItem.itemId).toBe("apple");
     expect(res.body.droppedAssetId).toBe("new-dropped-asset");
     expect(res.body.xpEarned).toBe(5); // XP_ACTIONS.DROP
+    expect(mockUtils.removeFoodFromVisitor).toHaveBeenCalledWith(mockVisitor, baseCreds, "apple");
     expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
       expect.objectContaining({
-        brownBag: expect.arrayContaining([
-          expect.objectContaining({ itemId: "banana" }),
-        ]),
+        idealPickupStreak: 0,
+        dropsToday: 1,
+        totalDrops: 1,
       }),
     );
   });
@@ -150,8 +151,8 @@ describe("POST /api/drop-item", () => {
     expect(res.body.message).toBe("Missing itemId");
   });
 
-  test("increments visitor dropsToday and user totalDrops", async () => {
-    const { mockVisitor, mockUser } = setupMocks();
+  test("updates world totalDrops", async () => {
+    const { mockWorld } = setupMocks();
 
     const app = makeApp();
     await request(app)
@@ -159,11 +160,12 @@ describe("POST /api/drop-item", () => {
       .query(baseCreds)
       .send({ itemId: "apple" });
 
-    expect(mockVisitor.incrementDataObjectValue).toHaveBeenCalledWith("dropsToday", 1);
-    expect(mockUser.incrementDataObjectValue).toHaveBeenCalledWith("totalDrops", 1);
+    expect(mockWorld.updateDataObject).toHaveBeenCalledWith(
+      expect.objectContaining({ totalDrops: 1 }),
+    );
   });
 
-  test("dropped asset created with correct position near visitor moveTo", async () => {
+  test("dropped asset created via dropFoodItem with correct position and item data", async () => {
     setupMocks();
 
     const app = makeApp();
@@ -172,28 +174,13 @@ describe("POST /api/drop-item", () => {
       .query(baseCreds)
       .send({ itemId: "apple" });
 
-    // Asset.create should have been called
-    expect(mockUtils.Asset.create).toHaveBeenCalledWith("webImageAsset", expect.any(Object));
-
-    // DroppedAsset.drop should have been called with position near moveTo (100, 200)
-    expect(mockUtils.DroppedAsset.drop).toHaveBeenCalledWith(
-      { id: "new-asset" },
+    expect(mockUtils.dropFoodItem).toHaveBeenCalledWith(
       expect.objectContaining({
-        position: expect.objectContaining({
-          x: expect.any(Number),
-          y: expect.any(Number),
-        }),
-        urlSlug: "my-world",
-        isInteractive: true,
+        credentials: baseCreds,
+        position: { x: 100, y: 200 },
+        itemId: "apple",
+        rarity: "common",
       }),
     );
-
-    // Verify position is within offset range of moveTo (100 +/- 50, 200 +/- 50)
-    const dropCall = mockUtils.DroppedAsset.drop.mock.calls[0];
-    const dropPosition = dropCall[1].position;
-    expect(dropPosition.x).toBeGreaterThanOrEqual(50);
-    expect(dropPosition.x).toBeLessThanOrEqual(150);
-    expect(dropPosition.y).toBeGreaterThanOrEqual(150);
-    expect(dropPosition.y).toBeLessThanOrEqual(250);
   });
 });

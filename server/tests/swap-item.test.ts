@@ -31,8 +31,12 @@ jest.mock("../utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
-  Visitor: { get: jest.fn() },
+  getKeyAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn(),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  dropFoodItem: jest.fn().mockResolvedValue(undefined),
   World: { create: jest.fn() },
   User: { create: jest.fn() },
   DroppedAsset: { get: jest.fn(), drop: jest.fn() },
@@ -42,17 +46,18 @@ jest.mock("../utils/index.js", () => ({
 const mockUtils = jest.mocked(require("../utils/index.js"));
 
 function setupMocks(opts: {
+  brownBag?: any[];
   visitorData?: any;
   foodAssetExists?: boolean;
   foodAssetUniqueName?: string;
   deleteThrows?: boolean;
 } = {}) {
   const {
+    brownBag = [
+      { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", matchesIdealMeal: false },
+      { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", matchesIdealMeal: false },
+    ],
     visitorData = {
-      brownBag: [
-        { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", matchesIdealMeal: false },
-        { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", matchesIdealMeal: false },
-      ],
       idealMeal: [
         { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", collected: false },
         { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: true },
@@ -67,7 +72,7 @@ function setupMocks(opts: {
   } = opts;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
-  mockUtils.getDroppedAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
+  mockUtils.getKeyAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
 
   const mockFoodAsset = foodAssetExists
     ? {
@@ -86,16 +91,11 @@ function setupMocks(opts: {
     : null;
 
   mockUtils.DroppedAsset.get.mockResolvedValue(mockFoodAsset);
-  mockUtils.DroppedAsset.drop.mockResolvedValue(undefined as any);
-  mockUtils.Asset.create.mockResolvedValue({ id: "new-asset-id" } as any);
+  mockUtils.dropFoodItem.mockResolvedValue(undefined);
 
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = visitorData;
-      return Promise.resolve();
-    }),
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
     dataObject: visitorData,
@@ -111,7 +111,12 @@ function setupMocks(opts: {
     dataObject: {},
   };
 
-  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
+  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
+  // After swap: sandwich removed, banana added, water stays
+  mockUtils.getVisitorBag.mockResolvedValue([
+    { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", matchesIdealMeal: false },
+    { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: true },
+  ]);
   mockUtils.User.create.mockReturnValue(mockUser);
   mockUtils.World.create.mockReturnValue(mockWorld);
 
@@ -142,9 +147,10 @@ describe("POST /api/swap-item", () => {
     expect(res.body.xpEarned).toBeGreaterThan(0);
     // Verify the food asset was deleted (pickup)
     expect(mockFoodAsset!.deleteDroppedAsset).toHaveBeenCalled();
-    // Verify a new asset was dropped into the world
-    expect(mockUtils.Asset.create).toHaveBeenCalled();
-    expect(mockUtils.DroppedAsset.drop).toHaveBeenCalled();
+    // Verify inventory operations
+    expect(mockUtils.removeFoodFromVisitor).toHaveBeenCalledWith(mockVisitor, baseCreds, "sandwich");
+    expect(mockUtils.dropFoodItem).toHaveBeenCalled();
+    expect(mockUtils.grantFoodToVisitor).toHaveBeenCalled();
     // Verify visitor data was updated
     expect(mockVisitor.updateDataObject).toHaveBeenCalled();
     expect(mockVisitor.incrementDataObjectValue).toHaveBeenCalledWith("pickupsToday", 1);
@@ -184,10 +190,10 @@ describe("POST /api/swap-item", () => {
 
   test("XP without ideal meal bonus for non-matching item", async () => {
     setupMocks({
+      brownBag: [
+        { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", matchesIdealMeal: false },
+      ],
       visitorData: {
-        brownBag: [
-          { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", matchesIdealMeal: false },
-        ],
         idealMeal: [
           { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false },
         ],
@@ -196,6 +202,11 @@ describe("POST /api/swap-item", () => {
         dropsToday: 0,
       },
     });
+
+    // Update getVisitorBag for this test case
+    mockUtils.getVisitorBag.mockResolvedValue([
+      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
+    ]);
 
     const app = makeApp();
     const res = await request(app)

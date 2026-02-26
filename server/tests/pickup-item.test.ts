@@ -31,8 +31,12 @@ jest.mock("../utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
-  Visitor: { get: jest.fn() },
+  getKeyAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn(),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  dropFoodItem: jest.fn().mockResolvedValue(undefined),
   World: { create: jest.fn() },
   User: { create: jest.fn() },
   DroppedAsset: { get: jest.fn(), drop: jest.fn() },
@@ -42,17 +46,19 @@ jest.mock("../utils/index.js", () => ({
 const mockUtils = jest.mocked(require("../utils/index.js"));
 
 function setupMocks(opts: {
+  brownBag?: any[];
   visitorData?: any;
   foodAssetExists?: boolean;
   foodAssetUniqueName?: string;
   deleteThrows?: boolean;
 } = {}) {
   const {
+    brownBag = [],
     visitorData = {
-      brownBag: [],
       idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
       completedToday: false,
       pickupsToday: 0,
+      totalPickups: 0,
     },
     foodAssetExists = true,
     foodAssetUniqueName = `lunch-swap-food|apple|common|${Date.now()}`,
@@ -60,7 +66,7 @@ function setupMocks(opts: {
   } = opts;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
-  mockUtils.getDroppedAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
+  mockUtils.getKeyAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
 
   const mockFoodAsset = foodAssetExists
     ? {
@@ -83,30 +89,35 @@ function setupMocks(opts: {
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = visitorData;
-      return Promise.resolve();
-    }),
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
     dataObject: visitorData,
   };
 
-  const mockUser = {
-    incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
-  };
-
   const mockWorld = {
     fireToast: jest.fn().mockResolvedValue(undefined),
-    fetchDataObject: jest.fn().mockResolvedValue(undefined),
+    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
+      this.dataObject = {};
+      return Promise.resolve();
+    }),
+    updateDataObject: jest.fn().mockResolvedValue(undefined),
     dataObject: {},
   };
 
-  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
-  mockUtils.User.create.mockReturnValue(mockUser);
+  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
+  // After pickup, bag has the new item
+  const matchesIdeal = visitorData.idealMeal?.some((i: any) => i.itemId === "apple") ?? false;
+  const pickedUpItem = {
+    itemId: "apple",
+    name: "Apple",
+    foodGroup: "fruit",
+    rarity: "common",
+    matchesIdealMeal: matchesIdeal,
+  };
+  mockUtils.getVisitorBag.mockResolvedValue([...brownBag, pickedUpItem]);
   mockUtils.World.create.mockReturnValue(mockWorld);
 
-  return { mockFoodAsset, mockVisitor, mockUser, mockWorld };
+  return { mockFoodAsset, mockVisitor, mockWorld };
 }
 
 describe("POST /api/pickup-item", () => {
@@ -125,15 +136,14 @@ describe("POST /api/pickup-item", () => {
     expect(res.body.success).toBe(true);
     expect(res.body.brownBag).toHaveLength(1);
     expect(res.body.brownBag[0].itemId).toBe("apple");
-    expect(res.body.brownBag[0].name).toBe("Apple");
     expect(res.body.brownBag[0].matchesIdealMeal).toBe(true);
     expect(res.body.matchesIdealMeal).toBe(true);
     expect(res.body.xpEarned).toBeGreaterThan(0);
     expect(res.body.funFact).toBeTruthy();
     expect(res.body.pickedUpItem).toBeDefined();
     expect(mockFoodAsset!.deleteDroppedAsset).toHaveBeenCalled();
+    expect(mockUtils.grantFoodToVisitor).toHaveBeenCalled();
     expect(mockVisitor.updateDataObject).toHaveBeenCalled();
-    expect(mockVisitor.incrementDataObjectValue).toHaveBeenCalledWith("pickupsToday", 1);
   });
 
   test("XP includes COLLECT_IDEAL_ITEM bonus when item matches ideal meal", async () => {
@@ -153,10 +163,10 @@ describe("POST /api/pickup-item", () => {
   test("XP without ideal meal bonus for non-matching item", async () => {
     setupMocks({
       visitorData: {
-        brownBag: [],
         idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false }],
         completedToday: false,
         pickupsToday: 0,
+        totalPickups: 0,
       },
     });
 
@@ -175,13 +185,13 @@ describe("POST /api/pickup-item", () => {
   test("updates ideal meal collected status when matching item picked up", async () => {
     setupMocks({
       visitorData: {
-        brownBag: [],
         idealMeal: [
           { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false },
           { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false },
         ],
         completedToday: false,
         pickupsToday: 0,
+        totalPickups: 0,
       },
     });
 
@@ -216,7 +226,10 @@ describe("POST /api/pickup-item", () => {
       rarity: "common",
       matchesIdealMeal: false,
     }));
-    setupMocks({ visitorData: { brownBag: fullBag, idealMeal: [], completedToday: false, pickupsToday: 5 } });
+    setupMocks({
+      brownBag: fullBag,
+      visitorData: { idealMeal: [], completedToday: false, pickupsToday: 5, totalPickups: 5 },
+    });
 
     const app = makeApp();
     const res = await request(app)
@@ -236,7 +249,10 @@ describe("POST /api/pickup-item", () => {
       rarity: "common",
       matchesIdealMeal: false,
     }));
-    setupMocks({ visitorData: { brownBag: postCompBag, idealMeal: [], completedToday: true, pickupsToday: 3 } });
+    setupMocks({
+      brownBag: postCompBag,
+      visitorData: { idealMeal: [], completedToday: true, pickupsToday: 3, totalPickups: 3 },
+    });
 
     const app = makeApp();
     const res = await request(app)
@@ -272,18 +288,6 @@ describe("POST /api/pickup-item", () => {
 
     expect(res.status).toBe(409);
     expect(res.body.message).toBe("This item was already picked up");
-  });
-
-  test("increments user totalPickups", async () => {
-    const { mockUser } = setupMocks();
-
-    const app = makeApp();
-    await request(app)
-      .post("/api/pickup-item")
-      .query(baseCreds)
-      .send({ droppedAssetId: "food-asset-1" });
-
-    expect(mockUser.incrementDataObjectValue).toHaveBeenCalledWith("totalPickups", 1);
   });
 
   test("fires toast with fun fact", async () => {

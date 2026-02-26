@@ -1,5 +1,7 @@
 // ---- Shared mock state ----
 const mockVisitorData: Record<string, any> = {};
+const mockVisitorInventory: any[] = [];
+const mockEcosystemInventory: any[] = [];
 const mockUserData: Record<string, any> = {};
 const mockWorldData: Record<string, any> = {};
 const mockDroppedAssetData: Record<string, any> = {};
@@ -31,6 +33,12 @@ function createMockVisitor() {
     fireToast: jest.fn().mockResolvedValue(undefined),
     triggerParticle: jest.fn().mockResolvedValue(undefined),
     grantInventoryItem: jest.fn().mockResolvedValue(undefined),
+    fetchInventoryItems: jest.fn().mockImplementation(function (this: any) {
+      this.inventoryItems = mockVisitorInventory;
+      return Promise.resolve(mockVisitorInventory);
+    }),
+    modifyInventoryItemQuantity: jest.fn().mockResolvedValue(undefined),
+    inventoryItems: mockVisitorInventory,
     dataObject: mockVisitorData,
   };
 }
@@ -148,7 +156,13 @@ export class WorldFactory {
 
 export class EcosystemFactory {
   constructor(_topia: any) {}
-  fetchInventoryItems = jest.fn().mockResolvedValue([]);
+  create = jest.fn().mockReturnValue({
+    fetchInventoryItems: jest.fn().mockImplementation(function (this: any) {
+      this.inventoryItems = mockEcosystemInventory;
+      return Promise.resolve(mockEcosystemInventory);
+    }),
+    inventoryItems: mockEcosystemInventory,
+  });
 }
 
 // ---- DroppedAssetInterface (type stub for IDroppedAsset) ----
@@ -160,6 +174,11 @@ export interface DroppedAssetInterface {
   [key: string]: any;
 }
 
+// ---- VisitorInterface (type stub) ----
+export interface VisitorInterface {
+  [key: string]: any;
+}
+
 // ---- Test control ----
 export const __mock = {
   get visitor() { return _visitor; },
@@ -167,6 +186,8 @@ export const __mock = {
   get world() { return _world; },
   get droppedAsset() { return _droppedAsset; },
   get visitorData() { return mockVisitorData; },
+  get visitorInventory() { return mockVisitorInventory; },
+  get ecosystemInventory() { return mockEcosystemInventory; },
   get userData() { return mockUserData; },
   get worldData() { return mockWorldData; },
   get droppedAssetData() { return mockDroppedAssetData; },
@@ -174,6 +195,15 @@ export const __mock = {
     Object.keys(mockVisitorData).forEach(k => delete mockVisitorData[k]);
     Object.assign(mockVisitorData, data);
     _visitor.dataObject = mockVisitorData;
+  },
+  setVisitorInventory(items: any[]) {
+    mockVisitorInventory.length = 0;
+    mockVisitorInventory.push(...items);
+    _visitor.inventoryItems = mockVisitorInventory;
+  },
+  setEcosystemInventory(items: any[]) {
+    mockEcosystemInventory.length = 0;
+    mockEcosystemInventory.push(...items);
   },
   setUserData(data: any) {
     Object.keys(mockUserData).forEach(k => delete mockUserData[k]);
@@ -196,6 +226,8 @@ export const __mock = {
     Object.keys(mockUserData).forEach(k => delete mockUserData[k]);
     Object.keys(mockWorldData).forEach(k => delete mockWorldData[k]);
     Object.keys(mockDroppedAssetData).forEach(k => delete mockDroppedAssetData[k]);
+    mockVisitorInventory.length = 0;
+    mockEcosystemInventory.length = 0;
     // Recreate instances
     _visitor = createMockVisitor();
     _user = createMockUser();

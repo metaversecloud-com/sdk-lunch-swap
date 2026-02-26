@@ -9,10 +9,10 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     name: "Water",
     foodGroup: "drink",
     rarity: "common",
-    imageUrl: "",
     nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] },
     funFact: "Your brain is about 75% water — staying hydrated helps you think faster and focus better in school!",
     superComboPairs: [],
+    sortOrder: 0,
   },
   {
     itemId: "milk",
@@ -23,6 +23,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] },
     funFact: "A single cow produces about 6 gallons of milk per day — that's enough to fill almost 100 glasses!",
     superComboPairs: ["granola-bar"],
+    sortOrder: 1,
   },
   {
     itemId: "orange-juice",
@@ -33,6 +34,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     nutrition: { calories: 110, protein: 2, carbs: 26, fiber: 0, vitamins: ["C", "A"] },
     funFact: "It takes about 3 whole oranges to make just one glass of orange juice!",
     superComboPairs: [],
+    sortOrder: 2,
   },
   {
     itemId: "apple-juice",
@@ -44,6 +46,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Apple juice was one of the first fruit juices made in ancient history — people have been drinking it for over 1,000 years!",
     superComboPairs: ["popcorn"],
+    sortOrder: 3,
   },
   {
     itemId: "chocolate-milk",
@@ -55,6 +58,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Many athletes drink chocolate milk after workouts because it has the perfect mix of protein and carbs for recovery!",
     superComboPairs: [],
+    sortOrder: 4,
   },
   {
     itemId: "smoothie",
@@ -66,6 +70,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "The first smoothies were made in the 1930s — back then they were called 'health shakes' and sold at health food stores!",
     superComboPairs: [],
+    sortOrder: 5,
   },
   {
     itemId: "coconut-water",
@@ -76,6 +81,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     nutrition: { calories: 45, protein: 2, carbs: 9, fiber: 0, vitamins: ["C", "B6"] },
     funFact: "Coconut water is naturally sterile and has been used as emergency IV fluid in tropical countries!",
     superComboPairs: ["trail-mix"],
+    sortOrder: 6,
   },
   {
     itemId: "green-smoothie",
@@ -87,6 +93,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Green smoothies get their color from chlorophyll — the same molecule that helps plants turn sunlight into energy!",
     superComboPairs: ["sushi-roll"],
+    sortOrder: 7,
   },
   {
     itemId: "pomegranate-juice",
@@ -98,6 +105,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "A single pomegranate contains about 600 to 800 tiny seeds called arils — each one is like a little juice bubble!",
     superComboPairs: [],
+    sortOrder: 8,
   },
   {
     itemId: "acai-smoothie",
@@ -109,6 +117,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Acai berries grow at the top of tall palm trees in the Amazon rainforest and must be hand-harvested by skilled climbers!",
     superComboPairs: ["mango"],
+    sortOrder: 9,
   },
   {
     itemId: "golden-milk",
@@ -120,6 +129,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Golden milk gets its bright yellow color from turmeric, a spice that has been used in cooking and medicine for over 4,000 years!",
     superComboPairs: [],
+    sortOrder: 10,
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -135,6 +145,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "There are over 7,500 varieties of apples grown around the world — if you tried a new one every day, it would take over 20 years!",
     superComboPairs: ["cheese-stick"],
+    sortOrder: 11,
   },
   {
     itemId: "banana",
@@ -145,6 +156,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] },
     funFact: "Bananas are technically berries, but strawberries aren't — the world of fruit classification is wild!",
     superComboPairs: ["yogurt"],
+    sortOrder: 12,
   },
   {
     itemId: "grapes",
@@ -155,6 +167,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     nutrition: { calories: 62, protein: 1, carbs: 16, fiber: 1, vitamins: ["C", "K"] },
     funFact: "Grapes are one of the oldest cultivated fruits — people have been growing them for over 8,000 years!",
     superComboPairs: [],
+    sortOrder: 13,
   },
   {
     itemId: "strawberry",
@@ -165,6 +178,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     nutrition: { calories: 50, protein: 1, carbs: 12, fiber: 3, vitamins: ["C", "B9"] },
     funFact: "Strawberries are the only fruit with seeds on the outside — each one has about 200 tiny seeds!",
     superComboPairs: ["dark-chocolate"],
+    sortOrder: 14,
   },
   {
     itemId: "orange",
@@ -176,6 +190,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "The color orange was actually named after the fruit, not the other way around — before that, people just called it 'red-yellow'!",
     superComboPairs: [],
+    sortOrder: 15,
   },
   {
     itemId: "watermelon",
@@ -187,6 +202,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Watermelons are about 92% water, which is why they're so refreshing on a hot day — it's like eating a delicious drink!",
     superComboPairs: [],
+    sortOrder: 16,
   },
   {
     itemId: "blueberries",
@@ -198,6 +214,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Blueberries are one of the only naturally blue foods — their color comes from a pigment called anthocyanin that's also a powerful antioxidant!",
     superComboPairs: [],
+    sortOrder: 17,
   },
   {
     itemId: "mango",
@@ -209,6 +226,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Mangoes are the most popular fruit in the world — over 3 billion people eat them, and in India they're called the 'king of fruits'!",
     superComboPairs: ["acai-smoothie"],
+    sortOrder: 18,
   },
   {
     itemId: "kiwi",
@@ -220,6 +238,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "One kiwi has more vitamin C than an orange! They were originally called 'Chinese gooseberries' before being renamed in New Zealand.",
     superComboPairs: [],
+    sortOrder: 19,
   },
   {
     itemId: "pineapple",
@@ -231,6 +250,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Pineapples take about 2 years to grow — each plant only produces one pineapple at a time, making each one extra special!",
     superComboPairs: ["rice-bowl"],
+    sortOrder: 20,
   },
   {
     itemId: "dragon-fruit",
@@ -242,6 +262,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Dragon fruit grows on a cactus that only blooms at night! Its flowers are pollinated by bats and moths in the moonlight.",
     superComboPairs: [],
+    sortOrder: 21,
   },
   {
     itemId: "passion-fruit",
@@ -253,6 +274,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Passion fruit got its name from Spanish missionaries who thought the flower looked like a symbol of their religious stories — not because of its taste!",
     superComboPairs: [],
+    sortOrder: 22,
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -268,6 +290,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Carrots were originally purple, not orange! Orange carrots were bred in the Netherlands in the 1600s to honor the royal family.",
     superComboPairs: ["hummus"],
+    sortOrder: 23,
   },
   {
     itemId: "broccoli",
@@ -279,6 +302,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Broccoli is related to cabbage, cauliflower, and Brussels sprouts — they're all part of the same plant family called 'brassicas'!",
     superComboPairs: ["grilled-salmon"],
+    sortOrder: 24,
   },
   {
     itemId: "corn",
@@ -290,6 +314,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Each ear of corn has about 800 kernels arranged in 16 rows, and every kernel started as a separate tiny flower!",
     superComboPairs: ["pasta"],
+    sortOrder: 25,
   },
   {
     itemId: "celery",
@@ -301,6 +326,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Celery is about 95% water, making it one of the most hydrating vegetables you can eat — it's almost like crunchy water!",
     superComboPairs: [],
+    sortOrder: 26,
   },
   {
     itemId: "cucumber",
@@ -312,6 +338,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Cucumbers are technically fruits because they grow from flowers and contain seeds, but we eat them like veggies!",
     superComboPairs: [],
+    sortOrder: 27,
   },
   {
     itemId: "green-beans",
@@ -323,6 +350,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Green beans snap when you break them because they're full of water — that's why they're also called 'snap beans'!",
     superComboPairs: [],
+    sortOrder: 28,
   },
   {
     itemId: "peas",
@@ -334,6 +362,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Peas were the first vegetable to be canned and the first to be frozen commercially — they've been pioneers of food technology!",
     superComboPairs: [],
+    sortOrder: 29,
   },
   {
     itemId: "bell-pepper",
@@ -345,6 +374,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "A red bell pepper has almost 3 times more vitamin C than an orange! Green, yellow, and red peppers are actually the same plant at different stages of ripeness.",
     superComboPairs: ["falafel-wrap"],
+    sortOrder: 30,
   },
   {
     itemId: "sweet-potato",
@@ -356,6 +386,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Sweet potatoes are one of the oldest vegetables known to humans — they've been eaten for over 5,000 years! NASA has studied growing them in space.",
     superComboPairs: ["chicken-nuggets"],
+    sortOrder: 31,
   },
   {
     itemId: "avocado",
@@ -367,6 +398,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Avocados are actually a berry! They also have more potassium than bananas, which helps your muscles and heart work properly.",
     superComboPairs: ["burrito"],
+    sortOrder: 32,
   },
   {
     itemId: "artichoke",
@@ -378,6 +410,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "An artichoke is actually a flower bud — if you don't pick it, it blooms into a beautiful purple thistle as big as a softball!",
     superComboPairs: [],
+    sortOrder: 33,
   },
   {
     itemId: "purple-cauliflower",
@@ -389,6 +422,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Purple cauliflower gets its color from the same antioxidant found in blueberries — anthocyanin! It turns green when you cook it.",
     superComboPairs: [],
+    sortOrder: 34,
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -404,6 +438,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "The sandwich was invented in the 1760s by the Earl of Sandwich, who wanted to eat without leaving his card game — so he put meat between bread!",
     superComboPairs: [],
+    sortOrder: 35,
   },
   {
     itemId: "pizza-slice",
@@ -415,6 +450,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Americans eat about 3 billion pizzas every year — that's 100 acres of pizza per day, roughly the size of 75 football fields!",
     superComboPairs: [],
+    sortOrder: 36,
   },
   {
     itemId: "mac-and-cheese",
@@ -426,6 +462,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Mac and cheese has been around since the 1300s! Thomas Jefferson loved it so much he brought a pasta machine back from Italy to America.",
     superComboPairs: [],
+    sortOrder: 37,
   },
   {
     itemId: "chicken-nuggets",
@@ -437,6 +474,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Chicken nuggets were invented by a food scientist named Robert Baker in the 1950s — he figured out how to make ground chicken keep its shape when cooked!",
     superComboPairs: ["sweet-potato"],
+    sortOrder: 38,
   },
   {
     itemId: "pasta",
@@ -448,6 +486,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "There are over 600 different shapes of pasta in the world, and each shape is designed to hold different types of sauce!",
     superComboPairs: ["corn"],
+    sortOrder: 39,
   },
   {
     itemId: "rice-bowl",
@@ -459,6 +498,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Rice feeds more than half the world's population every single day — it's been cultivated for over 9,000 years!",
     superComboPairs: ["pineapple"],
+    sortOrder: 40,
   },
   {
     itemId: "burrito",
@@ -470,6 +510,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "The word 'burrito' means 'little donkey' in Spanish, possibly because the rolled-up tortilla looks like a donkey's packed saddlebag!",
     superComboPairs: ["avocado"],
+    sortOrder: 41,
   },
   {
     itemId: "sushi-roll",
@@ -481,6 +522,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Sushi originally started as a way to preserve fish in fermented rice — the rice was thrown away and only the fish was eaten!",
     superComboPairs: ["green-smoothie"],
+    sortOrder: 42,
   },
   {
     itemId: "grilled-salmon",
@@ -492,6 +534,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Salmon can jump up to 12 feet high to get over waterfalls during their upstream migration — they're the Olympic athletes of the fish world!",
     superComboPairs: ["broccoli"],
+    sortOrder: 43,
   },
   {
     itemId: "falafel-wrap",
@@ -503,6 +546,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Falafel is made from chickpeas, which are one of the earliest cultivated crops — people in the Middle East have been eating them for over 7,000 years!",
     superComboPairs: ["bell-pepper"],
+    sortOrder: 44,
   },
   {
     itemId: "lobster-roll",
@@ -514,6 +558,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Lobsters used to be so common in colonial America that they were considered food for the poor — now they're a fancy delicacy!",
     superComboPairs: [],
+    sortOrder: 45,
   },
   {
     itemId: "wagyu-slider",
@@ -525,6 +570,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Wagyu cattle in Japan are sometimes brushed with sake and listened to classical music — farmers believe happy cows make better-tasting beef!",
     superComboPairs: [],
+    sortOrder: 46,
   },
 
   // ═══════════════════════════════════════════════════════════════
@@ -540,6 +586,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Granola was invented in the 1860s as a health food — the original version was so hard you had to soak it overnight before eating!",
     superComboPairs: ["milk"],
+    sortOrder: 47,
   },
   {
     itemId: "crackers",
@@ -551,6 +598,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Graham crackers were invented in the 1800s by Sylvester Graham, a minister who believed plain food would make people healthier and more well-behaved!",
     superComboPairs: [],
+    sortOrder: 48,
   },
   {
     itemId: "popcorn",
@@ -562,6 +610,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Popcorn pops because each kernel has a tiny drop of water inside — when heated, it turns to steam and explodes the kernel inside out!",
     superComboPairs: ["apple-juice"],
+    sortOrder: 49,
   },
   {
     itemId: "trail-mix",
@@ -573,6 +622,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Trail mix was created for hikers because it's lightweight and packed with energy — the mix of nuts, dried fruit, and chocolate gives you quick and lasting fuel!",
     superComboPairs: ["coconut-water"],
+    sortOrder: 50,
   },
   {
     itemId: "pretzels",
@@ -584,6 +634,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Pretzels are one of the oldest snack foods — monks in the 600s gave them as rewards to children who learned their prayers!",
     superComboPairs: [],
+    sortOrder: 51,
   },
   {
     itemId: "cheese-stick",
@@ -595,6 +646,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Cheese is one of the most stolen foods in the world! About 4% of all cheese produced globally ends up being stolen.",
     superComboPairs: ["apple"],
+    sortOrder: 52,
   },
   {
     itemId: "yogurt",
@@ -606,6 +658,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Yogurt has been eaten for over 5,000 years! It contains billions of live bacteria called probiotics that help keep your gut healthy.",
     superComboPairs: ["banana"],
+    sortOrder: 53,
   },
   {
     itemId: "hummus",
@@ -617,6 +670,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Hummus means 'chickpea' in Arabic. The world's largest hummus plate weighed over 23,000 pounds — that's heavier than two elephants!",
     superComboPairs: ["carrots"],
+    sortOrder: 54,
   },
   {
     itemId: "dark-chocolate",
@@ -628,6 +682,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Dark chocolate contains natural chemicals that trigger the same feelings of happiness as being in love — no wonder it's such a popular treat!",
     superComboPairs: ["strawberry"],
+    sortOrder: 55,
   },
   {
     itemId: "acai-bowl",
@@ -639,6 +694,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Acai bowls started as a post-surf snack in Brazil. Surfers in Rio would blend frozen acai with guarana syrup for a quick energy boost after riding waves!",
     superComboPairs: [],
+    sortOrder: 56,
   },
   {
     itemId: "truffle-fries",
@@ -650,6 +706,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "Truffles are the most expensive food in the world by weight — some sell for over $3,000 per pound! They grow underground and are found by trained dogs or pigs.",
     superComboPairs: [],
+    sortOrder: 57,
   },
   {
     itemId: "cheese-board",
@@ -661,6 +718,7 @@ export const FOOD_ITEMS: FoodItemDefinition[] = [
     funFact:
       "There are over 1,800 different types of cheese in the world! France alone makes more than 400 varieties — almost a different cheese for every day of the year.",
     superComboPairs: [],
+    sortOrder: 58,
   },
 ];
 

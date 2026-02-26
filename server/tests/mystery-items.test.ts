@@ -31,9 +31,14 @@ jest.mock("../utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
-  Visitor: { get: jest.fn() },
-  World: { create: jest.fn() },
+  getKeyAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn(),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  dropFoodItem: jest.fn().mockResolvedValue({ id: "new-dropped" }),
+  Visitor: { get: jest.fn(), create: jest.fn() },
+  World: { create: jest.fn(), deleteDroppedAssets: jest.fn() },
   User: { create: jest.fn() },
   DroppedAsset: { get: jest.fn(), drop: jest.fn() },
   Asset: { create: jest.fn() },
@@ -76,14 +81,15 @@ function setupNearbyMocks(opts: { foodAssets?: any[]; visitorData?: any; worldDa
 // --- Helpers for pickup-item tests ---
 
 function setupPickupMocks(opts: {
+  brownBag?: any[];
   visitorData?: any;
   foodAssetExists?: boolean;
   foodAssetUniqueName?: string;
   deleteThrows?: boolean;
 } = {}) {
   const {
+    brownBag = [],
     visitorData = {
-      brownBag: [],
       idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
       completedToday: false,
       pickupsToday: 0,
@@ -96,7 +102,7 @@ function setupPickupMocks(opts: {
   } = opts;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
-  mockUtils.getDroppedAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
+  mockUtils.getKeyAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
 
   const mockFoodAsset = foodAssetExists
     ? {
@@ -119,30 +125,33 @@ function setupPickupMocks(opts: {
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = visitorData;
-      return Promise.resolve();
-    }),
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
     dataObject: visitorData,
   };
 
-  const mockUser = {
-    incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
-  };
-
   const mockWorld = {
     fireToast: jest.fn().mockResolvedValue(undefined),
     fetchDataObject: jest.fn().mockResolvedValue(undefined),
+    updateDataObject: jest.fn().mockResolvedValue(undefined),
     dataObject: {},
   };
 
-  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
-  mockUtils.User.create.mockReturnValue(mockUser);
+  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
+
+  const matchesIdeal = visitorData.idealMeal?.some((i: any) => i.itemId === "apple") ?? false;
+  const pickedUpItem = {
+    itemId: "apple",
+    name: "Apple",
+    foodGroup: "fruit",
+    rarity: "common",
+    matchesIdealMeal: matchesIdeal,
+  };
+  mockUtils.getVisitorBag.mockResolvedValue([...brownBag, pickedUpItem]);
+
   mockUtils.World.create.mockReturnValue(mockWorld);
 
-  return { mockFoodAsset, mockVisitor, mockUser, mockWorld };
+  return { mockFoodAsset, mockVisitor, mockWorld };
 }
 
 describe("Mystery Items", () => {

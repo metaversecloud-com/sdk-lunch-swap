@@ -1,9 +1,8 @@
-import { BagItem, FoodGroup, IdealMealItem, Rarity } from "./FoodItem.js";
+import { FoodGroup, IdealMealItem, Rarity } from "./FoodItem.js";
 
 // --- Visitor Data Object ---
 export interface VisitorGameData {
   lastPlayedDate: string;
-  brownBag: BagItem[];
   idealMeal: IdealMealItem[];
   completedToday: boolean;
   completionTimestamp: string | null;
@@ -30,7 +29,6 @@ export interface VisitorGameData {
 
 export const VISITOR_DATA_DEFAULTS: VisitorGameData = {
   lastPlayedDate: "",
-  brownBag: [],
   idealMeal: [],
   completedToday: false,
   completionTimestamp: null,

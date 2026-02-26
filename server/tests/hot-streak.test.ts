@@ -31,9 +31,14 @@ jest.mock("../utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
-  Visitor: { get: jest.fn() },
-  World: { create: jest.fn() },
+  getKeyAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn(),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  dropFoodItem: jest.fn().mockResolvedValue({ id: "new-dropped-asset" }),
+  Visitor: { get: jest.fn(), create: jest.fn() },
+  World: { create: jest.fn(), deleteDroppedAssets: jest.fn() },
   User: { create: jest.fn() },
   DroppedAsset: { get: jest.fn(), drop: jest.fn() },
   Asset: { create: jest.fn() },
@@ -42,14 +47,15 @@ jest.mock("../utils/index.js", () => ({
 const mockUtils = jest.mocked(require("../utils/index.js"));
 
 function setupPickupMocks(opts: {
+  brownBag?: any[];
   visitorData?: any;
   foodAssetExists?: boolean;
   foodAssetUniqueName?: string;
   deleteThrows?: boolean;
 } = {}) {
   const {
+    brownBag = [],
     visitorData = {
-      brownBag: [],
       idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
       completedToday: false,
       pickupsToday: 0,
@@ -62,7 +68,7 @@ function setupPickupMocks(opts: {
   } = opts;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
-  mockUtils.getDroppedAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
+  mockUtils.getKeyAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
 
   const mockFoodAsset = foodAssetExists
     ? {
@@ -85,39 +91,46 @@ function setupPickupMocks(opts: {
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = visitorData;
-      return Promise.resolve();
-    }),
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
     dataObject: visitorData,
   };
 
-  const mockUser = {
-    incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
-  };
-
   const mockWorld = {
     fireToast: jest.fn().mockResolvedValue(undefined),
     fetchDataObject: jest.fn().mockResolvedValue(undefined),
+    updateDataObject: jest.fn().mockResolvedValue(undefined),
     dataObject: {},
   };
 
-  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
-  mockUtils.User.create.mockReturnValue(mockUser);
+  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
+
+  // After pickup, bag has the new item
+  const matchesIdeal = visitorData.idealMeal?.some((i: any) => i.itemId === "apple") ?? false;
+  const pickedUpItem = {
+    itemId: "apple",
+    name: "Apple",
+    foodGroup: "fruit",
+    rarity: "common",
+    matchesIdealMeal: matchesIdeal,
+  };
+  mockUtils.getVisitorBag.mockResolvedValue([...brownBag, pickedUpItem]);
+
   mockUtils.World.create.mockReturnValue(mockWorld);
 
-  return { mockFoodAsset, mockVisitor, mockUser, mockWorld };
+  return { mockFoodAsset, mockVisitor, mockWorld };
 }
 
-function setupDropMocks(opts: { visitorData?: any } = {}) {
+function setupDropMocks(opts: {
+  brownBag?: any[];
+  visitorData?: any;
+} = {}) {
   const {
+    brownBag = [
+      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
+      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: true },
+    ],
     visitorData = {
-      brownBag: [
-        { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
-        { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: true },
-      ],
       idealMeal: [],
       completedToday: false,
       pickupsToday: 0,
@@ -128,37 +141,32 @@ function setupDropMocks(opts: { visitorData?: any } = {}) {
   } = opts;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
-  mockUtils.getDroppedAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
+  mockUtils.getKeyAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
 
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
-    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-      this.dataObject = visitorData;
-      return Promise.resolve();
-    }),
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
     dataObject: visitorData,
   };
 
-  const mockUser = {
-    incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
-  };
-
   const mockWorld = {
     fireToast: jest.fn().mockResolvedValue(undefined),
-    fetchDataObject: jest.fn().mockResolvedValue(undefined),
+    fetchDataObject: jest.fn().mockImplementation(function (this: any) {
+      this.dataObject = {};
+      return Promise.resolve();
+    }),
+    updateDataObject: jest.fn().mockResolvedValue(undefined),
     dataObject: {},
   };
 
-  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
-  mockUtils.User.create.mockReturnValue(mockUser);
+  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
+  mockUtils.getVisitorBag.mockResolvedValue(brownBag.filter(i => i.itemId !== "apple"));
+  mockUtils.dropFoodItem.mockResolvedValue({ id: "new-dropped-asset" });
   mockUtils.World.create.mockReturnValue(mockWorld);
-  mockUtils.Asset.create.mockResolvedValue({ id: "new-asset" });
-  mockUtils.DroppedAsset.drop.mockResolvedValue({ id: "new-dropped-asset" });
 
-  return { mockVisitor, mockUser, mockWorld };
+  return { mockVisitor, mockWorld };
 }
 
 describe("Hot Streaks", () => {
@@ -168,7 +176,6 @@ describe("Hot Streaks", () => {
     test("picking up ideal-meal-matching item increments idealPickupStreak", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          brownBag: [],
           idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
           completedToday: false,
           pickupsToday: 0,
@@ -200,7 +207,6 @@ describe("Hot Streaks", () => {
     test("picking up non-matching item resets idealPickupStreak to 0", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          brownBag: [],
           idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false }],
           completedToday: false,
           pickupsToday: 0,
@@ -229,7 +235,6 @@ describe("Hot Streaks", () => {
     test("when idealPickupStreak reaches 3, hotStreakActive is set to true", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          brownBag: [],
           idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
           completedToday: false,
           pickupsToday: 0,
@@ -260,7 +265,6 @@ describe("Hot Streaks", () => {
     test("next pickup with hotStreakActive gets 3x XP, then resets", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          brownBag: [],
           idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false }],
           completedToday: false,
           pickupsToday: 0,
@@ -294,7 +298,6 @@ describe("Hot Streaks", () => {
     test("hot streak 3x multiplier applies to ideal meal bonus XP too", async () => {
       setupPickupMocks({
         visitorData: {
-          brownBag: [],
           idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
           completedToday: false,
           pickupsToday: 0,
@@ -319,7 +322,6 @@ describe("Hot Streaks", () => {
     test("first ideal pickup starts streak at 1", async () => {
       setupPickupMocks({
         visitorData: {
-          brownBag: [],
           idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
           completedToday: false,
           pickupsToday: 0,
@@ -343,10 +345,10 @@ describe("Hot Streaks", () => {
   describe("POST /api/drop-item — streak reset", () => {
     test("dropping an item resets idealPickupStreak to 0", async () => {
       const { mockVisitor } = setupDropMocks({
+        brownBag: [
+          { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
+        ],
         visitorData: {
-          brownBag: [
-            { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
-          ],
           idealMeal: [],
           completedToday: false,
           pickupsToday: 0,

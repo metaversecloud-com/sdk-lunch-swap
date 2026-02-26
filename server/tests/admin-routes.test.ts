@@ -35,9 +35,14 @@ jest.mock("../utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
-  Visitor: { get: jest.fn() },
-  World: { create: jest.fn() },
+  getKeyAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn(),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  dropFoodItem: jest.fn().mockResolvedValue({ id: "new-dropped" }),
+  Visitor: { get: jest.fn(), create: jest.fn() },
+  World: { create: jest.fn(), deleteDroppedAssets: jest.fn().mockResolvedValue(undefined) },
   User: { create: jest.fn() },
   DroppedAsset: { get: jest.fn(), drop: jest.fn() },
   Asset: { create: jest.fn() },
@@ -49,7 +54,7 @@ function setupMocks(opts: { isAdmin?: boolean; foodAssets?: any[]; worldData?: a
   const { isAdmin = true, foodAssets = [], worldData = {} } = opts;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
-  mockUtils.getDroppedAsset.mockResolvedValue({
+  mockUtils.getKeyAsset.mockResolvedValue({
     id: "key-asset-123",
     position: { x: 100, y: 200 },
   });
@@ -73,8 +78,7 @@ function setupMocks(opts: { isAdmin?: boolean; foodAssets?: any[]; worldData?: a
 
   mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
   mockUtils.World.create.mockReturnValue(mockWorld);
-  mockUtils.Asset.create.mockResolvedValue({ id: "new-asset" });
-  mockUtils.DroppedAsset.drop.mockResolvedValue({ id: "new-dropped" });
+  mockUtils.dropFoodItem.mockResolvedValue({ id: "new-dropped" });
 
   return { mockVisitor, mockWorld };
 }
@@ -99,9 +103,9 @@ describe("Admin Routes", () => {
 
     test("admin removes all food assets and returns removedCount", async () => {
       const mockFoodAssets = [
-        { id: "food-1", deleteDroppedAsset: jest.fn().mockResolvedValue(undefined) },
-        { id: "food-2", deleteDroppedAsset: jest.fn().mockResolvedValue(undefined) },
-        { id: "food-3", deleteDroppedAsset: jest.fn().mockResolvedValue(undefined) },
+        { id: "food-1" },
+        { id: "food-2" },
+        { id: "food-3" },
       ];
       const { mockWorld } = setupMocks({ isAdmin: true, foodAssets: mockFoodAssets });
 
@@ -116,9 +120,11 @@ describe("Admin Routes", () => {
         uniqueName: "lunch-swap-food",
         isPartial: true,
       });
-      for (const asset of mockFoodAssets) {
-        expect(asset.deleteDroppedAsset).toHaveBeenCalled();
-      }
+      const call = (mockUtils.World.deleteDroppedAssets as jest.Mock).mock.calls[0];
+      expect(call[0]).toBe("my-world");
+      expect(call[1]).toEqual(["food-1", "food-2", "food-3"]);
+      // call[2] is process.env.INTERACTIVE_SECRET (undefined in test env)
+      expect(call[3]).toEqual(baseCreds);
     });
 
     test("handles empty world (0 items)", async () => {
@@ -131,23 +137,6 @@ describe("Admin Routes", () => {
       expect(res.body.success).toBe(true);
       expect(res.body.removedCount).toBe(0);
       expect(res.body.totalFound).toBe(0);
-    });
-
-    test("skips already-deleted items without failing", async () => {
-      const mockFoodAssets = [
-        { id: "food-1", deleteDroppedAsset: jest.fn().mockResolvedValue(undefined) },
-        { id: "food-2", deleteDroppedAsset: jest.fn().mockRejectedValue(new Error("Already deleted")) },
-        { id: "food-3", deleteDroppedAsset: jest.fn().mockResolvedValue(undefined) },
-      ];
-      setupMocks({ isAdmin: true, foodAssets: mockFoodAssets });
-
-      const app = makeApp();
-      const res = await request(app).post("/api/admin/remove-all-items").query(baseCreds);
-
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.removedCount).toBe(2);
-      expect(res.body.totalFound).toBe(3);
     });
   });
 
@@ -187,8 +176,7 @@ describe("Admin Routes", () => {
         expect(item).toHaveProperty("name");
         expect(item).toHaveProperty("rarity");
       }
-      expect(mockUtils.Asset.create).toHaveBeenCalledTimes(3);
-      expect(mockUtils.DroppedAsset.drop).toHaveBeenCalledTimes(3);
+      expect(mockUtils.dropFoodItem).toHaveBeenCalledTimes(3);
     });
 
     test("caps at 50 items max", async () => {
@@ -204,7 +192,7 @@ describe("Admin Routes", () => {
       expect(res.body.success).toBe(true);
       expect(res.body.spawnedCount).toBe(50);
       expect(res.body.spawnedItems).toHaveLength(50);
-      expect(mockUtils.Asset.create).toHaveBeenCalledTimes(50);
+      expect(mockUtils.dropFoodItem).toHaveBeenCalledTimes(50);
     });
 
     test("defaults to 10 items when count not provided", async () => {

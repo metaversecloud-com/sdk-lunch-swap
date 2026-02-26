@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, getKeyAsset, Visitor, World, dropFoodItem } from "../utils/index.js";
+import { errorHandler, getCredentials, getKeyAsset, World, dropFoodItem, getVisitor, getVisitorBag, grantFoodToVisitor, removeFoodFromVisitor } from "../utils/index.js";
 import { generateIdealMeal, generateBrownBag, getCurrentDateMT, isNewDay } from "../utils/gameLogic/index.js";
 import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
@@ -7,19 +7,15 @@ import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
 export const handleGetGameState = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { urlSlug, visitorId, profileId } = credentials;
+    const { profileId } = credentials;
 
-    // Fetch key asset, visitor, world, user
-    const [droppedAsset, visitor, world] = await Promise.all([
+    // Fetch key asset, visitor (with data + inventory), and world in parallel
+    const [droppedAsset, { visitor, visitorData, brownBag: currentBag }, world] = await Promise.all([
       getKeyAsset(credentials),
-      Visitor.get(visitorId, urlSlug, { credentials }),
-      World.create(urlSlug, { credentials }),
+      getVisitor(credentials, true),
+      World.create(credentials.urlSlug, { credentials }),
     ]);
     const isAdmin = (visitor as any).isAdmin || false;
-
-    // Fetch data objects (initialize with defaults if empty)
-    await visitor.fetchDataObject();
-    const visitorData = { ...VISITOR_DATA_DEFAULTS, ...visitor.dataObject };
 
     await world.fetchDataObject();
     const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
@@ -28,21 +24,21 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     const currentDate = getCurrentDateMT();
     const newDay = isNewDay(visitorData.lastPlayedDate, currentDate);
 
-    let brownBag = visitorData.brownBag;
     let idealMeal = visitorData.idealMeal;
     let completedToday = visitorData.completedToday;
 
     if (newDay) {
       // B4: Auto-drop yesterday's bag items into world at key asset position
-      if (visitorData.brownBag.length > 0) {
+      if (currentBag.length > 0) {
         const center = {
           x: droppedAsset.position?.x ?? 0,
           y: droppedAsset.position?.y ?? 0,
         };
-        for (const bagItem of visitorData.brownBag) {
+        for (const bagItem of currentBag) {
           const foodDef = FOOD_ITEMS_BY_ID.get(bagItem.itemId);
           if (foodDef) {
             try {
+              await removeFoodFromVisitor(visitor, credentials, bagItem.itemId);
               await dropFoodItem({
                 credentials,
                 position: center,
@@ -59,14 +55,22 @@ export const handleGetGameState = async (req: Request, res: Response) => {
 
       // Generate new ideal meal and brown bag
       idealMeal = generateIdealMeal();
-      brownBag = generateBrownBag(idealMeal);
+      const newBagItems = generateBrownBag(idealMeal);
       completedToday = false;
+
+      // Grant new bag items to visitor inventory
+      for (const bagItem of newBagItems) {
+        try {
+          await grantFoodToVisitor(visitor, credentials, bagItem);
+        } catch (err) {
+          console.warn("Failed to grant bag item:", bagItem.itemId, err);
+        }
+      }
 
       // Update visitor data for new day
       const newVisitorData = {
         ...VISITOR_DATA_DEFAULTS,
         lastPlayedDate: currentDate,
-        brownBag,
         idealMeal,
       };
       await visitor.setDataObject(newVisitorData);
@@ -74,8 +78,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       // Spawn items into world for this player (skip if already spawned today)
       const spawnedByPlayer = worldData.spawnedItemsByPlayer || {};
       if (!spawnedByPlayer[profileId]?.length) {
-        // Spawn logic: create food items in world near key asset
-        const itemsToSpawn = brownBag.filter((item) => !item.matchesIdealMeal).slice(0, 3);
+        const itemsToSpawn = newBagItems.filter((item) => !item.matchesIdealMeal).slice(0, 3);
         const spawnedIds: string[] = [];
         const spawnCenter = {
           x: droppedAsset.position?.x ?? 0,
@@ -106,6 +109,9 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       worldData.totalStartsToday = (worldData.totalStartsToday || 0) + 1;
       await world.updateDataObject(worldData);
     }
+
+    // Read current bag from inventory (re-fetch after mutations on new day)
+    const brownBag = newDay ? await getVisitorBag(visitor, idealMeal) : currentBag;
 
     // Calculate display streak
     let displayStreak = visitorData.currentStreak;

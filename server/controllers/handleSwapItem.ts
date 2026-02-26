@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, Visitor, World, User, DroppedAsset, dropFoodItem } from "../utils/index.js";
-import { VISITOR_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
+import { errorHandler, getCredentials, World, User, DroppedAsset, dropFoodItem, getVisitor, grantFoodToVisitor, removeFoodFromVisitor, getVisitorBag } from "../utils/index.js";
 import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
 import { XP_ACTIONS } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG, Rarity, BagItem } from "@shared/types/FoodItem.js";
@@ -8,7 +7,7 @@ import { RARITY_CONFIG, Rarity, BagItem } from "@shared/types/FoodItem.js";
 export const handleSwapItem = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { urlSlug, visitorId, profileId } = credentials;
+    const { urlSlug, profileId } = credentials;
     const { dropItemId, pickupDroppedAssetId } = req.body;
 
     if (!dropItemId || !pickupDroppedAssetId) {
@@ -49,18 +48,14 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "Unknown food item" });
     }
 
-    // Fetch visitor data
-    const visitor = await Visitor.get(visitorId, urlSlug, { credentials });
-    await visitor.fetchDataObject();
-    const visitorData = { ...VISITOR_DATA_DEFAULTS, ...visitor.dataObject };
+    // Fetch visitor with data and bag
+    const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
 
     // Find drop item in bag
-    const bagIndex = visitorData.brownBag.findIndex((i: any) => i.itemId === dropItemId);
-    if (bagIndex === -1) {
+    const droppedItem = brownBag.find((i) => i.itemId === dropItemId);
+    if (!droppedItem) {
       return res.status(400).json({ success: false, message: "Item not found in bag" });
     }
-
-    const droppedItem = visitorData.brownBag[bagIndex];
 
     // Delete the pickup target from world (race condition guard)
     try {
@@ -69,7 +64,8 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       return res.status(409).json({ success: false, message: "This item was already picked up" });
     }
 
-    // Drop the old item into world near visitor
+    // Remove the dropped item from inventory and drop into world
+    await removeFoodFromVisitor(visitor, credentials, droppedItem.itemId);
     await dropFoodItem({
       credentials,
       position: {
@@ -80,10 +76,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       rarity: droppedItem.rarity,
     });
 
-    // Build new bag: remove dropped, add picked up
-    const updatedBag = [...visitorData.brownBag];
-    updatedBag.splice(bagIndex, 1);
-
+    // Grant picked up item to inventory
     const idealItemIds = new Set(visitorData.idealMeal?.map((i: any) => i.itemId) || []);
     const matchesIdealMeal = idealItemIds.has(pickupItemId);
 
@@ -94,7 +87,8 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       rarity: pickupFoodDef.rarity,
       matchesIdealMeal,
     };
-    updatedBag.push(newBagItem);
+
+    await grantFoodToVisitor(visitor, credentials, newBagItem);
 
     // Update ideal meal collected status
     const updatedIdealMeal = visitorData.idealMeal.map((item: any) => ({
@@ -104,7 +98,6 @@ export const handleSwapItem = async (req: Request, res: Response) => {
 
     // Update visitor data
     await visitor.updateDataObject({
-      brownBag: updatedBag,
       idealMeal: updatedIdealMeal,
     });
 
@@ -136,6 +129,9 @@ export const handleSwapItem = async (req: Request, res: Response) => {
         text: `Dropped ${droppedItem.name}, picked up ${pickupFoodDef.name}!`,
       })
       .catch(() => {});
+
+    // Read updated bag from inventory
+    const updatedBag = await getVisitorBag(visitor, updatedIdealMeal);
 
     return res.json({
       success: true,
