@@ -1,7 +1,9 @@
+import { Credentials } from "../../types/index.js";
 import { Asset, DroppedAsset } from "../topiaInit.js";
+import { getCachedInventoryItems } from "../inventoryCache.js";
 
 interface DropFoodItemParams {
-  credentials: Record<string, any>;
+  credentials: Credentials;
   position: { x: number; y: number };
   itemId: string;
   rarity: string;
@@ -21,8 +23,13 @@ export async function dropFoodItem({
   const offsetY = (Math.random() - 0.5) * offsetRange;
   const mysteryFlag = mystery ? "1" : "0";
 
+  const items = await getCachedInventoryItems({ credentials });
+  const inventoryItem = items.find((i) => i.type === "ITEM" && i.metadata?.itemId === itemId);
+  
+  if(!inventoryItem) throw "Item not found in inventory: " + itemId;
+
   const asset = await Asset.create("webImageAsset", { credentials });
-  return DroppedAsset.drop(asset, {
+  const droppedAsset = await DroppedAsset.drop(asset, {
     position: {
       x: position.x + offsetX,
       y: position.y + offsetY,
@@ -31,5 +38,8 @@ export async function dropFoodItem({
     urlSlug: credentials.urlSlug,
     isInteractive: true,
     interactivePublicKey: credentials.interactivePublicKey,
+    layer0: inventoryItem.image_path || "",
   });
+
+  return droppedAsset;
 }

@@ -55,7 +55,7 @@ export const handleDropItem = async (req: Request, res: Response) => {
     });
 
     // Read updated bag from inventory
-    const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal);
+    const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
 
     return res.json({
       success: true,

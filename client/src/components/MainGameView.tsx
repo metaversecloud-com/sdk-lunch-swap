@@ -140,7 +140,7 @@ export const MainGameView = () => {
       {allCollected && (
         <div className="sticky bottom-4 z-10">
           <button
-            className={`w-full py-4 px-6 rounded-2xl text-lg font-extrabold text-white shadow-xl transition-all duration-200
+            className={`w-full py-4 px-6 rounded-2xl text-white shadow-xl transition-all duration-200
               focus:outline-none focus:ring-2 focus:ring-offset-2 min-h-[44px]
               ${
                 isSubmitting

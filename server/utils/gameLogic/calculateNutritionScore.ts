@@ -1,8 +1,10 @@
 import { NutritionScoreResult } from "@shared/types/NutritionScore.js";
-import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
+import { Credentials } from "../../types/index.js";
+import { getFoodItemsById } from "../foodItemLookup.js";
 
-export function calculateNutritionScore(itemIds: string[]): NutritionScoreResult {
-  const items = itemIds.map((id) => FOOD_ITEMS_BY_ID.get(id)).filter(Boolean);
+export async function calculateNutritionScore(credentials: Credentials, itemIds: string[]): Promise<NutritionScoreResult> {
+  const foodItemsById = await getFoodItemsById(credentials);
+  const items = itemIds.map((id) => foodItemsById.get(id)).filter(Boolean);
 
   const totalProtein = items.reduce((sum, i) => sum + (i?.nutrition.protein ?? 0), 0);
   const proteinScore = Math.min(25, Math.round((totalProtein / 40) * 25));

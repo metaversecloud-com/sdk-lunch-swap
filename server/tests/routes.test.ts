@@ -24,14 +24,14 @@ const baseCreds = {
 
 // Mock game logic
 jest.mock("../utils/gameLogic/index.js", () => ({
-  generateIdealMeal: jest.fn().mockReturnValue([
+  generateIdealMeal: jest.fn().mockResolvedValue([
     { itemId: "water", name: "Water Bottle", foodGroup: "drink", rarity: "common", collected: false },
     { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", collected: false },
     { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false },
     { itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common", collected: false },
     { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common", collected: false },
   ]),
-  generateBrownBag: jest.fn().mockReturnValue([
+  generateBrownBag: jest.fn().mockResolvedValue([
     { itemId: "water", name: "Water Bottle", foodGroup: "drink", rarity: "common", matchesIdealMeal: true },
     { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common", matchesIdealMeal: false },
     { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
@@ -43,6 +43,25 @@ jest.mock("../utils/gameLogic/index.js", () => ({
   ]),
   getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
   isNewDay: jest.fn(),
+}));
+
+jest.mock("../utils/foodItemLookup.js", () => ({
+  getFoodItemsById: jest.fn().mockResolvedValue(new Map([
+    ["apple", { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] }, funFact: "Apple fact", superComboPairs: [] }],
+    ["banana", { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] }, funFact: "Banana fact", superComboPairs: [] }],
+    ["water", { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] }, funFact: "Water fact", superComboPairs: [] }],
+    ["milk", { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common", nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] }, funFact: "Milk fact", superComboPairs: [] }],
+    ["sandwich", { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", nutrition: { calories: 350, protein: 18, carbs: 35, fiber: 3, vitamins: ["B1", "B3", "Iron"] }, funFact: "Sandwich fact", superComboPairs: [] }],
+    ["granola-bar", { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common", nutrition: { calories: 190, protein: 4, carbs: 29, fiber: 3, vitamins: ["E", "B1", "Iron"] }, funFact: "Granola fact", superComboPairs: [] }],
+  ])),
+  getFoodItemsByGroup: jest.fn().mockResolvedValue({
+    drink: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }, { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common" }],
+    fruit: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }, { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" }],
+    veggie: [{ itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common" }],
+    main: [{ itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common" }],
+    snack: [{ itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common" }],
+  }),
+  getAllFoodItems: jest.fn().mockResolvedValue([]),
 }));
 
 const mockGameLogic = jest.mocked(require("../utils/gameLogic/index.js"));
@@ -67,7 +86,7 @@ jest.mock("../utils/index.js", () => ({
 
 const mockUtils = jest.mocked(require("../utils/index.js"));
 
-function setupMocks(overrides: { isNewDay?: boolean; brownBag?: any[]; visitorData?: any; userData?: any; worldData?: any } = {}) {
+async function setupMocks(overrides: { isNewDay?: boolean; brownBag?: any[]; visitorData?: any; userData?: any; worldData?: any } = {}) {
   const { isNewDay: newDay = true, brownBag = [], visitorData = {}, worldData = {} } = overrides;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
@@ -98,7 +117,7 @@ function setupMocks(overrides: { isNewDay?: boolean; brownBag?: any[]; visitorDa
   mockUtils.World.create.mockReturnValue(mockWorld);
 
   // For new day, getVisitorBag returns the generated brown bag
-  const generatedBag = mockGameLogic.generateBrownBag();
+  const generatedBag = await mockGameLogic.generateBrownBag();
   mockUtils.getVisitorBag.mockResolvedValue(generatedBag);
 
   mockGameLogic.isNewDay.mockReturnValue(newDay);
@@ -122,7 +141,7 @@ describe("routes", () => {
 
   describe("GET /game-state", () => {
     test("new day: returns isNewDay true with generated bag and meal", async () => {
-      const { mockVisitor } = setupMocks({ isNewDay: true });
+      const { mockVisitor } = await setupMocks({ isNewDay: true });
 
       const app = makeApp();
       const res = await request(app).get("/api/game-state").query(baseCreds);
@@ -144,7 +163,7 @@ describe("routes", () => {
         { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: true },
       ];
 
-      setupMocks({
+      await setupMocks({
         isNewDay: false,
         brownBag: existingBag,
         visitorData: {
@@ -171,7 +190,7 @@ describe("routes", () => {
     });
 
     test("completed today: returns completion data", async () => {
-      setupMocks({
+      await setupMocks({
         isNewDay: false,
         visitorData: {
           lastPlayedDate: "2026-02-07",

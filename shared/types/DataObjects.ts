@@ -72,7 +72,7 @@ export const WORLD_DATA_DEFAULTS: WorldGameData = {
   gameVersion: 1,
   spawnRadiusMin: 200,
   spawnRadiusMax: 2000,
-  proximityRadius: 150,
+  proximityRadius: 300,
   currentDate: "",
   totalStartsToday: 0,
   totalCompletionsToday: 0,

@@ -33,10 +33,29 @@ jest.mock("../utils/index.js", () => ({
 
 // Mock game logic to prevent import errors in handleGetGameState
 jest.mock("../utils/gameLogic/index.js", () => ({
-  generateIdealMeal: jest.fn().mockReturnValue([]),
-  generateBrownBag: jest.fn().mockReturnValue([]),
+  generateIdealMeal: jest.fn().mockResolvedValue([]),
+  generateBrownBag: jest.fn().mockResolvedValue([]),
   getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
   isNewDay: jest.fn().mockReturnValue(false),
+}));
+
+jest.mock("../utils/foodItemLookup.js", () => ({
+  getFoodItemsById: jest.fn().mockResolvedValue(new Map([
+    ["apple", { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] }, funFact: "Apple fact", superComboPairs: [] }],
+    ["banana", { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] }, funFact: "Banana fact", superComboPairs: [] }],
+    ["water", { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] }, funFact: "Water fact", superComboPairs: [] }],
+    ["milk", { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common", nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] }, funFact: "Milk fact", superComboPairs: [] }],
+    ["sandwich", { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", nutrition: { calories: 350, protein: 18, carbs: 35, fiber: 3, vitamins: ["B1", "B3", "Iron"] }, funFact: "Sandwich fact", superComboPairs: [] }],
+    ["granola-bar", { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common", nutrition: { calories: 190, protein: 4, carbs: 29, fiber: 3, vitamins: ["E", "B1", "Iron"] }, funFact: "Granola fact", superComboPairs: [] }],
+  ])),
+  getFoodItemsByGroup: jest.fn().mockResolvedValue({
+    drink: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }, { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common" }],
+    fruit: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }, { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" }],
+    veggie: [{ itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common" }],
+    main: [{ itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common" }],
+    snack: [{ itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common" }],
+  }),
+  getAllFoodItems: jest.fn().mockResolvedValue([]),
 }));
 
 const mockUtils = jest.mocked(require("../utils/index.js"));
@@ -183,7 +202,7 @@ describe("GET /api/nearby-items", () => {
     expect(res.body.nearbyItems[0].itemId).toBe("banana");
   });
 
-  test("skips items with unknown itemId not in FOOD_ITEMS_BY_ID", async () => {
+  test("skips items with unknown itemId not in inventory cache", async () => {
     const now = Date.now();
     setupMocks({
       foodAssets: [
@@ -200,7 +219,7 @@ describe("GET /api/nearby-items", () => {
     expect(res.body.nearbyItems[0].itemId).toBe("apple");
   });
 
-  test("includes correct food item details from FOOD_ITEMS_BY_ID", async () => {
+  test("includes correct food item details from inventory cache", async () => {
     const now = Date.now();
     setupMocks({
       foodAssets: [

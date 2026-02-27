@@ -1,15 +1,21 @@
 import { BagItem, IdealMealItem } from "@shared/types/FoodItem.js";
-import { FOOD_ITEMS } from "@shared/data/foodItems.js";
+import { Credentials } from "../../types/index.js";
+import { getAllFoodItems } from "../foodItemLookup.js";
 
-export function generateBrownBag(idealMeal: IdealMealItem[]): BagItem[] {
+export async function generateBrownBag(credentials: Credentials, idealMeal: IdealMealItem[]): Promise<BagItem[]> {
+  const allFoodItems = await getAllFoodItems(credentials);
+
   const matchIndex = Math.floor(Math.random() * idealMeal.length);
   const matchItem = idealMeal[matchIndex];
 
   const idealIds = new Set(idealMeal.map((i) => i.itemId));
-  const nonIdealPool = FOOD_ITEMS.filter((i) => !idealIds.has(i.itemId));
+  const nonIdealPool = allFoodItems.filter((i) => !idealIds.has(i.itemId));
 
   const shuffled = [...nonIdealPool].sort(() => Math.random() - 0.5);
   const fillers = shuffled.slice(0, 7);
+
+  const allFoodItemsById = new Map(allFoodItems.map((i) => [i.itemId, i]));
+  const matchDef = allFoodItemsById.get(matchItem.itemId);
 
   const bag: BagItem[] = [
     {
@@ -18,6 +24,8 @@ export function generateBrownBag(idealMeal: IdealMealItem[]): BagItem[] {
       foodGroup: matchItem.foodGroup,
       rarity: matchItem.rarity,
       matchesIdealMeal: true,
+      nutrition: matchDef?.nutrition,
+      funFact: matchDef?.funFact,
     },
     ...fillers.map((item) => ({
       itemId: item.itemId,
@@ -25,6 +33,8 @@ export function generateBrownBag(idealMeal: IdealMealItem[]): BagItem[] {
       foodGroup: item.foodGroup,
       rarity: item.rarity,
       matchesIdealMeal: false,
+      nutrition: item.nutrition,
+      funFact: item.funFact,
     })),
   ];
 

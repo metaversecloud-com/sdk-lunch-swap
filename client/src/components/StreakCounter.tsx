@@ -38,32 +38,32 @@ export const StreakCounter = ({ currentStreak, longestStreak }: StreakCounterPro
 
   return (
     <div
-      className="flex flex-col items-center gap-2"
+      className="grid items-center text-center"
       role="status"
       aria-label={`Current streak: ${currentStreak} day${currentStreak !== 1 ? "s" : ""}${isNewRecord ? ", new record!" : ""}`}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex gap-2 m-auto">
         {/* Flame icon via CSS gradient */}
-        <span
-          className="text-3xl motion-safe:animate-bounce"
+        <h3
+          className="motion-safe:animate-bounce"
           role="img"
           aria-hidden="true"
           style={{ animationDuration: "1.5s" }}
         >
           &#128293;
-        </span>
-        <span className="text-4xl font-extrabold text-gray-800 tabular-nums">{displayCount}</span>
+        </h3>
+        <h2 className="">{displayCount}</h2>
       </div>
-      <p className="text-sm font-medium text-gray-500">day streak</p>
+      <p className="text-xs text-gray-400">day streak</p>
 
       {isNewRecord && (
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold border border-orange-200 motion-safe:animate-pulse">
+        <span className="m-auto inline-flex items-center gap-1 px-3 py-1 mt-4 rounded-full bg-orange-100 text-orange-700 text-xs border border-orange-200 motion-safe:animate-pulse">
           <span aria-hidden="true">&#127942;</span> New Record!
         </span>
       )}
 
       {longestStreak !== undefined && !isNewRecord && longestStreak > 0 && (
-        <p className="text-xs text-gray-400">
+        <p className="pt-3 text-xs text-gray-400">
           Best: {longestStreak} day{longestStreak !== 1 ? "s" : ""}
         </p>
       )}

@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { errorHandler, getCredentials, getKeyAsset, World, dropFoodItem, getVisitor, getVisitorBag, grantFoodToVisitor, removeFoodFromVisitor } from "../utils/index.js";
 import { generateIdealMeal, generateBrownBag, getCurrentDateMT, isNewDay } from "../utils/gameLogic/index.js";
 import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
-import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
+import { getFoodItemsById } from "../utils/foodItemLookup.js";
 
 export const handleGetGameState = async (req: Request, res: Response) => {
   try {
@@ -10,7 +10,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     const { profileId } = credentials;
 
     // Fetch key asset, visitor (with data + inventory), and world in parallel
-    const [droppedAsset, { visitor, visitorData, brownBag: currentBag }, world] = await Promise.all([
+    const [droppedAsset, { visitor, visitorData, brownBag: currentBag, newDay }, world] = await Promise.all([
       getKeyAsset(credentials),
       getVisitor(credentials, true),
       World.create(credentials.urlSlug, { credentials }),
@@ -22,7 +22,6 @@ export const handleGetGameState = async (req: Request, res: Response) => {
 
     // Check for new day
     const currentDate = getCurrentDateMT();
-    const newDay = isNewDay(visitorData.lastPlayedDate, currentDate);
 
     let idealMeal = visitorData.idealMeal;
     let completedToday = visitorData.completedToday;
@@ -30,12 +29,13 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     if (newDay) {
       // B4: Auto-drop yesterday's bag items into world at key asset position
       if (currentBag.length > 0) {
+        const foodItemsById = await getFoodItemsById(credentials);
         const center = {
           x: droppedAsset.position?.x ?? 0,
           y: droppedAsset.position?.y ?? 0,
         };
         for (const bagItem of currentBag) {
-          const foodDef = FOOD_ITEMS_BY_ID.get(bagItem.itemId);
+          const foodDef = foodItemsById.get(bagItem.itemId);
           if (foodDef) {
             try {
               await removeFoodFromVisitor(visitor, credentials, bagItem.itemId);
@@ -54,8 +54,8 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       }
 
       // Generate new ideal meal and brown bag
-      idealMeal = generateIdealMeal();
-      const newBagItems = generateBrownBag(idealMeal);
+      idealMeal = await generateIdealMeal(credentials);
+      const newBagItems = await generateBrownBag(credentials, idealMeal);
       completedToday = false;
 
       // Grant new bag items to visitor inventory
@@ -111,7 +111,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     }
 
     // Read current bag from inventory (re-fetch after mutations on new day)
-    const brownBag = newDay ? await getVisitorBag(visitor, idealMeal) : currentBag;
+    const brownBag = newDay ? await getVisitorBag(visitor, idealMeal, credentials) : currentBag;
 
     // Calculate display streak
     let displayStreak = visitorData.currentStreak;
@@ -126,7 +126,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       displayStreak = 0;
     }
 
-    // Build response
+      console.log("🚀 ~ handleGetGameState.ts:131 ~ newDay:", newDay)
     return res.json({
       success: true,
       isNewDay: newDay,

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { errorHandler, getCredentials, World, User, DroppedAsset, dropFoodItem, getVisitor, grantFoodToVisitor, removeFoodFromVisitor, getVisitorBag } from "../utils/index.js";
-import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
+import { getFoodItemsById } from "../utils/foodItemLookup.js";
 import { XP_ACTIONS } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG, Rarity, BagItem } from "@shared/types/FoodItem.js";
 
@@ -43,7 +43,8 @@ export const handleSwapItem = async (req: Request, res: Response) => {
     const mysteryFlag = parts.length >= 5 ? parts[4] : "0";
     const wasMystery = mysteryFlag === "1";
 
-    const pickupFoodDef = FOOD_ITEMS_BY_ID.get(pickupItemId);
+    const foodItemsById = await getFoodItemsById(credentials);
+    const pickupFoodDef = foodItemsById.get(pickupItemId);
     if (!pickupFoodDef) {
       return res.status(400).json({ success: false, message: "Unknown food item" });
     }
@@ -86,6 +87,8 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       foodGroup: pickupFoodDef.foodGroup,
       rarity: pickupFoodDef.rarity,
       matchesIdealMeal,
+      nutrition: pickupFoodDef.nutrition,
+      funFact: pickupFoodDef.funFact,
     };
 
     await grantFoodToVisitor(visitor, credentials, newBagItem);
@@ -131,7 +134,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       .catch(() => {});
 
     // Read updated bag from inventory
-    const updatedBag = await getVisitorBag(visitor, updatedIdealMeal);
+    const updatedBag = await getVisitorBag(visitor, updatedIdealMeal, credentials);
 
     return res.json({
       success: true,

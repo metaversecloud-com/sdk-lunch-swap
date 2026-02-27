@@ -8,9 +8,9 @@ interface NearbyItemCardProps {
 }
 
 const formatDistance = (distance: number): string => {
-  if (distance < 1) return "Right here!";
-  if (distance < 3) return "Very close";
-  if (distance < 6) return "Nearby";
+  if (distance < 50) return "Right here!";
+  if (distance < 100) return "Very close";
+  if (distance < 150) return "Nearby";
   return "A bit far";
 };
 

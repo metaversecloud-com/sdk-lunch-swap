@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { errorHandler, getCredentials, World, DroppedAsset, getVisitor, grantFoodToVisitor, getVisitorBag } from "../utils/index.js";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
-import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
+import { getFoodItemsById } from "../utils/foodItemLookup.js";
 import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION, XP_ACTIONS } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG, Rarity, BagItem } from "@shared/types/FoodItem.js";
 
@@ -45,7 +45,8 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     const mysteryFlag = parts.length >= 5 ? parts[4] : "0";
     const wasMystery = mysteryFlag === "1";
 
-    const foodDef = FOOD_ITEMS_BY_ID.get(itemId);
+    const foodItemsById = await getFoodItemsById(credentials);
+    const foodDef = foodItemsById.get(itemId);
     if (!foodDef) {
       return res.status(400).json({ success: false, message: "Unknown food item" });
     }
@@ -80,6 +81,8 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       foodGroup: foodDef.foodGroup,
       rarity: foodDef.rarity,
       matchesIdealMeal,
+      nutrition: foodDef.nutrition,
+      funFact: foodDef.funFact,
     };
 
     await grantFoodToVisitor(visitor, credentials, newBagItem);
@@ -157,7 +160,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       .catch(() => {});
 
     // Read updated bag from inventory
-    const updatedBag = await getVisitorBag(visitor, updatedIdealMeal);
+    const updatedBag = await getVisitorBag(visitor, updatedIdealMeal, credentials);
 
     return res.json({
       success: true,

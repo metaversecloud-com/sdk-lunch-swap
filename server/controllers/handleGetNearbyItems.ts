@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { errorHandler, getCredentials, Visitor, World } from "../utils/index.js";
 import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
-import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
+import { getFoodItemsById } from "../utils/foodItemLookup.js";
 import { NearbyItem } from "@shared/types/NearbyItem.js";
 
 export const handleGetNearbyItems = async (req: Request, res: Response) => {
@@ -27,6 +27,8 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
       uniqueName: "lunch-swap-food",
       isPartial: true,
     });
+
+    const foodItemsById = await getFoodItemsById(credentials);
 
     const now = Date.now();
     const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -59,8 +61,8 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
       const mysteryFlag = parts.length >= 5 ? parts[4] : "0";
       const isMystery = mysteryFlag === "1";
 
-      // Look up item details from food database (no fetchDataObject!)
-      const foodDef = FOOD_ITEMS_BY_ID.get(itemId);
+      // Look up item details from inventory cache
+      const foodDef = foodItemsById.get(itemId);
       if (!foodDef) continue;
 
       // Calculate distance

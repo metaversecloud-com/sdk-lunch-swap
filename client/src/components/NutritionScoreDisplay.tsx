@@ -45,10 +45,10 @@ export const NutritionScoreDisplay = ({ score, breakdown, superCombos }: Nutriti
   const strokeDashoffset = circumference - (clampedScore / 100) * circumference;
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="grid items-center gap-4">
       {/* Circular score ring */}
       <div
-        className="relative w-36 h-36"
+        className="relative w-36 h-36 m-auto"
         role="img"
         aria-label={`Nutrition score: ${clampedScore} out of 100, grade ${grade}`}
       >
@@ -70,16 +70,16 @@ export const NutritionScoreDisplay = ({ score, breakdown, superCombos }: Nutriti
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-extrabold text-gray-800 leading-none">{clampedScore}</span>
-          <span className="text-lg font-bold mt-0.5" style={{ color: gradeColor }}>
-            {grade}
-          </span>
+          <h2><b>{clampedScore}</b></h2>
+          <h3 style={{ color: gradeColor }}>
+            <b>{grade}</b>
+          </h3>
         </div>
       </div>
 
       {/* 4-quadrant breakdown */}
       {breakdown && (
-        <div className="grid grid-cols-2 gap-2 w-full max-w-xs" role="group" aria-label="Score breakdown by category">
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Score breakdown by category">
           {QUADRANTS.map(({ key, label, color }) => {
             const value = breakdown[key];
             const pct = Math.round((value / 25) * 100);
@@ -87,9 +87,9 @@ export const NutritionScoreDisplay = ({ score, breakdown, superCombos }: Nutriti
             return (
               <div
                 key={key}
-                className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-gray-50 border border-gray-100"
+                className="grid items-center gap-1 p-2.5 rounded-xl bg-gray-50 border border-gray-100"
               >
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</span>
+                <p className="p2 uppercase">{label}</p>
                 <div
                   className="w-full h-2.5 rounded-full bg-gray-200 overflow-hidden"
                   role="progressbar"
@@ -103,10 +103,10 @@ export const NutritionScoreDisplay = ({ score, breakdown, superCombos }: Nutriti
                     style={{ width: `${pct}%`, backgroundColor: color }}
                   />
                 </div>
-                <span className="text-sm font-bold text-gray-700">
+                <p className="p2">
                   {value}
-                  <span className="text-gray-400 font-normal">/25</span>
-                </span>
+                  <span className="text-muted">/25</span>
+                </p>
               </div>
             );
           })}
@@ -115,14 +115,14 @@ export const NutritionScoreDisplay = ({ score, breakdown, superCombos }: Nutriti
 
       {/* Super combo callouts */}
       {superCombos && superCombos.length > 0 && (
-        <div className="w-full max-w-xs" role="list" aria-label="Super combos found">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 text-center">Super Combos</p>
+        <div role="list" aria-label="Super combos found">
+          <p className="uppercase pb-2 text-center">Super Combos</p>
           <div className="flex flex-wrap justify-center gap-1.5">
             {superCombos.map((combo) => (
               <span
                 key={combo}
                 role="listitem"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 text-xs font-bold border border-purple-200"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 text-xs border border-purple-200"
               >
                 <span aria-hidden="true">&#9889;</span>
                 {combo}

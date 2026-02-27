@@ -14,10 +14,10 @@ export interface FoodItemDefinition {
   name: string;
   foodGroup: FoodGroup;
   rarity: Rarity;
-  imageUrl: string;
   nutrition: NutritionInfo;
   funFact: string;
   superComboPairs: string[];
+  sortOrder: number;
 }
 
 export interface BagItem {
@@ -26,6 +26,8 @@ export interface BagItem {
   foodGroup: FoodGroup;
   rarity: Rarity;
   matchesIdealMeal: boolean;
+  nutrition?: NutritionInfo;
+  funFact?: string;
 }
 
 export interface IdealMealItem {

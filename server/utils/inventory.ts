@@ -1,29 +1,38 @@
 import { Credentials } from "../types/index.js";
 import { BagItem, IdealMealItem } from "@shared/types/FoodItem.js";
 import { getCachedInventoryItems } from "./inventoryCache.js";
+import { getFoodItemsById } from "./foodItemLookup.js";
 
 /**
  * Read the visitor's bag from their inventory.
- * Filters for ITEM-type inventory entries and computes matchesIdealMeal at read time.
+ * Filters for ITEM-type inventory entries and enriches with ecosystem data.
  */
 export const getVisitorBag = async (
   visitor: any,
   idealMeal: IdealMealItem[],
+  credentials: Credentials,
 ): Promise<BagItem[]> => {
   await visitor.fetchInventoryItems();
   const allItems: any[] = visitor.inventoryItems || [];
 
   const idealItemIds = new Set(idealMeal.map((i) => i.itemId));
+  const foodItemsById = await getFoodItemsById(credentials);
 
   return allItems
     .filter((item: any) => item.type === "ITEM" && item.status === "ACTIVE" && (item.quantity ?? item.availableQuantity ?? 1) > 0)
-    .map((item: any) => ({
-      itemId: item.metadata?.itemId ?? item.name,
-      name: item.metadata?.name ?? item.name,
-      foodGroup: item.metadata?.foodGroup ?? "snack",
-      rarity: item.metadata?.rarity ?? "common",
-      matchesIdealMeal: idealItemIds.has(item.metadata?.itemId ?? item.name),
-    }));
+    .map((item: any) => {
+      const itemId = item.metadata?.itemId ?? item.item?.metadata?.itemId ?? item.name;
+      const foodDef = foodItemsById.get(itemId);
+      return {
+        itemId,
+        name: foodDef?.name ?? item.metadata?.name ?? item.name,
+        foodGroup: foodDef?.foodGroup ?? item.metadata?.foodGroup ?? "snack",
+        rarity: foodDef?.rarity ?? item.metadata?.rarity ?? "common",
+        matchesIdealMeal: idealItemIds.has(itemId),
+        nutrition: foodDef?.nutrition,
+        funFact: foodDef?.funFact,
+      };
+    });
 };
 
 /**
@@ -45,7 +54,7 @@ export const grantFoodToVisitor = async (
     return;
   }
 
-  await visitor.grantInventoryItem(ecosystemItem, 1);
+  await visitor.modifyInventoryItemQuantity(ecosystemItem, 1);
 };
 
 /**

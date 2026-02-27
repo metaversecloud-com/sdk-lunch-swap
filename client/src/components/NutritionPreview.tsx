@@ -1,7 +1,8 @@
-import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems";
+import { NutritionInfo } from "@shared/types/FoodItem";
 
 interface NutritionPreviewProps {
-  itemId: string;
+  nutrition: NutritionInfo;
+  name: string;
 }
 
 const NUTRITION_BARS = [
@@ -11,15 +12,7 @@ const NUTRITION_BARS = [
   { key: "vitamins", label: "Vitamins", color: "#9B59B6", max: 5 },
 ] as const;
 
-export const NutritionPreview = ({ itemId }: NutritionPreviewProps) => {
-  const item = FOOD_ITEMS_BY_ID.get(itemId);
-
-  if (!item) {
-    return null;
-  }
-
-  const { nutrition } = item;
-
+export const NutritionPreview = ({ nutrition, name }: NutritionPreviewProps) => {
   const getValue = (key: (typeof NUTRITION_BARS)[number]["key"]): number => {
     if (key === "vitamins") {
       return nutrition.vitamins.length;
@@ -28,7 +21,7 @@ export const NutritionPreview = ({ itemId }: NutritionPreviewProps) => {
   };
 
   return (
-    <div className="flex flex-col gap-1 w-full" role="group" aria-label={`Nutrition info for ${item.name}`}>
+    <div className="flex flex-col gap-1 w-full" role="group" aria-label={`Nutrition info for ${name}`}>
       <p className="p3 uppercase tracking-wide">Nutrition</p>
       {NUTRITION_BARS.map(({ key, label, color, max }) => {
         const value = getValue(key);

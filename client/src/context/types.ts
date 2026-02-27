@@ -36,6 +36,12 @@ export interface InitialState {
   idealMeal?: IdealMealItem[];
   completedToday?: boolean;
   nutritionScore?: number | null;
+  nutritionBreakdown?: {
+    proteinScore: number;
+    fiberScore: number;
+    vitaminDiversity: number;
+    balanceScore: number;
+  }
   superCombosFound?: string[];
   xp?: number;
   level?: number;

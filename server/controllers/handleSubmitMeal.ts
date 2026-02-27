@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { errorHandler, getCredentials, World, dropFoodItem, getVisitor, removeFoodFromVisitor } from "../utils/index.js";
-import { FOOD_ITEMS_BY_ID } from "@shared/data/foodItems.js";
+import { getFoodItemsById } from "../utils/foodItemLookup.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG } from "@shared/types/FoodItem.js";
 import { calculateNutritionScore, detectSuperCombos, getCurrentDateMT } from "../utils/gameLogic/index.js";
@@ -39,7 +39,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
 
     // Calculate nutrition score
     const mealItemIds = visitorData.idealMeal.map((i: any) => i.itemId);
-    const nutritionResult = calculateNutritionScore(mealItemIds);
+    const nutritionResult = await calculateNutritionScore(credentials, mealItemIds);
 
     // Detect super combos
     const allBagItemIds = brownBag.map((i) => i.itemId);
@@ -49,8 +49,9 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     // Calculate total XP
     let totalXp = XP_ACTIONS.SUBMIT_MEAL;
     // Rarity bonuses from ideal meal items
+    const foodItemsById = await getFoodItemsById(credentials);
     for (const item of visitorData.idealMeal) {
-      const foodDef = FOOD_ITEMS_BY_ID.get(item.itemId);
+      const foodDef = foodItemsById.get(item.itemId);
       if (foodDef) {
         const rarityConfig = RARITY_CONFIG[foodDef.rarity] || RARITY_CONFIG.common;
         totalXp += Math.round(XP_ACTIONS.COLLECT_IDEAL_ITEM * (rarityConfig.xpMultiplier - 1));
