@@ -42,6 +42,8 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
       return {
         ...state,
         brownBag: payload.brownBag,
+        ...(payload.xp !== undefined && { xp: payload.xp }),
+        ...(payload.level !== undefined && { level: payload.level }),
       };
     case SET_IDEAL_MEAL:
       return {

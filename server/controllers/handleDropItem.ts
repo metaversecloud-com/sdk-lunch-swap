@@ -1,7 +1,16 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, dropFoodItem, World, getVisitor, removeFoodFromVisitor, getVisitorBag } from "../utils/index.js";
+import {
+  errorHandler,
+  getCredentials,
+  dropFoodItem,
+  World,
+  getVisitor,
+  removeFoodFromVisitor,
+  getVisitorBag,
+  grantXp,
+} from "../utils/index.js";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
-import { XP_ACTIONS } from "@shared/data/xpConfig.js";
+import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 
 export const handleDropItem = async (req: Request, res: Response) => {
   try {
@@ -37,14 +46,21 @@ export const handleDropItem = async (req: Request, res: Response) => {
     });
 
     // Update visitor data (reset idealPickupStreak on drop)
-    await visitor.updateDataObject({
-      idealPickupStreak: 0,
-      dropsToday: visitorData.dropsToday + 1,
-      totalDrops: visitorData.totalDrops + 1,
-    });
+    await visitor.updateDataObject(
+      {
+        idealPickupStreak: 0,
+        dropsToday: visitorData.dropsToday + 1,
+        totalDrops: visitorData.totalDrops + 1,
+      },
+      {},
+    );
 
     // XP for dropping
     const xpEarned = XP_ACTIONS.DROP;
+
+    // Grant XP to visitor inventory
+    const newTotalXp = await grantXp(visitor, credentials, xpEarned);
+    const newLevel = getLevelForXp(newTotalXp);
 
     // Update world data object with drop stats
     const world = await World.create(urlSlug, { credentials });
@@ -63,6 +79,8 @@ export const handleDropItem = async (req: Request, res: Response) => {
       droppedItem,
       droppedAssetId: droppedAsset?.id || null,
       xpEarned,
+      xp: newTotalXp,
+      level: newLevel,
     });
   } catch (error) {
     return errorHandler({

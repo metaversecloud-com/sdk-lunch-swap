@@ -10,9 +10,9 @@ import {
   grantFoodToVisitor,
   removeFoodFromVisitor,
 } from "../utils/index.js";
-import { generateIdealMeal, generateBrownBag, getCurrentDateMT, isNewDay } from "../utils/gameLogic/index.js";
-import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
-import { getFoodItemsById } from "../utils/foodItemLookup.js";
+import { generateIdealMeal, generateBrownBag, getCurrentDateMT } from "../utils/gameLogic/index.js";
+import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
+import { VisitorInterface } from "@rtsdk/topia";
 
 export const handleGetGameState = async (req: Request, res: Response) => {
   try {
@@ -20,12 +20,12 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     const { profileId } = credentials;
 
     // Fetch key asset, visitor (with data + inventory), and world in parallel
-    const [droppedAsset, { visitor, visitorData, brownBag: currentBag, newDay }, world] = await Promise.all([
+    const [droppedAsset, { visitor, visitorData, brownBag: currentBag, newDay, xp, level }, world] = await Promise.all([
       getKeyAsset(credentials),
       getVisitor(credentials, true),
       World.create(credentials.urlSlug, { credentials }),
     ]);
-    const isAdmin = (visitor as any).isAdmin || false;
+    const isAdmin = (visitor as VisitorInterface).isAdmin || false;
 
     await world.fetchDataObject();
     const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
@@ -37,28 +37,24 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     let completedToday = visitorData.completedToday;
 
     if (newDay) {
-      // B4: Auto-drop yesterday's bag items into world at key asset position
+      // Auto-drop yesterday's bag items into world at key asset position
       if (currentBag.length > 0) {
-        const foodItemsById = await getFoodItemsById(credentials);
         const center = {
           x: droppedAsset.position?.x ?? 0,
           y: droppedAsset.position?.y ?? 0,
         };
         for (const bagItem of currentBag) {
-          const foodDef = foodItemsById.get(bagItem.itemId);
-          if (foodDef) {
-            try {
-              await removeFoodFromVisitor(visitor, credentials, bagItem.itemId);
-              await dropFoodItem({
-                credentials,
-                position: center,
-                itemId: bagItem.itemId,
-                rarity: bagItem.rarity,
-                offsetRange: 200,
-              });
-            } catch (err) {
-              console.warn("Failed to auto-drop bag item:", bagItem.itemId, err);
-            }
+          try {
+            await removeFoodFromVisitor(visitor, credentials, bagItem.itemId);
+            await dropFoodItem({
+              credentials,
+              position: center,
+              itemId: bagItem.itemId,
+              rarity: bagItem.rarity,
+              offsetRange: 200,
+            });
+          } catch (err) {
+            console.warn("Failed to auto-drop bag item:", bagItem.itemId, err);
           }
         }
       }
@@ -78,12 +74,21 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       }
 
       // Update visitor data for new day
-      const newVisitorData = {
-        ...VISITOR_DATA_DEFAULTS,
-        lastPlayedDate: currentDate,
-        idealMeal,
-      };
-      await visitor.setDataObject(newVisitorData);
+      await visitor.updateDataObject(
+        {
+          lastPlayedDate: currentDate,
+          idealMeal,
+          completedToday: false,
+          completionTimestamp: null,
+          pickupsToday: 0,
+          dropsToday: 0,
+          itemsMatchedToday: 0,
+          nutritionScore: null,
+          superCombosFound: [],
+          dailyBuff: null,
+        },
+        {},
+      );
 
       // Spawn items into world for this player (skip if already spawned today)
       const spawnedByPlayer = worldData.spawnedItemsByPlayer || {};
@@ -150,8 +155,8 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       completedToday,
       nutritionScore: visitorData.nutritionScore,
       superCombosFound: visitorData.superCombosFound || [],
-      xp: visitorData.totalXp,
-      level: visitorData.level,
+      xp,
+      level,
       currentStreak: displayStreak,
       isAdmin,
       hasRewardToken: false, // TODO: check inventory when ecosystem is configured

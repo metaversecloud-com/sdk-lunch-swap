@@ -1,16 +1,34 @@
 import { Visitor } from "./topiaInit.js";
 import { Credentials } from "../types/index.js";
-import { standardizeError } from "./standardizeError.js";
 import { VISITOR_DATA_DEFAULTS, VisitorGameData } from "@shared/types/DataObjects.js";
-import { BagItem, IdealMealItem } from "@shared/types/FoodItem.js";
-import { getCurrentDateMT, isNewDay } from "./gameLogic/index.js";
-import { getFoodItemsById } from "./foodItemLookup.js";
+import {
+  buildBagFromItems,
+  getVisitorXp,
+  getCurrentDateMT,
+  getFoodItemsById,
+  isNewDay,
+  standardizeError,
+} from "./index.js";
+import { getLevelForXp } from "@shared/data/xpConfig.js";
+import { VisitorInterface } from "@rtsdk/topia";
+import { BagItem } from "@shared/types/FoodItem.js";
 
-export const getVisitor = async (credentials: Credentials, shouldGetVisitorDetails = false) => {
+export const getVisitor = async (
+  credentials: Credentials,
+  shouldGetVisitorDetails = false,
+): Promise<{
+  visitor: VisitorInterface;
+  visitorData: VisitorGameData;
+  visitorInventory: { [key: string]: { id: string; icon: string; name: string } };
+  brownBag: BagItem[];
+  newDay: boolean;
+  xp: number;
+  level: number;
+}> => {
   try {
-    const {  urlSlug, visitorId } = credentials;
+    const { urlSlug, visitorId } = credentials;
 
-    let visitor: any;
+    let visitor: VisitorInterface;
     if (shouldGetVisitorDetails) visitor = await Visitor.get(visitorId, urlSlug, { credentials });
     else visitor = await Visitor.create(visitorId, urlSlug, { credentials });
 
@@ -20,11 +38,16 @@ export const getVisitor = async (credentials: Credentials, shouldGetVisitorDetai
 
     const currentDate = getCurrentDateMT();
     const newDay = !dataObject.lastPlayedDate || isNewDay(dataObject.lastPlayedDate, currentDate);
-    
+
     if (!dataObject.lastPlayedDate) {
       await visitor.setDataObject(
         { ...VISITOR_DATA_DEFAULTS, lastPlayedDate: currentDate },
-        { lock: { lockId:`${urlSlug}-${visitorId}-${new Date(Math.round(new Date().getTime() / 60000) * 60000)}`, releaseLock: true } },
+        {
+          lock: {
+            lockId: `${urlSlug}-${visitorId}-${new Date(Math.round(new Date().getTime() / 60000) * 60000)}`,
+            releaseLock: true,
+          },
+        },
       );
     }
 
@@ -50,25 +73,14 @@ export const getVisitor = async (credentials: Credentials, shouldGetVisitorDetai
     }
 
     // Build brown bag from inventory items, enriched with ecosystem data
-    const idealItemIds = new Set((visitorData.idealMeal || []).map((i: IdealMealItem) => i.itemId));
     const foodItemsById = await getFoodItemsById(credentials);
-    const brownBag: BagItem[] = allItems
-      .filter((item: any) => item.type === "ITEM" && item.status === "ACTIVE" && (item.quantity ?? item.availableQuantity ?? 1) > 0)
-      .map((item: any) => {
-        const itemId = item.metadata?.itemId ?? item.item?.metadata?.itemId ?? item.name;
-        const foodDef = foodItemsById.get(itemId);
-        return {
-          itemId,
-          name: foodDef?.name ?? item.metadata?.name ?? item.name,
-          foodGroup: foodDef?.foodGroup ?? item.metadata?.foodGroup ?? "snack",
-          rarity: foodDef?.rarity ?? item.metadata?.rarity ?? "common",
-          matchesIdealMeal: idealItemIds.has(itemId),
-          nutrition: foodDef?.nutrition,
-          funFact: foodDef?.funFact,
-        };
-      });
+    const brownBag = buildBagFromItems(allItems, visitorData.idealMeal || [], foodItemsById);
 
-    return { visitor, visitorData, visitorInventory, brownBag, newDay };
+    // Read XP from inventory
+    const xp = getVisitorXp(allItems);
+    const level = getLevelForXp(xp);
+
+    return { visitor, visitorData, visitorInventory, brownBag, newDay, xp, level };
   } catch (error) {
     throw standardizeError(error);
   }

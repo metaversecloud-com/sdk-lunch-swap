@@ -4,22 +4,24 @@ import { getCachedInventoryItems } from "./inventoryCache.js";
 import { getFoodItemsById } from "./foodItemLookup.js";
 
 /**
- * Read the visitor's bag from their inventory.
- * Filters for ITEM-type inventory entries and enriches with ecosystem data.
+ * Build a BagItem[] from raw inventory items.
+ * Shared by getVisitor (already has items in memory) and getVisitorBag (re-fetches).
  */
-export const getVisitorBag = async (
-  visitor: any,
+export const buildBagFromItems = (
+  allItems: any[],
   idealMeal: IdealMealItem[],
-  credentials: Credentials,
-): Promise<BagItem[]> => {
-  await visitor.fetchInventoryItems();
-  const allItems: any[] = visitor.inventoryItems || [];
-
+  foodItemsById: Map<string, any>,
+): BagItem[] => {
   const idealItemIds = new Set(idealMeal.map((i) => i.itemId));
-  const foodItemsById = await getFoodItemsById(credentials);
 
   return allItems
-    .filter((item: any) => item.type === "ITEM" && item.status === "ACTIVE" && (item.quantity ?? item.availableQuantity ?? 1) > 0)
+    .filter(
+      (item: any) =>
+        item.type === "ITEM" &&
+        item.status === "ACTIVE" &&
+        (item.quantity ?? item.availableQuantity ?? 1) > 0 &&
+        item.item?.name !== "Experience Points",
+    )
     .map((item: any) => {
       const itemId = item.metadata?.itemId ?? item.item?.metadata?.itemId ?? item.name;
       const foodDef = foodItemsById.get(itemId);
@@ -33,6 +35,22 @@ export const getVisitorBag = async (
         funFact: foodDef?.funFact,
       };
     });
+};
+
+/**
+ * Read the visitor's bag from their inventory.
+ * Re-fetches inventory items then builds the bag.
+ */
+export const getVisitorBag = async (
+  visitor: any,
+  idealMeal: IdealMealItem[],
+  credentials: Credentials,
+): Promise<BagItem[]> => {
+  await visitor.fetchInventoryItems();
+  const allItems: any[] = visitor.inventoryItems || [];
+  const foodItemsById = await getFoodItemsById(credentials);
+
+  return buildBagFromItems(allItems, idealMeal, foodItemsById);
 };
 
 /**
@@ -77,4 +95,37 @@ export const removeFoodFromVisitor = async (
   }
 
   await visitor.modifyInventoryItemQuantity(ecosystemItem, -1);
+};
+
+/**
+ * Read XP from already-fetched visitor inventory items.
+ */
+export const getVisitorXp = (allItems: any[]): number => {
+  const xpItem = allItems.find(
+    (item: any) => item.item?.name === "Experience Points" && item.status === "ACTIVE",
+  );
+  return xpItem?.quantity ?? xpItem?.availableQuantity ?? 0;
+};
+
+/**
+ * Grant XP to a visitor via the "Experience Points" inventory item.
+ * Returns the new total XP quantity.
+ */
+export const grantXp = async (
+  visitor: any,
+  credentials: Credentials,
+  amount: number,
+): Promise<number> => {
+  const items = await getCachedInventoryItems({ credentials });
+  const xpItem = items.find(
+    (item) => item.name === "Experience Points" && item.status === "ACTIVE",
+  );
+
+  if (!xpItem) {
+    console.warn("Experience Points item not found in ecosystem");
+    return 0;
+  }
+
+  const result = await visitor.modifyInventoryItemQuantity(xpItem, amount);
+  return result?.quantity ?? 0;
 };

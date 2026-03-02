@@ -21,7 +21,7 @@ export async function getFoodItemsById(credentials: Credentials): Promise<Map<st
   const items = await getCachedInventoryItems({ credentials });
   const map = new Map<string, FoodItemDefinition>();
   for (const item of items) {
-    if (item.type !== "ITEM") continue;
+    if (item.type !== "ITEM" || item.name === "Experience Points") continue;
     const def = toFoodItemDefinition(item);
     if (def) map.set(def.itemId, def);
   }

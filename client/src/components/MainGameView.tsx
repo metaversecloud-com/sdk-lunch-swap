@@ -32,10 +32,10 @@ export const MainGameView = () => {
   const handleDrop = async (itemId: string) => {
     try {
       const response = await backendAPI.post("/drop-item", { itemId });
-      const { brownBag: updatedBag, droppedItem, xpEarned } = response.data;
+      const { brownBag: updatedBag, droppedItem, xpEarned, xp: newXp, level: newLevel } = response.data;
 
       if (dispatch) {
-        dispatch({ type: SET_BROWN_BAG, payload: { brownBag: updatedBag } });
+        dispatch({ type: SET_BROWN_BAG, payload: { brownBag: updatedBag, xp: newXp, level: newLevel } });
       }
 
       showTemporaryMessage(`Dropped ${droppedItem?.name ?? "item"}${xpEarned ? ` (+${xpEarned} XP)` : ""}`);
@@ -53,12 +53,14 @@ export const MainGameView = () => {
         pickedUpItem,
         matchesIdealMeal,
         xpEarned,
+        xp: newXp,
+        level: newLevel,
         funFact,
         wasMystery,
       } = response.data;
 
       if (dispatch) {
-        dispatch({ type: SET_BROWN_BAG, payload: { brownBag: updatedBag } });
+        dispatch({ type: SET_BROWN_BAG, payload: { brownBag: updatedBag, xp: newXp, level: newLevel } });
         if (updatedMeal) {
           dispatch({ type: SET_IDEAL_MEAL, payload: { idealMeal: updatedMeal } });
         }

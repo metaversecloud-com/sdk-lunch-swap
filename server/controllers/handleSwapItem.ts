@@ -1,13 +1,23 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, World, User, DroppedAsset, dropFoodItem, getVisitor, grantFoodToVisitor, removeFoodFromVisitor, getVisitorBag } from "../utils/index.js";
+import {
+  errorHandler,
+  getCredentials,
+  DroppedAsset,
+  dropFoodItem,
+  getVisitor,
+  grantFoodToVisitor,
+  removeFoodFromVisitor,
+  getVisitorBag,
+  grantXp,
+} from "../utils/index.js";
 import { getFoodItemsById } from "../utils/foodItemLookup.js";
-import { XP_ACTIONS } from "@shared/data/xpConfig.js";
+import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG, Rarity, BagItem } from "@shared/types/FoodItem.js";
 
 export const handleSwapItem = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { urlSlug, profileId } = credentials;
+    const { urlSlug } = credentials;
     const { dropItemId, pickupDroppedAssetId } = req.body;
 
     if (!dropItemId || !pickupDroppedAssetId) {
@@ -38,10 +48,6 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       pickupItemId = dataObj.itemId;
       pickupRarity = dataObj.rarity || "common";
     }
-
-    // Parse mystery flag from 5th segment (backward-compatible: default to "0")
-    const mysteryFlag = parts.length >= 5 ? parts[4] : "0";
-    const wasMystery = mysteryFlag === "1";
 
     const foodItemsById = await getFoodItemsById(credentials);
     const pickupFoodDef = foodItemsById.get(pickupItemId);
@@ -93,18 +99,15 @@ export const handleSwapItem = async (req: Request, res: Response) => {
 
     await grantFoodToVisitor(visitor, credentials, newBagItem);
 
-    // B12: Atomic counter increments
-    if (visitor.incrementDataObjectValue) {
-      await visitor.incrementDataObjectValue("pickupsToday", 1);
-      await visitor.incrementDataObjectValue("dropsToday", 1);
-    }
-
-    // Update user data (atomic increments)
-    const user = User.create({ credentials, profileId });
-    if (user.incrementDataObjectValue) {
-      await user.incrementDataObjectValue("totalPickups", 1);
-      await user.incrementDataObjectValue("totalDrops", 1);
-    }
+    await visitor.updateDataObject(
+      {
+        pickupsToday: (visitorData.pickupsToday || 0) + 1,
+        dropsToday: (visitorData.dropsToday || 0) + 1,
+        totalPickups: (visitorData.totalPickups || 0) + 1,
+        totalDrops: (visitorData.totalDrops || 0) + 1,
+      },
+      {},
+    );
 
     // Calculate XP earned (DROP + PICKUP with rarity multiplier + optional ideal meal bonus)
     const rarityConfig = RARITY_CONFIG[pickupFoodDef.rarity] || RARITY_CONFIG.common;
@@ -113,10 +116,13 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       xpEarned += XP_ACTIONS.COLLECT_IDEAL_ITEM;
     }
 
+    // Grant XP to visitor inventory
+    const newTotalXp = await grantXp(visitor, credentials, xpEarned);
+    const newLevel = getLevelForXp(newTotalXp);
+
     // Fire toast
-    const world = World.create(urlSlug, { credentials });
-    world
-      .fireToast?.({
+    visitor
+      .fireToast({
         title: "Swapped!",
         text: `Dropped ${droppedItem.name}, picked up ${pickupFoodDef.name}!`,
       })
@@ -132,6 +138,8 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       pickedUpItem: newBagItem,
       matchesIdealMeal,
       xpEarned,
+      xp: newTotalXp,
+      level: newLevel,
     });
   } catch (error) {
     return errorHandler({

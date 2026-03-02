@@ -1,5 +1,13 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, World, dropFoodItem, getVisitor, removeFoodFromVisitor } from "../utils/index.js";
+import {
+  errorHandler,
+  getCredentials,
+  World,
+  dropFoodItem,
+  getVisitor,
+  removeFoodFromVisitor,
+  grantXp,
+} from "../utils/index.js";
 import { getFoodItemsById } from "../utils/foodItemLookup.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG } from "@shared/types/FoodItem.js";
@@ -81,7 +89,8 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     const streakXp = Math.min(newStreak * XP_ACTIONS.STREAK_PER_DAY, XP_ACTIONS.STREAK_CAP);
     totalXp += streakXp;
 
-    const newTotalXp = visitorData.totalXp + totalXp;
+    // Grant XP to visitor inventory and derive level
+    const newTotalXp = await grantXp(visitor, credentials, totalXp);
     const newLevel = getLevelForXp(newTotalXp);
     const newLongestStreak = Math.max(visitorData.longestStreak, newStreak);
     const newBestNutrition = Math.max(visitorData.bestNutritionScore, nutritionResult.score);
@@ -100,20 +109,21 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     }
 
     // Update visitor data
-    await visitor.updateDataObject({
-      totalXp: newTotalXp,
-      level: newLevel,
-      currentStreak: newStreak,
-      longestStreak: newLongestStreak,
-      lastCompletionDate: today,
-      bestNutritionScore: newBestNutrition,
-      totalMealsCompleted: (visitorData.totalMealsCompleted || 0) + 1,
-      totalSuperCombos: (visitorData.totalSuperCombos || 0) + superCombos.length,
-      completedToday: true,
-      completionTimestamp: new Date().toISOString(),
-      nutritionScore: nutritionResult.score,
-      superCombosFound: superComboNames,
-    });
+    await visitor.updateDataObject(
+      {
+        currentStreak: newStreak,
+        longestStreak: newLongestStreak,
+        lastCompletionDate: today,
+        bestNutritionScore: newBestNutrition,
+        totalMealsCompleted: (visitorData.totalMealsCompleted || 0) + 1,
+        totalSuperCombos: (visitorData.totalSuperCombos || 0) + superCombos.length,
+        completedToday: true,
+        completionTimestamp: new Date().toISOString(),
+        nutritionScore: nutritionResult.score,
+        superCombosFound: superComboNames,
+      },
+      {},
+    );
 
     // Auto-drop remaining non-meal items into world
     if (remainingBag.length > 0) {
@@ -143,8 +153,8 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     }
 
     // Celebration toast
-    world
-      .fireToast?.({
+    visitor
+      .fireToast({
         title: "Meal Complete!",
         text: `Score: ${nutritionResult.score}/100 | +${totalXp} XP${superCombos.length > 0 ? ` | ${superCombos.length} combo(s)!` : ""}`,
       })

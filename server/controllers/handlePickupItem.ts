@@ -1,8 +1,17 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, World, DroppedAsset, getVisitor, grantFoodToVisitor, getVisitorBag } from "../utils/index.js";
+import {
+  errorHandler,
+  getCredentials,
+  World,
+  DroppedAsset,
+  getVisitor,
+  grantFoodToVisitor,
+  getVisitorBag,
+  grantXp,
+} from "../utils/index.js";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { getFoodItemsById } from "../utils/foodItemLookup.js";
-import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION, XP_ACTIONS } from "@shared/data/xpConfig.js";
+import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION, XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG, Rarity, BagItem } from "@shared/types/FoodItem.js";
 
 export const handlePickupItem = async (req: Request, res: Response) => {
@@ -91,42 +100,27 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     let xpMultiplier = 1;
     const currentIdealStreak = visitorData.idealPickupStreak || 0;
     const wasHotStreak = visitorData.hotStreakActive || false;
+    const hotStreakActivated = matchesIdealMeal && currentIdealStreak + 1 >= 3;
 
     const updatedData = {
       pickupsToday: (visitorData.pickupsToday || 0) + 1,
       totalPickups: (visitorData.totalPickups || 0) + 1,
+      idealPickupStreak: matchesIdealMeal ? currentIdealStreak + 1 : 0,
+      hotStreakActive: wasHotStreak ? false : hotStreakActivated,
     };
 
     if (wasHotStreak) {
       xpMultiplier = 3;
-      await visitor.updateDataObject({
-        ...updatedData,
-        hotStreakActive: false,
-        idealPickupStreak: 0,
-      });
-    } else if (matchesIdealMeal) {
-      const newStreak = currentIdealStreak + 1;
-      const hotStreakActivated = newStreak >= 3;
-      await visitor.updateDataObject({
-        ...updatedData,
-        idealPickupStreak: newStreak,
-        hotStreakActive: hotStreakActivated,
-      });
-      if (hotStreakActivated) {
-        const world2 = World.create(urlSlug, { credentials });
-        world2
-          .fireToast?.({
-            title: "HOT STREAK!",
-            text: "Your next pickup gets 3x XP!",
-          })
-          .catch(() => {});
-      }
-    } else {
-      await visitor.updateDataObject({
-        ...updatedData,
-        idealPickupStreak: 0,
-      });
+    } else if (hotStreakActivated) {
+      visitor
+        .fireToast({
+          title: "HOT STREAK!",
+          text: "Your next pickup gets 3x XP!",
+        })
+        .catch(() => {});
     }
+
+    await visitor.updateDataObject(updatedData, {});
 
     // Calculate XP earned (with hot streak multiplier)
     const rarityConfig = RARITY_CONFIG[foodDef.rarity] || RARITY_CONFIG.common;
@@ -135,6 +129,10 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       xpEarned += XP_ACTIONS.COLLECT_IDEAL_ITEM;
     }
     xpEarned = Math.round(xpEarned * xpMultiplier);
+
+    // Grant XP to visitor inventory
+    const newTotalXp = await grantXp(visitor, credentials, xpEarned);
+    const newLevel = getLevelForXp(newTotalXp);
 
     // Update world data object with pickup stats
     const world = await World.create(urlSlug, { credentials });
@@ -145,8 +143,8 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     });
 
     // Fire toast with fun fact
-    world
-      .fireToast?.({
+    visitor
+      .fireToast({
         title: matchesIdealMeal ? "Great find!" : `Picked up ${foodDef.name}!`,
         text: foodDef.funFact,
       })
@@ -161,6 +159,8 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       pickedUpItem: newBagItem,
       matchesIdealMeal,
       xpEarned,
+      xp: newTotalXp,
+      level: newLevel,
       funFact: foodDef.funFact,
       wasMystery,
       hotStreakActive: wasHotStreak ? false : matchesIdealMeal && currentIdealStreak + 1 >= 3,
