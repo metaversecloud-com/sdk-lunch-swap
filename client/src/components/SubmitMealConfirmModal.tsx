@@ -8,12 +8,14 @@ interface SubmitMealConfirmModalProps {
 }
 
 export const SubmitMealConfirmModal = ({ onConfirm, onClose }: SubmitMealConfirmModalProps) => {
-  const { idealMeal } = useContext(GlobalStateContext);
+  const { idealMeal, brownBag } = useContext(GlobalStateContext);
   const modalRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const titleId = "submit-meal-title";
 
   const items = idealMeal ?? [];
+  const bagItemIds = new Set((brownBag ?? []).map((b) => b.itemId));
+  const isCollected = (itemId: string) => bagItemIds.has(itemId);
 
   // Focus trap and Escape handler
   useEffect(() => {
@@ -54,7 +56,7 @@ export const SubmitMealConfirmModal = ({ onConfirm, onClose }: SubmitMealConfirm
     };
   }, [onClose]);
 
-  const collectedCount = items.filter((i) => i.collected).length;
+  const collectedCount = items.filter((i) => isCollected(i.itemId)).length;
 
   return (
     <div className="modal-container" onClick={onClose}>
@@ -83,18 +85,18 @@ export const SubmitMealConfirmModal = ({ onConfirm, onClose }: SubmitMealConfirm
                 key={item.itemId}
                 role="listitem"
                 className={`flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all duration-200
-                  ${item.collected ? "bg-white shadow-sm" : "bg-gray-50 opacity-50 border-dashed"}`}
-                style={{ borderColor: item.collected ? borderColor : "#d1d5db" }}
+                  ${isCollected(item.itemId) ? "bg-white shadow-sm" : "bg-gray-50 opacity-50 border-dashed"}`}
+                style={{ borderColor: isCollected(item.itemId) ? borderColor : "#d1d5db" }}
               >
                 <span
                   className="w-3.5 h-3.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: item.collected ? borderColor : "#d1d5db" }}
+                  style={{ backgroundColor: isCollected(item.itemId) ? borderColor : "#d1d5db" }}
                   aria-hidden="true"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="tooltip truncate">
                     <span className="tooltip-content">{item.name}</span>
-                    <p className={`font-semibold text-sm ${item.collected ? "text-gray-800" : "text-gray-400"}`}>
+                    <p className={`font-semibold text-sm ${isCollected(item.itemId) ? "text-gray-800" : "text-gray-400"}`}>
                       {item.name}
                     </p>
                   </div>
@@ -102,17 +104,17 @@ export const SubmitMealConfirmModal = ({ onConfirm, onClose }: SubmitMealConfirm
                     <span className="text-xs text-gray-500 capitalize">{item.foodGroup}</span>
                     <span
                       className="p3 font-bold uppercase px-1.5 py-0.5 rounded-full text-white"
-                      style={{ backgroundColor: item.collected ? rarityConfig.color : "#d1d5db" }}
+                      style={{ backgroundColor: isCollected(item.itemId) ? rarityConfig.color : "#d1d5db" }}
                     >
                       {rarityConfig.label}
                     </span>
                   </div>
                 </div>
                 <span
-                  className={`text-lg flex-shrink-0 ${item.collected ? "text-green-500" : "text-gray-300"}`}
-                  aria-label={item.collected ? "Collected" : "Not collected"}
+                  className={`text-lg flex-shrink-0 ${isCollected(item.itemId) ? "text-green-500" : "text-gray-300"}`}
+                  aria-label={isCollected(item.itemId) ? "Collected" : "Not collected"}
                 >
-                  {item.collected ? "\u2713" : "\u2014"}
+                  {isCollected(item.itemId) ? "\u2713" : "\u2014"}
                 </span>
               </div>
             );

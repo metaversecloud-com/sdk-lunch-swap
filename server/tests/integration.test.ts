@@ -29,11 +29,11 @@ const baseCreds = {
 
 // --- Ideal meal (5 items from 5 food groups) ---
 const idealMeal = [
-  { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false },
-  { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false },
-  { itemId: "chicken_breast", name: "Chicken Breast", foodGroup: "main", rarity: "common", collected: false },
-  { itemId: "carrot_sticks", name: "Carrot Sticks", foodGroup: "veggie", rarity: "common", collected: false },
-  { itemId: "trail_mix", name: "Trail Mix", foodGroup: "snack", rarity: "common", collected: false },
+  { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" },
+  { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
+  { itemId: "chicken_breast", name: "Chicken Breast", foodGroup: "main", rarity: "common" },
+  { itemId: "carrot_sticks", name: "Carrot Sticks", foodGroup: "veggie", rarity: "common" },
+  { itemId: "trail_mix", name: "Trail Mix", foodGroup: "snack", rarity: "common" },
 ];
 
 // --- Brown bag: 8 items = all 5 ideal + 3 extras ---
@@ -51,11 +51,11 @@ const brownBag = [
 // --- Mock game logic ---
 jest.mock("../utils/gameLogic/index.js", () => ({
   generateIdealMeal: jest.fn().mockResolvedValue([
-    { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false },
-    { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false },
-    { itemId: "chicken_breast", name: "Chicken Breast", foodGroup: "main", rarity: "common", collected: false },
-    { itemId: "carrot_sticks", name: "Carrot Sticks", foodGroup: "veggie", rarity: "common", collected: false },
-    { itemId: "trail_mix", name: "Trail Mix", foodGroup: "snack", rarity: "common", collected: false },
+    { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" },
+    { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
+    { itemId: "chicken_breast", name: "Chicken Breast", foodGroup: "main", rarity: "common" },
+    { itemId: "carrot_sticks", name: "Carrot Sticks", foodGroup: "veggie", rarity: "common" },
+    { itemId: "trail_mix", name: "Trail Mix", foodGroup: "snack", rarity: "common" },
   ]),
   generateBrownBag: jest.fn().mockResolvedValue([
     { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: true },

@@ -75,7 +75,7 @@ function setupPickupMocks(opts: {
   const {
     brownBag = [],
     visitorData = {
-      idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
+      idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
       completedToday: false,
       pickupsToday: 0,
       idealPickupStreak: 0,
@@ -195,7 +195,7 @@ describe("Hot Streaks", () => {
     test("picking up ideal-meal-matching item increments idealPickupStreak", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
+          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
           idealPickupStreak: 1,
@@ -226,7 +226,7 @@ describe("Hot Streaks", () => {
     test("picking up non-matching item resets idealPickupStreak to 0", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false }],
+          idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
           idealPickupStreak: 2,
@@ -254,7 +254,7 @@ describe("Hot Streaks", () => {
     test("when idealPickupStreak reaches 3, hotStreakActive is set to true", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
+          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
           idealPickupStreak: 2,
@@ -284,7 +284,7 @@ describe("Hot Streaks", () => {
     test("next pickup with hotStreakActive gets 3x XP, then resets", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false }],
+          idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
           idealPickupStreak: 3,
@@ -317,7 +317,7 @@ describe("Hot Streaks", () => {
     test("hot streak 3x multiplier applies to ideal meal bonus XP too", async () => {
       setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
+          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
           idealPickupStreak: 3,
@@ -341,7 +341,7 @@ describe("Hot Streaks", () => {
     test("first ideal pickup starts streak at 1", async () => {
       setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
+          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
           idealPickupStreak: 0,

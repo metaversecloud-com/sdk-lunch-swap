@@ -74,11 +74,11 @@ const mockGameLogic = jest.mocked(require("../utils/gameLogic/index.js"));
 
 // Build a complete ideal meal (5 items from different food groups, all common)
 const idealMeal = [
-  { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: true },
-  { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: true },
-  { itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common", collected: true },
-  { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", collected: true },
-  { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common", collected: true },
+  { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
+  { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" },
+  { itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common" },
+  { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common" },
+  { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common" },
 ];
 
 // Brown bag that contains all ideal meal items (and optionally extras)

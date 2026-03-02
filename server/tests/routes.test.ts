@@ -25,11 +25,11 @@ const baseCreds = {
 // Mock game logic
 jest.mock("../utils/gameLogic/index.js", () => ({
   generateIdealMeal: jest.fn().mockResolvedValue([
-    { itemId: "water", name: "Water Bottle", foodGroup: "drink", rarity: "common", collected: false },
-    { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", collected: false },
-    { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false },
-    { itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common", collected: false },
-    { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common", collected: false },
+    { itemId: "water", name: "Water Bottle", foodGroup: "drink", rarity: "common" },
+    { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common" },
+    { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" },
+    { itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common" },
+    { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common" },
   ]),
   generateBrownBag: jest.fn().mockResolvedValue([
     { itemId: "water", name: "Water Bottle", foodGroup: "drink", rarity: "common", matchesIdealMeal: true },
@@ -160,7 +160,7 @@ describe("routes", () => {
         { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", matchesIdealMeal: true },
       ];
       const existingMeal = [
-        { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: true },
+        { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
       ];
 
       await setupMocks({

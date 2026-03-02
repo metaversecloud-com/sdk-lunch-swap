@@ -21,7 +21,8 @@ export const MainGameView = () => {
   const bagItems = brownBag ?? [];
   const mealItems = idealMeal ?? [];
   const bagFull = bagItems.length >= BAG_CAPACITY;
-  const allCollected = mealItems.length > 0 && mealItems.every((item) => item.collected);
+  const bagItemIds = new Set(bagItems.map((b) => b.itemId));
+  const allCollected = mealItems.length > 0 && mealItems.every((item) => bagItemIds.has(item.itemId));
 
   const showTemporaryMessage = (message: string) => {
     setActionMessage(message);

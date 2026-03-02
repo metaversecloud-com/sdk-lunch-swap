@@ -74,7 +74,7 @@ function setupMocks(opts: {
   const {
     brownBag = [],
     visitorData = {
-      idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
+      idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
       completedToday: false,
       pickupsToday: 0,
       totalPickups: 0,
@@ -182,7 +182,7 @@ describe("POST /api/pickup-item", () => {
   test("XP without ideal meal bonus for non-matching item", async () => {
     setupMocks({
       visitorData: {
-        idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false }],
+        idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }],
         completedToday: false,
         pickupsToday: 0,
         totalPickups: 0,
@@ -199,29 +199,6 @@ describe("POST /api/pickup-item", () => {
     // xpEarned = Math.round(10 * 1.0) = 10
     expect(res.body.xpEarned).toBe(10);
     expect(res.body.matchesIdealMeal).toBe(false);
-  });
-
-  test("updates ideal meal collected status when matching item picked up", async () => {
-    setupMocks({
-      visitorData: {
-        idealMeal: [
-          { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false },
-          { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false },
-        ],
-        completedToday: false,
-        pickupsToday: 0,
-        totalPickups: 0,
-      },
-    });
-
-    const app = makeApp();
-    const res = await request(app)
-      .post("/api/pickup-item")
-      .query(baseCreds)
-      .send({ droppedAssetId: "food-asset-1" });
-
-    expect(res.body.idealMeal[0].collected).toBe(true);
-    expect(res.body.idealMeal[1].collected).toBe(false);
   });
 
   test("missing droppedAssetId returns 400", async () => {

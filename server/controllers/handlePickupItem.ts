@@ -87,19 +87,12 @@ export const handlePickupItem = async (req: Request, res: Response) => {
 
     await grantFoodToVisitor(visitor, credentials, newBagItem);
 
-    // Update ideal meal collected status
-    const updatedIdealMeal = visitorData.idealMeal.map((item: any) => ({
-      ...item,
-      collected: item.collected || item.itemId === itemId,
-    }));
-
     // Hot streak logic
     let xpMultiplier = 1;
     const currentIdealStreak = visitorData.idealPickupStreak || 0;
     const wasHotStreak = visitorData.hotStreakActive || false;
 
     const updatedData = {
-      idealMeal: updatedIdealMeal,
       pickupsToday: (visitorData.pickupsToday || 0) + 1,
       totalPickups: (visitorData.totalPickups || 0) + 1,
     };
@@ -160,12 +153,11 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       .catch(() => {});
 
     // Read updated bag from inventory
-    const updatedBag = await getVisitorBag(visitor, updatedIdealMeal, credentials);
+    const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
 
     return res.json({
       success: true,
       brownBag: updatedBag,
-      idealMeal: updatedIdealMeal,
       pickedUpItem: newBagItem,
       matchesIdealMeal,
       xpEarned,

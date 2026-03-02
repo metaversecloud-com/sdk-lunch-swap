@@ -25,8 +25,8 @@ export async function dropFoodItem({
 
   const items = await getCachedInventoryItems({ credentials });
   const inventoryItem = items.find((i) => i.type === "ITEM" && i.metadata?.itemId === itemId);
-  
-  if(!inventoryItem) throw "Item not found in inventory: " + itemId;
+
+  if (!inventoryItem) throw "Item not found in inventory: " + itemId;
 
   const asset = await Asset.create("webImageAsset", { credentials });
   const droppedAsset = await DroppedAsset.drop(asset, {
@@ -39,6 +39,7 @@ export async function dropFoodItem({
     isInteractive: true,
     interactivePublicKey: credentials.interactivePublicKey,
     layer0: inventoryItem.image_path || "",
+    assetScale: 0.5,
   });
 
   return droppedAsset;

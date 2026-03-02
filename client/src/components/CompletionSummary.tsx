@@ -16,7 +16,6 @@ export const CompletionSummary = () => {
   const streak = currentStreak ?? 0;
   const best = longestStreak ?? 0;
 
-  
   return (
     <section
       className="grid items-center text-center gap-6 p-5 rounded-2xl bg-gradient-to-b from-green-50 to-white border border-green-200 shadow-sm"

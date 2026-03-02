@@ -78,8 +78,8 @@ function setupMocks(opts: {
     ],
     visitorData = {
       idealMeal: [
-        { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", collected: false },
-        { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: true },
+        { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" },
+        { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
       ],
       completedToday: false,
       pickupsToday: 2,
@@ -214,7 +214,7 @@ describe("POST /api/swap-item", () => {
       ],
       visitorData: {
         idealMeal: [
-          { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", collected: false },
+          { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
         ],
         completedToday: false,
         pickupsToday: 1,
@@ -338,20 +338,4 @@ describe("POST /api/swap-item", () => {
     );
   });
 
-  test("updates ideal meal collected status when matching item picked up", async () => {
-    setupMocks();
-
-    const app = makeApp();
-    const res = await request(app)
-      .post("/api/swap-item")
-      .query(baseCreds)
-      .send({ dropItemId: "sandwich", pickupDroppedAssetId: "food-asset-1" });
-
-    // banana matches ideal meal, so it should be marked as collected
-    const bananaIdeal = res.body.idealMeal.find((i: any) => i.itemId === "banana");
-    expect(bananaIdeal.collected).toBe(true);
-    // water was already collected, should remain collected
-    const waterIdeal = res.body.idealMeal.find((i: any) => i.itemId === "water");
-    expect(waterIdeal.collected).toBe(true);
-  });
 });

@@ -1,5 +1,15 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, getKeyAsset, World, dropFoodItem, getVisitor, getVisitorBag, grantFoodToVisitor, removeFoodFromVisitor } from "../utils/index.js";
+import {
+  errorHandler,
+  getCredentials,
+  getKeyAsset,
+  World,
+  dropFoodItem,
+  getVisitor,
+  getVisitorBag,
+  grantFoodToVisitor,
+  removeFoodFromVisitor,
+} from "../utils/index.js";
 import { generateIdealMeal, generateBrownBag, getCurrentDateMT, isNewDay } from "../utils/gameLogic/index.js";
 import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { getFoodItemsById } from "../utils/foodItemLookup.js";
@@ -102,11 +112,17 @@ export const handleGetGameState = async (req: Request, res: Response) => {
 
         // Track spawned items
         worldData.spawnedItemsByPlayer = { ...spawnedByPlayer, [profileId]: spawnedIds };
-        worldData.currentDate = currentDate;
       }
 
       // Update world data object
-      worldData.totalStartsToday = (worldData.totalStartsToday || 0) + 1;
+      if (worldData.currentDate !== currentDate) {
+        // reset if new day
+        worldData.totalCompletionsToday = 0;
+        worldData.totalStartsToday = 1;
+        worldData.currentDate = currentDate;
+      } else {
+        worldData.totalStartsToday = (worldData.totalStartsToday || 0) + 1;
+      }
       await world.updateDataObject(worldData);
     }
 
@@ -126,7 +142,6 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       displayStreak = 0;
     }
 
-      console.log("🚀 ~ handleGetGameState.ts:131 ~ newDay:", newDay)
     return res.json({
       success: true,
       isNewDay: newDay,

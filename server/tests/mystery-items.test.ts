@@ -109,7 +109,7 @@ function setupPickupMocks(opts: {
   const {
     brownBag = [],
     visitorData = {
-      idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", collected: false }],
+      idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
       completedToday: false,
       pickupsToday: 0,
       idealPickupStreak: 0,

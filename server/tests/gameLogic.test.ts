@@ -56,9 +56,9 @@ describe("generateIdealMeal", () => {
     expect(others).toHaveLength(4);
   });
 
-  test("all items have collected: false", async () => {
+  test("items do not have collected property", async () => {
     const meal = await generateIdealMeal(fakeCredentials);
-    expect(meal.every((i) => i.collected === false)).toBe(true);
+    expect(meal.every((i) => !("collected" in i))).toBe(true);
   });
 
   test("returns different meals on multiple calls (randomized)", async () => {

@@ -93,17 +93,6 @@ export const handleSwapItem = async (req: Request, res: Response) => {
 
     await grantFoodToVisitor(visitor, credentials, newBagItem);
 
-    // Update ideal meal collected status
-    const updatedIdealMeal = visitorData.idealMeal.map((item: any) => ({
-      ...item,
-      collected: item.collected || item.itemId === pickupItemId,
-    }));
-
-    // Update visitor data
-    await visitor.updateDataObject({
-      idealMeal: updatedIdealMeal,
-    });
-
     // B12: Atomic counter increments
     if (visitor.incrementDataObjectValue) {
       await visitor.incrementDataObjectValue("pickupsToday", 1);
@@ -134,12 +123,11 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       .catch(() => {});
 
     // Read updated bag from inventory
-    const updatedBag = await getVisitorBag(visitor, updatedIdealMeal, credentials);
+    const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
 
     return res.json({
       success: true,
       brownBag: updatedBag,
-      idealMeal: updatedIdealMeal,
       droppedItem,
       pickedUpItem: newBagItem,
       matchesIdealMeal,

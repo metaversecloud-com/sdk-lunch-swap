@@ -35,7 +35,6 @@ export interface IdealMealItem {
   name: string;
   foodGroup: FoodGroup;
   rarity: Rarity;
-  collected: boolean;
 }
 
 export const FOOD_GROUP_COLORS: Record<FoodGroup, string> = {

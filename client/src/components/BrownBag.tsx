@@ -17,7 +17,6 @@ export const BrownBag = ({ isPreview, onDrop }: BrownBagProps) => {
   const filledCount = items.length;
 
   const handleToggle = (index: number) => {
-    // TODO: fix toggle, only works when clicking on item from different row, doesn't clear when clicking on same item twice
     setExpandedIndex((prev) => (prev === index ? null : index));
   };
 
