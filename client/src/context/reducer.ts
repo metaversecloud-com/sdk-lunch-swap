@@ -44,6 +44,8 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         brownBag: payload.brownBag,
         ...(payload.xp !== undefined && { xp: payload.xp }),
         ...(payload.level !== undefined && { level: payload.level }),
+        hotStreakActive: payload.hotStreakActive,
+        idealPickupStreak: payload.idealPickupStreak,
       };
     case SET_IDEAL_MEAL:
       return {

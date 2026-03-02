@@ -3,13 +3,12 @@ import {
   errorHandler,
   getCredentials,
   dropFoodItem,
-  World,
   getVisitor,
   removeFoodFromVisitor,
   getVisitorBag,
   grantXp,
+  updateWorldStats,
 } from "../utils/index.js";
-import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 
 export const handleDropItem = async (req: Request, res: Response) => {
@@ -62,13 +61,8 @@ export const handleDropItem = async (req: Request, res: Response) => {
     const newTotalXp = await grantXp(visitor, credentials, xpEarned);
     const newLevel = getLevelForXp(newTotalXp);
 
-    // Update world data object with drop stats
-    const world = await World.create(urlSlug, { credentials });
-    await world.fetchDataObject();
-    const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
-    await world.updateDataObject({
-      totalDrops: worldData.totalDrops + 1,
-    });
+    // Update world stats
+    await updateWorldStats(urlSlug, credentials, { drops: 1 });
 
     // Read updated bag from inventory
     const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);

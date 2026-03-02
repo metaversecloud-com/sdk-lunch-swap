@@ -41,7 +41,7 @@ export interface InitialState {
     fiberScore: number;
     vitaminDiversity: number;
     balanceScore: number;
-  }
+  };
   superCombosFound?: string[];
   xp?: number;
   level?: number;
@@ -67,3 +67,16 @@ export type ErrorType =
       message?: string;
       response?: { data?: { error?: { message?: string }; message?: string } };
     };
+
+export type PostPickupResponseType = {
+  brownBag: BagItem[];
+  pickedUpItem: BagItem | null;
+  matchesIdealMeal: boolean;
+  xpEarned: number;
+  xp: number;
+  level: number;
+  hotStreakActive: boolean;
+  idealPickupStreak: number;
+  funFact: string | null;
+  wasMystery: boolean;
+};

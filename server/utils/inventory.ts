@@ -1,5 +1,5 @@
 import { Credentials } from "../types/index.js";
-import { BagItem, IdealMealItem } from "@shared/types/FoodItem.js";
+import { BagItem, FoodItemDefinition, IdealMealItem } from "@shared/types/FoodItem.js";
 import { getCachedInventoryItems } from "./inventoryCache.js";
 import { getFoodItemsById } from "./foodItemLookup.js";
 
@@ -51,6 +51,29 @@ export const getVisitorBag = async (
   const foodItemsById = await getFoodItemsById(credentials);
 
   return buildBagFromItems(allItems, idealMeal, foodItemsById);
+};
+
+/**
+ * Build a BagItem from a food definition and check if it matches the ideal meal.
+ */
+export const buildBagItemFromDef = (
+  foodDef: FoodItemDefinition,
+  idealMeal: IdealMealItem[],
+): { bagItem: BagItem; matchesIdealMeal: boolean } => {
+  const idealItemIds = new Set(idealMeal?.map((i) => i.itemId) || []);
+  const matchesIdealMeal = idealItemIds.has(foodDef.itemId);
+
+  const bagItem: BagItem = {
+    itemId: foodDef.itemId,
+    name: foodDef.name,
+    foodGroup: foodDef.foodGroup,
+    rarity: foodDef.rarity,
+    matchesIdealMeal,
+    nutrition: foodDef.nutrition,
+    funFact: foodDef.funFact,
+  };
+
+  return { bagItem, matchesIdealMeal };
 };
 
 /**

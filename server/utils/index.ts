@@ -11,3 +11,5 @@ export * from "./topiaInit.js";
 export * from "./inventoryCache.js";
 export * from "./inventory.js";
 export * from "./foodItemLookup.js";
+export * from "./resolveFoodAsset.js";
+export * from "./updateWorldStats.js";

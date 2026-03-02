@@ -2,17 +2,16 @@ import { Request, Response } from "express";
 import {
   errorHandler,
   getCredentials,
-  World,
-  DroppedAsset,
   getVisitor,
   grantFoodToVisitor,
   getVisitorBag,
   grantXp,
+  resolveFoodAsset,
+  updateWorldStats,
+  buildBagItemFromDef,
+  calculatePickupXp,
 } from "../utils/index.js";
-import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
-import { getFoodItemsById } from "../utils/foodItemLookup.js";
-import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION, XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
-import { RARITY_CONFIG, Rarity, BagItem } from "@shared/types/FoodItem.js";
+import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION, getLevelForXp } from "@shared/data/xpConfig.js";
 
 export const handlePickupItem = async (req: Request, res: Response) => {
   try {
@@ -24,46 +23,17 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "Missing droppedAssetId" });
     }
 
-    // Fetch the food asset
-    const foodAsset = await DroppedAsset.get(droppedAssetId, urlSlug, { credentials });
-    if (!foodAsset) {
-      return res.status(409).json({ success: false, message: "This item was already picked up" });
+    // Resolve the food asset (fetch, parse uniqueName, look up definition)
+    const resolved = await resolveFoodAsset(droppedAssetId, urlSlug, credentials);
+    if (!resolved.success) {
+      return res.status(resolved.status).json({ success: false, message: resolved.message });
     }
-
-    // Fetch data object for additional metadata
-    try {
-      await foodAsset.fetchDataObject();
-    } catch {
-      return res.status(409).json({ success: false, message: "This item was already picked up" });
-    }
-
-    // Parse uniqueName for item metadata (pattern: lunch-swap-food|{itemId}|{rarity}|{timestamp}|{mystery})
-    const parts = ((foodAsset as any).uniqueName || "").split("|");
-    let itemId = "";
-    let rarity: Rarity = "common";
-    const dataObj = foodAsset.dataObject as Record<string, any> | null | undefined;
-    if (parts.length >= 3) {
-      itemId = parts[1];
-      rarity = parts[2] as Rarity;
-    } else if (dataObj?.itemId) {
-      itemId = dataObj.itemId;
-      rarity = dataObj.rarity || "common";
-    }
-
-    // Parse mystery flag from 5th segment (backward-compatible: default to "0")
-    const mysteryFlag = parts.length >= 5 ? parts[4] : "0";
-    const wasMystery = mysteryFlag === "1";
-
-    const foodItemsById = await getFoodItemsById(credentials);
-    const foodDef = foodItemsById.get(itemId);
-    if (!foodDef) {
-      return res.status(400).json({ success: false, message: "Unknown food item" });
-    }
+    const { foodAsset, foodDef, wasMystery } = resolved;
 
     // Fetch visitor with data and bag
     const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
 
-    // Check bag capacity (B13: dynamic message, D1: 8 pre-completion, 3 post-completion)
+    // Check bag capacity (8 pre-completion, 3 post-completion)
     const maxCapacity = visitorData.completedToday ? BAG_CAPACITY_POST_COMPLETION : BAG_CAPACITY;
     if (brownBag.length >= maxCapacity) {
       return res.status(400).json({
@@ -79,21 +49,8 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       return res.status(409).json({ success: false, message: "This item was already picked up" });
     }
 
-    // Check if item matches ideal meal
-    const idealItemIds = new Set(visitorData.idealMeal?.map((i: any) => i.itemId) || []);
-    const matchesIdealMeal = idealItemIds.has(itemId);
-
     // Build bag item and grant to inventory
-    const newBagItem: BagItem = {
-      itemId: foodDef.itemId,
-      name: foodDef.name,
-      foodGroup: foodDef.foodGroup,
-      rarity: foodDef.rarity,
-      matchesIdealMeal,
-      nutrition: foodDef.nutrition,
-      funFact: foodDef.funFact,
-    };
-
+    const { bagItem: newBagItem, matchesIdealMeal } = buildBagItemFromDef(foodDef, visitorData.idealMeal);
     await grantFoodToVisitor(visitor, credentials, newBagItem);
 
     // Hot streak logic
@@ -122,25 +79,13 @@ export const handlePickupItem = async (req: Request, res: Response) => {
 
     await visitor.updateDataObject(updatedData, {});
 
-    // Calculate XP earned (with hot streak multiplier)
-    const rarityConfig = RARITY_CONFIG[foodDef.rarity] || RARITY_CONFIG.common;
-    let xpEarned = Math.round(XP_ACTIONS.PICKUP * rarityConfig.xpMultiplier);
-    if (matchesIdealMeal) {
-      xpEarned += XP_ACTIONS.COLLECT_IDEAL_ITEM;
-    }
-    xpEarned = Math.round(xpEarned * xpMultiplier);
-
-    // Grant XP to visitor inventory
+    // Calculate and grant XP
+    const xpEarned = calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier);
     const newTotalXp = await grantXp(visitor, credentials, xpEarned);
     const newLevel = getLevelForXp(newTotalXp);
 
-    // Update world data object with pickup stats
-    const world = await World.create(urlSlug, { credentials });
-    await world.fetchDataObject();
-    const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
-    await world.updateDataObject({
-      totalPickups: worldData.totalPickups + 1,
-    });
+    // Update world stats
+    await updateWorldStats(urlSlug, credentials, { pickups: 1 });
 
     // Fire toast with fun fact
     visitor
@@ -163,8 +108,8 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       level: newLevel,
       funFact: foodDef.funFact,
       wasMystery,
-      hotStreakActive: wasHotStreak ? false : matchesIdealMeal && currentIdealStreak + 1 >= 3,
-      idealPickupStreak: wasHotStreak ? 0 : matchesIdealMeal ? currentIdealStreak + 1 : 0,
+      hotStreakActive: updatedData.hotStreakActive,
+      idealPickupStreak: updatedData.idealPickupStreak,
       xpMultiplier,
     });
   } catch (error) {

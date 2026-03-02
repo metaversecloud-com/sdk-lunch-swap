@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, Visitor, World } from "../utils/index.js";
+import { getFoodItemsById, errorHandler, getCredentials, Visitor, World } from "../utils/index.js";
 import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
-import { getFoodItemsById } from "../utils/foodItemLookup.js";
 import { NearbyItem } from "@shared/types/NearbyItem.js";
 
 export const handleGetNearbyItems = async (req: Request, res: Response) => {

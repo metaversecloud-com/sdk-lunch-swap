@@ -4,11 +4,11 @@ import {
   getCredentials,
   World,
   dropFoodItem,
+  getFoodItemsById,
   getVisitor,
   removeFoodFromVisitor,
   grantXp,
 } from "../utils/index.js";
-import { getFoodItemsById } from "../utils/foodItemLookup.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG } from "@shared/types/FoodItem.js";
 import { calculateNutritionScore, detectSuperCombos, getCurrentDateMT } from "../utils/gameLogic/index.js";

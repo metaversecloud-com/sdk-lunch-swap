@@ -158,6 +158,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       xp,
       level,
       currentStreak: displayStreak,
+      hotStreakActive: visitorData.hotStreakActive || false,
       isAdmin,
       hasRewardToken: false, // TODO: check inventory when ecosystem is configured
       dailyBuff: (visitorData as any).dailyBuff || null,

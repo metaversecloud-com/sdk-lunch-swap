@@ -1,15 +1,18 @@
 import { useContext, useEffect, useRef, useState, useCallback } from "react";
-import { GlobalStateContext } from "@/context/GlobalContext";
+import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";
 import { BagItem, FOOD_GROUP_COLORS, RARITY_CONFIG } from "@shared/types/FoodItem";
 import { backendAPI } from "@/utils/backendAPI";
+import { setErrorMessage } from "@/utils";
+import { ErrorType, PostPickupResponseType } from "@/context/types";
 
 interface BagFullSwapModalProps {
   pickupDroppedAssetId: string;
-  onComplete: (response: any) => void;
+  onComplete: (data: PostPickupResponseType) => void;
   onClose: () => void;
 }
 
 export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: BagFullSwapModalProps) => {
+  const dispatch = useContext(GlobalDispatchContext);
   const { brownBag } = useContext(GlobalStateContext);
   const [selectedItem, setSelectedItem] = useState<BagItem | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
@@ -22,11 +25,8 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
 
   const items = brownBag ?? [];
 
-  // Focus trap and Escape handler
+  // Escape handler
   useEffect(() => {
-    const previousFocus = document.activeElement as HTMLElement;
-    firstFocusRef.current?.focus();
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -57,7 +57,6 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      previousFocus?.focus();
     };
   }, [onClose]);
 
@@ -77,8 +76,8 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
         pickupDroppedAssetId,
       });
       onComplete(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Swap failed. Try again!");
+    } catch (err) {
+      setErrorMessage(dispatch, err as ErrorType);
       setIsSwapping(false);
     }
   };
@@ -96,7 +95,7 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
         <h4 id={titleId} className="text-xl font-bold text-center text-gray-800 mb-1">
           Bag is Full!
         </h4>
-        <p className="text-sm text-gray-500 text-center mb-4">Choose an item to swap out.</p>
+        <p className="p2">Choose an item to swap out.</p>
 
         {error && (
           <div className="mb-3 p-2 rounded-lg bg-red-50 text-red-600 text-sm text-center" role="alert">
@@ -104,7 +103,7 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2 mb-4 max-h-[50vh] overflow-y-auto px-1">
+        <div className="grid grid-cols-2 gap-2 my-2">
           {items.map((item, index) => {
             const isSelected = selectedItem?.itemId === item.itemId;
             const borderColor = FOOD_GROUP_COLORS[item.foodGroup];
@@ -131,9 +130,9 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
                     style={{ backgroundColor: borderColor }}
                     aria-hidden="true"
                   />
-                  <div className="tooltip flex-1 truncate">
+                  <div className="tooltip truncate">
                     <span className="tooltip-content">{item.name}</span>
-                    <span className="font-semibold text-sm text-gray-800">{item.name}</span>
+                    <span>{item.name}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5">
@@ -149,14 +148,6 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
                     </span>
                   )}
                 </div>
-                {isSelected && (
-                  <span
-                    className="absolute top-1 right-1 text-red-500 font-bold text-xs bg-red-100 rounded-full px-1.5 py-0.5"
-                    aria-hidden="true"
-                  >
-                    SWAP
-                  </span>
-                )}
               </button>
             );
           })}
@@ -164,7 +155,7 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
 
         {selectedItem && (
           <div
-            className="mb-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-center"
+            className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-center"
             role="status"
             aria-live="polite"
           >
@@ -183,12 +174,12 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
           </button>
           <button
             ref={lastFocusRef}
-            className="btn btn-danger-outline"
+            className="btn btn-danger"
             onClick={handleConfirmSwap}
             disabled={!selectedItem || isSwapping}
             aria-label={selectedItem ? `Confirm swap: drop ${selectedItem.name}` : "Select an item first"}
           >
-            {isSwapping ? "Swapping..." : "Confirm Swap"}
+            {isSwapping ? "Swapping..." : "Swap"}
           </button>
         </div>
       </div>

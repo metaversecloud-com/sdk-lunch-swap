@@ -3,15 +3,28 @@ import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalConte
 import { SET_NEARBY_ITEMS } from "@/context/types";
 import { backendAPI } from "@/utils";
 import { NearbyItemCard } from "@/components/NearbyItemCard";
+import { BagItem } from "@shared/types/FoodItem";
 
 const POLL_INTERVAL_MS = 3000;
 
 interface NearbyItemsProps {
-  onPickup: (droppedAssetId: string) => void;
   bagFull?: boolean;
+  onPickup: (droppedAssetId: string) => void;
+  afterSwap?: (data: {
+    brownBag: BagItem[];
+    pickedUpItem: BagItem | null;
+    matchesIdealMeal: boolean;
+    xpEarned: number;
+    xp: number;
+    level: number;
+    hotStreakActive: boolean;
+    idealPickupStreak: number;
+    funFact: string | null;
+    wasMystery: boolean;
+  }) => void;
 }
 
-export const NearbyItems = ({ onPickup, bagFull = false }: NearbyItemsProps) => {
+export const NearbyItems = ({ onPickup, afterSwap, bagFull = false }: NearbyItemsProps) => {
   const dispatch = useContext(GlobalDispatchContext);
   const { nearbyItems } = useContext(GlobalStateContext);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -20,12 +33,11 @@ export const NearbyItems = ({ onPickup, bagFull = false }: NearbyItemsProps) => 
     const fetchNearbyItems = async () => {
       try {
         const response = await backendAPI.get("/nearby-items");
-        if (dispatch) {
-          dispatch({
-            type: SET_NEARBY_ITEMS,
-            payload: { nearbyItems: response.data.nearbyItems },
-          });
-        }
+
+        dispatch!({
+          type: SET_NEARBY_ITEMS,
+          payload: { nearbyItems: response.data.nearbyItems },
+        });
       } catch {
         // Silently fail on polling — avoids spamming errors every 3s
       }
@@ -69,7 +81,7 @@ export const NearbyItems = ({ onPickup, bagFull = false }: NearbyItemsProps) => 
         <div className="flex flex-col gap-2" role="list" aria-label="List of nearby food items">
           {items.map((item) => (
             <div key={item.droppedAssetId} role="listitem">
-              <NearbyItemCard item={item} onPickup={onPickup} disabled={bagFull} />
+              <NearbyItemCard item={item} onPickup={onPickup} afterSwap={afterSwap} bagFull={bagFull} />
             </div>
           ))}
         </div>

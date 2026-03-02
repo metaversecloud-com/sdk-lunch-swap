@@ -22,8 +22,6 @@ export * from "./NutritionPreview.js";
 export * from "./PageContainer.js";
 export * from "./PageFooter.js";
 export * from "./BagFullSwapModal.js";
-export * from "./DropConfirmModal.js";
-export * from "./SubmitMealConfirmModal.js";
 export * from "./NutritionScoreDisplay.js";
 export * from "./XpBreakdown.js";
 export * from "./StreakCounter.js";
