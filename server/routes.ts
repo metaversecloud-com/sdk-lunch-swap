@@ -1,6 +1,6 @@
 import express from "express";
 import { handleGetGameState, handleGetNearbyItems, handlePickupItem, handleDropItem, handleSwapItem, handleSubmitMeal, handleSpinWheel, handleAdminRemoveAllItems, handleAdminSpawnItems, handleAdminGetStats } from "./controllers/index.js";
-import { getVersion } from "./utils/getVersion.js";
+import { getVersion } from "@utils/getVersion.js";
 import { requireDevMode } from "./middleware/requireDevMode.js";
 import devRouter from "./routes.dev.js";
 

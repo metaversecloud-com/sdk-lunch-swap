@@ -9,6 +9,7 @@ export const SET_BROWN_BAG = "SET_BROWN_BAG";
 export const SET_IDEAL_MEAL = "SET_IDEAL_MEAL";
 export const SET_NEARBY_ITEMS = "SET_NEARBY_ITEMS";
 export const SET_COMPLETED = "SET_COMPLETED";
+export const SET_DAILY_BUFF = "SET_DAILY_BUFF";
 
 export type InteractiveParams = {
   assetId: string;

@@ -23,7 +23,7 @@ const baseCreds = {
 };
 
 // Mock game logic
-jest.mock("../utils/gameLogic/index.js", () => ({
+jest.mock("@utils/gameLogic/index.js", () => ({
   generateIdealMeal: jest.fn().mockResolvedValue([
     { itemId: "water", name: "Water Bottle", foodGroup: "drink", rarity: "common" },
     { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common" },
@@ -45,7 +45,7 @@ jest.mock("../utils/gameLogic/index.js", () => ({
   isNewDay: jest.fn(),
 }));
 
-jest.mock("../utils/foodItemLookup.js", () => ({
+jest.mock("@utils/foodItemLookup.js", () => ({
   getFoodItemsById: jest.fn().mockResolvedValue(new Map([
     ["apple", { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] }, funFact: "Apple fact", superComboPairs: [] }],
     ["banana", { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] }, funFact: "Banana fact", superComboPairs: [] }],
@@ -64,10 +64,10 @@ jest.mock("../utils/foodItemLookup.js", () => ({
   getAllFoodItems: jest.fn().mockResolvedValue([]),
 }));
 
-const mockGameLogic = jest.mocked(require("../utils/gameLogic/index.js"));
+const mockGameLogic = jest.mocked(require("@utils/gameLogic/index.js"));
 
 // Mock the utils
-jest.mock("../utils/index.js", () => ({
+jest.mock("@utils/index.js", () => ({
   errorHandler: jest.fn().mockImplementation(({ res }: any) => {
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
@@ -84,7 +84,7 @@ jest.mock("../utils/index.js", () => ({
   Asset: { create: jest.fn() },
 }));
 
-const mockUtils = jest.mocked(require("../utils/index.js"));
+const mockUtils = jest.mocked(require("@utils/index.js"));
 
 async function setupMocks(overrides: { isNewDay?: boolean; brownBag?: any[]; visitorData?: any; userData?: any; worldData?: any } = {}) {
   const { isNewDay: newDay = true, brownBag = [], visitorData = {}, worldData = {} } = overrides;

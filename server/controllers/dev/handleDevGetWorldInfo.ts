@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { errorHandler, World } from "../../utils/index.js";
-import { getDevCredentials } from "../../utils/getDevCredentials.js";
+import { errorHandler, World } from "@utils/index.js";
+import { getDevCredentials } from "@utils/getDevCredentials.js";
 
 export const handleDevGetWorldInfo = async (req: Request, res: Response) => {
   try {

@@ -8,10 +8,11 @@ import {
   getVisitor,
   removeFoodFromVisitor,
   grantXp,
-} from "../utils/index.js";
+  grantRewardToken,
+} from "@utils/index.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG } from "@shared/types/FoodItem.js";
-import { calculateNutritionScore, detectSuperCombos, getCurrentDateMT } from "../utils/gameLogic/index.js";
+import { calculateNutritionScore, detectSuperCombos, getCurrentDateMT } from "@utils/gameLogic/index.js";
 
 export const handleSubmitMeal = async (req: Request, res: Response) => {
   try {
@@ -146,6 +147,9 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
         }
       }
     }
+
+    // Grant 1 Reward Token for completing the meal
+    await grantRewardToken(visitor, credentials, 1);
 
     // Update world stats
     if (world.incrementDataObjectValue) {

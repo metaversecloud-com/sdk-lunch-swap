@@ -1,11 +1,11 @@
-import { generateIdealMeal } from "../utils/gameLogic/generateMeal.js";
-import { generateBrownBag } from "../utils/gameLogic/generateBrownBag.js";
-import { calculateNutritionScore } from "../utils/gameLogic/calculateNutritionScore.js";
-import { detectSuperCombos } from "../utils/gameLogic/detectSuperCombos.js";
-import { getCurrentDateMT, isNewDay } from "../utils/gameLogic/dateUtils.js";
+import { generateIdealMeal } from "@utils/gameLogic/generateMeal.js";
+import { generateBrownBag } from "@utils/gameLogic/generateBrownBag.js";
+import { calculateNutritionScore } from "@utils/gameLogic/calculateNutritionScore.js";
+import { detectSuperCombos } from "@utils/gameLogic/detectSuperCombos.js";
+import { getCurrentDateMT, isNewDay } from "@utils/gameLogic/dateUtils.js";
 
 // Mock inventory cache to return test food items
-jest.mock("../utils/inventoryCache.js", () => ({
+jest.mock("@utils/inventoryCache.js", () => ({
   getCachedInventoryItems: jest.fn().mockResolvedValue([
     // DRINKS
     { type: "ITEM", name: "Water", metadata: { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] }, funFact: "Water fact", superComboPairs: [] } },

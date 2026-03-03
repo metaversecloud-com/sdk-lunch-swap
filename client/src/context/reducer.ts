@@ -8,6 +8,7 @@ import {
   SET_IDEAL_MEAL,
   SET_NEARBY_ITEMS,
   SET_COMPLETED,
+  SET_DAILY_BUFF,
 } from "./types";
 
 const globalReducer = (state: InitialState, action: ActionType): InitialState => {
@@ -67,6 +68,12 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         level: payload.level,
         currentStreak: payload.currentStreak,
         longestStreak: payload.longestStreak,
+      };
+    case SET_DAILY_BUFF:
+      return {
+        ...state,
+        dailyBuff: payload.dailyBuff,
+        hasRewardToken: false,
       };
     case SET_ERROR:
       return {

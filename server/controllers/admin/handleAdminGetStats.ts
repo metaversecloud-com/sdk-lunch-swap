@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, Visitor, World } from "../../utils/index.js";
+import { errorHandler, getCredentials, Visitor, World } from "@utils/index.js";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 
 export const handleAdminGetStats = async (req: Request, res: Response) => {

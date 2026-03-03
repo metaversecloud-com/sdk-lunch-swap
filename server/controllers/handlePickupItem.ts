@@ -10,7 +10,7 @@ import {
   updateWorldStats,
   buildBagItemFromDef,
   calculatePickupXp,
-} from "../utils/index.js";
+} from "@utils/index.js";
 import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION, getLevelForXp } from "@shared/data/xpConfig.js";
 
 export const handlePickupItem = async (req: Request, res: Response) => {

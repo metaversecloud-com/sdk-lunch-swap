@@ -8,7 +8,7 @@ import {
   getVisitorBag,
   grantXp,
   updateWorldStats,
-} from "../utils/index.js";
+} from "@utils/index.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 
 export const handleDropItem = async (req: Request, res: Response) => {

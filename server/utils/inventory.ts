@@ -20,7 +20,8 @@ export const buildBagFromItems = (
         item.type === "ITEM" &&
         item.status === "ACTIVE" &&
         (item.quantity ?? item.availableQuantity ?? 1) > 0 &&
-        item.item?.name !== "Experience Points",
+        item.item?.name !== "Experience Points" &&
+        item.item?.name !== "Reward Token",
     )
     .map((item: any) => {
       const itemId = item.metadata?.itemId ?? item.item?.metadata?.itemId ?? item.name;
@@ -118,6 +119,40 @@ export const removeFoodFromVisitor = async (
   }
 
   await visitor.modifyInventoryItemQuantity(ecosystemItem, -1);
+};
+
+/**
+ * Read Reward Token count from already-fetched visitor inventory items.
+ */
+export const getVisitorRewardTokens = (allItems: any[]): number => {
+  const tokenItem = allItems.find(
+    (item: any) => item.item?.name === "Reward Token" && item.status === "ACTIVE",
+  );
+  return tokenItem?.quantity ?? tokenItem?.availableQuantity ?? 0;
+};
+
+/**
+ * Grant or consume Reward Tokens via the "Reward Token" inventory item.
+ * Pass positive amount to grant, negative to consume.
+ * Returns the new token quantity.
+ */
+export const grantRewardToken = async (
+  visitor: any,
+  credentials: Credentials,
+  amount: number,
+): Promise<number> => {
+  const items = await getCachedInventoryItems({ credentials });
+  const tokenItem = items.find(
+    (item) => item.name === "Reward Token" && item.status === "ACTIVE",
+  );
+
+  if (!tokenItem) {
+    console.warn("Reward Token item not found in ecosystem");
+    return 0;
+  }
+
+  const result = await visitor.modifyInventoryItemQuantity(tokenItem, amount);
+  return result?.quantity ?? 0;
 };
 
 /**

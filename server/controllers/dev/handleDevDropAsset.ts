@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { errorHandler, Asset, DroppedAsset } from "../../utils/index.js";
-import { getDevCredentials } from "../../utils/getDevCredentials.js";
+import { errorHandler, Asset, DroppedAsset } from "@utils/index.js";
+import { getDevCredentials } from "@utils/getDevCredentials.js";
 
 export const handleDevDropAsset = async (req: Request, res: Response) => {
   try {

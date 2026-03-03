@@ -6,7 +6,7 @@ import { requireDevMode } from "../middleware/requireDevMode.js";
 import devRouter from "../routes.dev.js";
 
 // Mock the utils
-jest.mock("../utils/index.js", () => ({
+jest.mock("@utils/index.js", () => ({
   errorHandler: jest.fn(({ res, message }: any) => {
     if (res) return res.status(500).json({ success: false, message });
     return { error: message };
@@ -22,7 +22,7 @@ jest.mock("../utils/index.js", () => ({
   },
 }));
 
-jest.mock("../utils/getDevCredentials.js", () => ({
+jest.mock("@utils/getDevCredentials.js", () => ({
   getDevCredentials: jest.fn(() => ({
     assetId: "",
     displayName: "dev",
@@ -38,8 +38,8 @@ jest.mock("../utils/getDevCredentials.js", () => ({
   })),
 }));
 
-const mockUtils = jest.mocked(require("../utils/index.js"));
-const mockDevCreds = jest.mocked(require("../utils/getDevCredentials.js"));
+const mockUtils = jest.mocked(require("@utils/index.js"));
+const mockDevCreds = jest.mocked(require("@utils/getDevCredentials.js"));
 
 function makeDevApp() {
   const app = express();

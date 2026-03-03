@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, Visitor, World } from "../../utils/index.js";
+import { errorHandler, getCredentials, Visitor, World } from "@utils/index.js";
 
 export const handleAdminRemoveAllItems = async (req: Request, res: Response) => {
   try {

@@ -12,7 +12,7 @@ import {
   updateWorldStats,
   buildBagItemFromDef,
   calculatePickupXp,
-} from "../utils/index.js";
+} from "@utils/index.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 
 export const handleSwapItem = async (req: Request, res: Response) => {

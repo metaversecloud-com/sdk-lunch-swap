@@ -9,10 +9,10 @@ import {
   getVisitorBag,
   grantFoodToVisitor,
   removeFoodFromVisitor,
-} from "../utils/index.js";
-import { generateIdealMeal, generateBrownBag, getCurrentDateMT } from "../utils/gameLogic/index.js";
-import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
+} from "@utils/index.js";
+import { generateIdealMeal, generateBrownBag, getCurrentDateMT } from "@utils/gameLogic/index.js";
 import { VisitorInterface } from "@rtsdk/topia";
+import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 
 export const handleGetGameState = async (req: Request, res: Response) => {
   try {
@@ -20,11 +20,12 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     const { profileId } = credentials;
 
     // Fetch key asset, visitor (with data + inventory), and world in parallel
-    const [droppedAsset, { visitor, visitorData, brownBag: currentBag, newDay, xp, level }, world] = await Promise.all([
-      getKeyAsset(credentials),
-      getVisitor(credentials, true),
-      World.create(credentials.urlSlug, { credentials }),
-    ]);
+    const [droppedAsset, { visitor, visitorData, brownBag: currentBag, newDay, xp, level, hasRewardToken }, world] =
+      await Promise.all([
+        getKeyAsset(credentials),
+        getVisitor(credentials, true),
+        World.create(credentials.urlSlug, { credentials }),
+      ]);
     const isAdmin = (visitor as VisitorInterface).isAdmin || false;
 
     await world.fetchDataObject();
@@ -160,7 +161,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       currentStreak: displayStreak,
       hotStreakActive: visitorData.hotStreakActive || false,
       isAdmin,
-      hasRewardToken: false, // TODO: check inventory when ecosystem is configured
+      hasRewardToken,
       dailyBuff: (visitorData as any).dailyBuff || null,
     });
   } catch (error) {

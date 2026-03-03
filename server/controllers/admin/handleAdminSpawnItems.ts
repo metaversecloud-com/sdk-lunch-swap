@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, getKeyAsset, Visitor, World, dropFoodItem } from "../../utils/index.js";
-import { getFoodItemsById } from "../../utils/foodItemLookup.js";
+import { errorHandler, getCredentials, getKeyAsset, Visitor, World, dropFoodItem } from "@utils/index.js";
+import { getFoodItemsById } from "@utils/foodItemLookup.js";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 
 export const handleAdminSpawnItems = async (req: Request, res: Response) => {

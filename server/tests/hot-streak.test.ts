@@ -19,14 +19,14 @@ const baseCreds = {
 };
 
 // Mock game logic (required by handleGetGameState which shares the route file)
-jest.mock("../utils/gameLogic/index.js", () => ({
+jest.mock("@utils/gameLogic/index.js", () => ({
   generateIdealMeal: jest.fn().mockResolvedValue([]),
   generateBrownBag: jest.fn().mockResolvedValue([]),
   getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
   isNewDay: jest.fn().mockReturnValue(false),
 }));
 
-jest.mock("../utils/foodItemLookup.js", () => ({
+jest.mock("@utils/foodItemLookup.js", () => ({
   getFoodItemsById: jest.fn().mockResolvedValue(new Map([
     ["apple", { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] }, funFact: "Apple fact", superComboPairs: [] }],
     ["banana", { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] }, funFact: "Banana fact", superComboPairs: [] }],
@@ -45,7 +45,7 @@ jest.mock("../utils/foodItemLookup.js", () => ({
   getAllFoodItems: jest.fn().mockResolvedValue([]),
 }));
 
-jest.mock("../utils/index.js", () => ({
+jest.mock("@utils/index.js", () => ({
   errorHandler: jest.fn().mockImplementation(({ res }: any) => {
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
@@ -63,7 +63,7 @@ jest.mock("../utils/index.js", () => ({
   Asset: { create: jest.fn() },
 }));
 
-const mockUtils = jest.mocked(require("../utils/index.js"));
+const mockUtils = jest.mocked(require("@utils/index.js"));
 
 function setupPickupMocks(opts: {
   brownBag?: any[];
