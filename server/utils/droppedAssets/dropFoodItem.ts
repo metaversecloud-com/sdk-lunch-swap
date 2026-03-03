@@ -19,6 +19,8 @@ export async function dropFoodItem({
   offsetRange = 100,
   mystery = false,
 }: DropFoodItemParams) {
+  const { interactivePublicKey, sceneDropId, urlSlug } = credentials;
+
   const offsetX = (Math.random() - 0.5) * offsetRange;
   const offsetY = (Math.random() - 0.5) * offsetRange;
   const mysteryFlag = mystery ? "1" : "0";
@@ -35,9 +37,10 @@ export async function dropFoodItem({
       y: position.y + offsetY,
     },
     uniqueName: `lunch-swap-food|${itemId}|${rarity}|${Date.now()}|${mysteryFlag}`,
-    urlSlug: credentials.urlSlug,
+    urlSlug,
     isInteractive: true,
-    interactivePublicKey: credentials.interactivePublicKey,
+    interactivePublicKey,
+    sceneDropId,
     layer0: inventoryItem.image_path || "",
     assetScale: 0.5,
   });

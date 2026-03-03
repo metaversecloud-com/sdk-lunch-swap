@@ -55,6 +55,10 @@ export interface InitialState {
   dailyBuff?: string | null;
   hotStreakActive?: boolean;
   idealPickupStreak?: number;
+  // Admin settings (world data)
+  spawnRadiusMin?: number;
+  spawnRadiusMax?: number;
+  proximityRadius?: number;
 }
 
 export type ActionType = {

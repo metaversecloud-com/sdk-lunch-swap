@@ -17,7 +17,7 @@ import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 export const handleGetGameState = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { profileId } = credentials;
+    const { profileId, urlSlug } = credentials;
 
     // Fetch key asset, visitor (with data + inventory), and world in parallel
     const [droppedAsset, { visitor, visitorData, brownBag: currentBag, newDay, xp, level, hasRewardToken }, world] =
@@ -88,7 +88,12 @@ export const handleGetGameState = async (req: Request, res: Response) => {
           superCombosFound: [],
           dailyBuff: null,
         },
-        {},
+        {
+          analytics: [
+            { analyticName: "starts", profileId, urlSlug, uniqueKey: profileId },
+            { analyticName: "joins", profileId, urlSlug, uniqueKey: profileId },
+          ],
+        },
       );
 
       // Spawn items into world for this player (skip if already spawned today)
@@ -132,6 +137,16 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       await world.updateDataObject(worldData);
     }
 
+    // Track joins for non-new-day loads (new day loads are tracked above)
+    if (!newDay) {
+      await visitor.updateDataObject(
+        {},
+        {
+          analytics: [{ analyticName: "joins", profileId, urlSlug, uniqueKey: profileId }],
+        },
+      );
+    }
+
     // Read current bag from inventory (re-fetch after mutations on new day)
     const brownBag = newDay ? await getVisitorBag(visitor, idealMeal, credentials) : currentBag;
 
@@ -163,6 +178,9 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       isAdmin,
       hasRewardToken,
       dailyBuff: (visitorData as any).dailyBuff || null,
+      spawnRadiusMin: worldData.spawnRadiusMin,
+      spawnRadiusMax: worldData.spawnRadiusMax,
+      proximityRadius: worldData.proximityRadius,
     });
   } catch (error) {
     return errorHandler({

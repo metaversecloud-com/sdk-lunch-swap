@@ -37,6 +37,9 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         dailyBuff: payload.dailyBuff,
         hotStreakActive: payload.hotStreakActive,
         idealPickupStreak: payload.idealPickupStreak,
+        spawnRadiusMin: payload.spawnRadiusMin,
+        spawnRadiusMax: payload.spawnRadiusMax,
+        proximityRadius: payload.proximityRadius,
         error: "",
       };
     case SET_BROWN_BAG:

@@ -1,5 +1,6 @@
 export * from "./Accordion.js";
 export * from "./ActiveBuff.js";
+export * from "./AdminSettings.js";
 export * from "./AdminStats.js";
 export * from "./AdminView.js";
 export * from "./AdminIconButton.js";

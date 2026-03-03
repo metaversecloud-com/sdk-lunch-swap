@@ -12,6 +12,7 @@ A daily nutrition-themed collection game built with the Topia SDK. Each day, vis
 ## Key Features
 
 ### Visitor Features
+
 - **Brown Bag** — Holds up to 8 items (3 after meal completion). Shows food group, rarity, and ideal meal matches.
 - **Ideal Meal Tracker** — Displays the 5 target items with collected/uncollected status derived from inventory.
 - **Nearby Items** — Polls for food items within proximity radius and displays them for pickup.
@@ -20,45 +21,50 @@ A daily nutrition-themed collection game built with the Topia SDK. Each day, vis
 - **Nutrition Score** — Meal submissions are scored 0–100 based on protein, fiber, vitamin diversity, and balance.
 - **Super Combos** — Certain item pairs trigger bonus XP when both are in your bag at submission.
 - **Hot Streak** — Pick up 3 consecutive ideal meal matches to activate a 3x XP multiplier on the next pickup.
-- **Mystery Items** — ~15% of spawned items appear as mystery items, revealed on pickup.
+- **Mystery Items** — Some spawned items appear as mystery items, revealed on pickup.
 
 ### Admin Features
+
 - **Stats Dashboard** — View world-wide pickup/drop/submission counts and daily activity.
 - **Remove All Items** — Clear all food items from the world.
 - **Spawn Items** — Manually spawn food items into the world.
 
 ### Rarity System
-| Rarity | XP Multiplier |
-|--------|--------------|
-| Common | 1.0x |
-| Uncommon | 1.5x |
-| Rare | 2.0x |
-| Epic | 3.0x |
-| Legendary | 5.0x |
+
+| Rarity    | XP Multiplier |
+| --------- | ------------- |
+| Common    | 1.0x          |
+| Uncommon  | 1.5x          |
+| Rare      | 2.0x          |
+| Epic      | 3.0x          |
+| Legendary | 5.0x          |
 
 ## API Endpoints
 
 ### Game
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/game-state` | Fetch visitor's game state, bag, ideal meal, XP, level |
-| `GET` | `/nearby-items` | Get food items near the visitor |
-| `POST` | `/pickup-item` | Pick up a dropped food item |
-| `POST` | `/drop-item` | Drop a food item from bag into world |
-| `POST` | `/swap-item` | Drop one item, pick up another atomically |
-| `POST` | `/submit-meal` | Submit completed meal for scoring |
-| `POST` | `/spin-wheel` | Spin the bonus wheel for a daily buff |
+
+| Method | Path            | Description                                            |
+| ------ | --------------- | ------------------------------------------------------ |
+| `GET`  | `/game-state`   | Fetch visitor's game state, bag, ideal meal, XP, level |
+| `GET`  | `/nearby-items` | Get food items near the visitor                        |
+| `POST` | `/pickup-item`  | Pick up a dropped food item                            |
+| `POST` | `/drop-item`    | Drop a food item from bag into world                   |
+| `POST` | `/swap-item`    | Drop one item, pick up another atomically              |
+| `POST` | `/submit-meal`  | Submit completed meal for scoring                      |
+| `POST` | `/spin-wheel`   | Spin the bonus wheel for a daily buff                  |
 
 ### Admin
-| Method | Path | Description |
-|--------|------|-------------|
+
+| Method | Path                      | Description                      |
+| ------ | ------------------------- | -------------------------------- |
 | `POST` | `/admin/remove-all-items` | Remove all food items from world |
-| `POST` | `/admin/spawn-items` | Spawn food items into world |
-| `GET` | `/admin/stats` | Get world activity stats |
+| `POST` | `/admin/spawn-items`      | Spawn food items into world      |
+| `GET`  | `/admin/stats`            | Get world activity stats         |
 
 ## Data Objects
 
 ### Visitor
+
 Stores daily game progress, streak data, and stats. XP is tracked via the "Experience Points" inventory item, not the data object.
 
 ```ts
@@ -75,6 +81,7 @@ Stores daily game progress, streak data, and stats. XP is tracked via the "Exper
 ```
 
 ### World
+
 Tracks global stats and daily spawn tracking per player.
 
 ```ts
@@ -89,6 +96,7 @@ Tracks global stats and daily spawn tracking per player.
 ```
 
 ### Key Asset
+
 Stores app identity and initialization status.
 
 ```ts
@@ -104,11 +112,13 @@ Stores app identity and initialization status.
 ### Built With
 
 #### Client
+
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 
 #### Server
+
 ![Node.js](https://img.shields.io/badge/node.js-%2343853D.svg?style=for-the-badge&logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/express-%23000000.svg?style=for-the-badge&logo=express&logoColor=white)
 

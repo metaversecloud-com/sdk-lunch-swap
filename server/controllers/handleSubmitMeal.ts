@@ -17,7 +17,7 @@ import { calculateNutritionScore, detectSuperCombos, getCurrentDateMT } from "@u
 export const handleSubmitMeal = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { urlSlug } = credentials;
+    const { urlSlug, profileId } = credentials;
 
     const world = World.create(urlSlug, { credentials });
 
@@ -35,9 +35,9 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
 
     if (missingItems.length > 0) {
       // Update world stats
-      if (world.incrementDataObjectValue) {
-        await world.incrementDataObjectValue("totalMealSubmissions", 1);
-      }
+      await world.incrementDataObjectValue("totalMealSubmissions", 1, {
+        analytics: [{ analyticName: "mealSubmissions", profileId, urlSlug, uniqueKey: profileId }],
+      });
 
       return res.status(400).json({
         success: false,
@@ -123,7 +123,12 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
         nutritionScore: nutritionResult.score,
         superCombosFound: superComboNames,
       },
-      {},
+      {
+        analytics: [
+          { analyticName: "completions", profileId, urlSlug, uniqueKey: profileId },
+          { analyticName: "mealSubmissions", profileId, urlSlug, uniqueKey: profileId },
+        ],
+      },
     );
 
     // Auto-drop remaining non-meal items into world

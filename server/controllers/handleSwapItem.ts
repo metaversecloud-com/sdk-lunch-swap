@@ -18,7 +18,7 @@ import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 export const handleSwapItem = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { urlSlug } = credentials;
+    const { urlSlug, profileId } = credentials;
     const { dropItemId, pickupDroppedAssetId } = req.body;
 
     if (!dropItemId || !pickupDroppedAssetId) {
@@ -94,7 +94,12 @@ export const handleSwapItem = async (req: Request, res: Response) => {
         .catch(() => {});
     }
 
-    await visitor.updateDataObject(updatedData, {});
+    await visitor.updateDataObject(updatedData, {
+      analytics: [
+        { analyticName: "pickups", profileId, urlSlug, uniqueKey: profileId },
+        { analyticName: "drops", profileId, urlSlug, uniqueKey: profileId },
+      ],
+    });
 
     // Calculate XP: DROP + PICKUP (with rarity multiplier, ideal meal bonus, hot streak multiplier)
     const xpEarned = XP_ACTIONS.DROP + calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier);

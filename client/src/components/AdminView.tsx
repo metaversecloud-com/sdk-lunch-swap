@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 
 // components
 import { ConfirmationModal, Loading } from "@/components";
+import { AdminSettings } from "@/components/AdminSettings";
 import { AdminStats } from "@/components/AdminStats";
 
 // context
@@ -88,6 +89,9 @@ export const AdminView = () => {
     <div className="grid gap-4">
       {/* Stats Section */}
       <AdminStats />
+
+      {/* Settings Section */}
+      <AdminSettings />
 
       {/* Actions Section */}
       <section aria-label="Admin actions">

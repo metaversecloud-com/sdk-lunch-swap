@@ -14,7 +14,7 @@ import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 export const handleDropItem = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { urlSlug } = credentials;
+    const { urlSlug, profileId } = credentials;
     const { itemId } = req.body;
 
     if (!itemId) {
@@ -51,7 +51,9 @@ export const handleDropItem = async (req: Request, res: Response) => {
         dropsToday: visitorData.dropsToday + 1,
         totalDrops: visitorData.totalDrops + 1,
       },
-      {},
+      {
+        analytics: [{ analyticName: "drops", profileId, urlSlug, uniqueKey: profileId }],
+      },
     );
 
     // XP for dropping

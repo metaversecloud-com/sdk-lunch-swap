@@ -16,7 +16,7 @@ import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION, getLevelForXp } from "@shar
 export const handlePickupItem = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { urlSlug } = credentials;
+    const { urlSlug, profileId } = credentials;
     const { droppedAssetId } = req.body;
 
     if (!droppedAssetId) {
@@ -77,7 +77,9 @@ export const handlePickupItem = async (req: Request, res: Response) => {
         .catch(() => {});
     }
 
-    await visitor.updateDataObject(updatedData, {});
+    await visitor.updateDataObject(updatedData, {
+      analytics: [{ analyticName: "pickups", profileId, urlSlug, uniqueKey: profileId }],
+    });
 
     // Calculate and grant XP
     const xpEarned = calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier);
