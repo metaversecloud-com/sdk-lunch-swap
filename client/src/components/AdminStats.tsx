@@ -44,9 +44,11 @@ export const AdminStats = () => {
         const { stats } = response.data;
         setStats({
           totalStartsToday: stats.totalStartsToday,
+          totalPlayersToday: stats.totalPlayersToday ?? 0,
           totalCompletionsToday: stats.totalCompletionsToday,
           totalPickups: stats.totalPickups,
           totalDrops: stats.totalDrops,
+          totalMealSubmissions: stats.totalMealSubmissions ?? 0,
         });
       })
       .catch((error) => {

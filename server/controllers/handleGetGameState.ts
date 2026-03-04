@@ -9,6 +9,8 @@ import {
   getVisitorBag,
   grantFoodToVisitor,
   removeFoodFromVisitor,
+  getBadges,
+  getVisitorBadges,
 } from "@utils/index.js";
 import { generateIdealMeal, generateBrownBag, getCurrentDateMT } from "@utils/gameLogic/index.js";
 import { VisitorInterface } from "@rtsdk/topia";
@@ -18,14 +20,20 @@ export const handleGetGameState = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
     const { profileId, urlSlug } = credentials;
+    const forceRefreshInventory = req.query.forceRefreshInventory === "true";
 
     // Fetch key asset, visitor (with data + inventory), and world in parallel
-    const [droppedAsset, { visitor, visitorData, brownBag: currentBag, newDay, xp, level, hasRewardToken }, world] =
-      await Promise.all([
-        getKeyAsset(credentials),
-        getVisitor(credentials, true),
-        World.create(credentials.urlSlug, { credentials }),
-      ]);
+    const [
+      droppedAsset,
+      { visitor, visitorData, brownBag: currentBag, newDay, xp, level, hasRewardToken },
+      world,
+      badges,
+    ] = await Promise.all([
+      getKeyAsset(credentials),
+      getVisitor(credentials, true),
+      World.create(credentials.urlSlug, { credentials }),
+      getBadges(credentials, forceRefreshInventory),
+    ]);
     const isAdmin = (visitor as VisitorInterface).isAdmin || false;
 
     await world.fetchDataObject();
@@ -78,6 +86,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       await visitor.updateDataObject(
         {
           lastPlayedDate: currentDate,
+          dayStartTimestamp: new Date().toISOString(),
           idealMeal,
           completedToday: false,
           completionTimestamp: null,
@@ -174,6 +183,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       xp,
       level,
       currentStreak: displayStreak,
+      longestStreak: visitorData.longestStreak,
       hotStreakActive: visitorData.hotStreakActive || false,
       isAdmin,
       hasRewardToken,
@@ -181,6 +191,8 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       spawnRadiusMin: worldData.spawnRadiusMin,
       spawnRadiusMax: worldData.spawnRadiusMax,
       proximityRadius: worldData.proximityRadius,
+      badges,
+      visitorInventory: getVisitorBadges((visitor as any).inventoryItems || []),
     });
   } catch (error) {
     return errorHandler({

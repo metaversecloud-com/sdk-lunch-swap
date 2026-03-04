@@ -86,7 +86,7 @@ export const AdminView = () => {
   const areButtonsDisabled = isRemoving || isSpawning;
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-6">
       {/* Stats Section */}
       <AdminStats />
 
@@ -95,7 +95,7 @@ export const AdminView = () => {
 
       {/* Actions Section */}
       <section aria-label="Admin actions">
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           <h3>Actions</h3>
 
           {/* Status message */}

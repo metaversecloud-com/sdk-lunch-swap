@@ -63,11 +63,12 @@ export const MainGameView = () => {
       idealPickupStreak,
       funFact,
       wasMystery,
+      visitorInventory,
     } = data;
 
     dispatch!({
       type: SET_BROWN_BAG,
-      payload: { brownBag: updatedBag, xp: newXp, level: newLevel, hotStreakActive, idealPickupStreak },
+      payload: { brownBag: updatedBag, xp: newXp, level: newLevel, hotStreakActive, idealPickupStreak, visitorInventory },
     });
 
     let message = `Picked up ${pickedUpItem?.name ?? "item"}`;
@@ -85,7 +86,7 @@ export const MainGameView = () => {
 
     try {
       const response = await backendAPI.post("/submit-meal");
-      const { nutritionScore, superCombosFound, newTotalXp, newLevel, currentStreak, longestStreak } = response.data;
+      const { nutritionScore, superCombosFound, newTotalXp, newLevel, currentStreak, longestStreak, visitorInventory: updatedInventory } = response.data;
 
       dispatch!({
         type: SET_COMPLETED,
@@ -96,6 +97,7 @@ export const MainGameView = () => {
           level: newLevel,
           currentStreak,
           longestStreak,
+          visitorInventory: updatedInventory,
         },
       });
     } catch (error) {

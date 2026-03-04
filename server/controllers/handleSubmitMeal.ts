@@ -9,6 +9,8 @@ import {
   removeFoodFromVisitor,
   grantXp,
   grantRewardToken,
+  checkSubmitMealBadges,
+  getVisitorBadges,
 } from "@utils/index.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG } from "@shared/types/FoodItem.js";
@@ -22,7 +24,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     const world = World.create(urlSlug, { credentials });
 
     // Fetch visitor with data and bag
-    const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
+    const { visitor, visitorData, visitorInventory, brownBag } = await getVisitor(credentials, true);
 
     // Already completed?
     if (visitorData.completedToday) {
@@ -161,6 +163,28 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
       await world.incrementDataObjectValue("totalCompletionsToday", 1);
     }
 
+    // Award badges and re-fetch inventory so client can update UI
+    const newTotalMeals = (visitorData.totalMealsCompleted || 0) + 1;
+    const newTotalCombos = (visitorData.totalSuperCombos || 0) + superCombos.length;
+    try {
+      await checkSubmitMealBadges({
+        credentials,
+        visitor,
+        visitorInventory,
+        totalMealsCompleted: newTotalMeals,
+        nutritionScore: nutritionResult.score,
+        currentStreak: newStreak,
+        totalSuperCombos: newTotalCombos,
+        dayStartTimestamp: visitorData.dayStartTimestamp,
+      });
+    } catch (err) {
+      console.warn("Badge check failed:", err);
+    }
+
+    // Re-fetch inventory to include any newly awarded badges
+    await visitor.fetchInventoryItems();
+    const updatedVisitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
+
     // Celebration toast
     visitor
       .fireToast({
@@ -180,6 +204,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
       currentStreak: newStreak,
       longestStreak: newLongestStreak,
       completedToday: true,
+      visitorInventory: updatedVisitorInventory,
     });
   } catch (error) {
     return errorHandler({

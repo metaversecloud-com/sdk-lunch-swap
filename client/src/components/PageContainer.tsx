@@ -18,7 +18,7 @@ export const PageContainer = ({
   const { error, isAdmin } = useContext(GlobalStateContext);
   const [showSettings, setShowSettings] = useState(false);
 
-  if (isLoading) return <Loading />;
+  if (isLoading) return <Loading isSpinner={false} />;
 
   return (
     <div className="p-4 mb-28">

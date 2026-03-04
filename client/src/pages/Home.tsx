@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 // components
 import { GameView, PageContainer } from "@/components";
@@ -13,13 +14,16 @@ import { backendAPI, setErrorMessage, setGameState } from "@/utils";
 export const Home = () => {
   const dispatch = useContext(GlobalDispatchContext);
   const { hasInteractiveParams } = useContext(GlobalStateContext);
+  const [searchParams] = useSearchParams();
 
   const [isLoading, setIsLoading] = useState(true);
+
+  const forceRefreshInventory = searchParams.get("forceRefreshInventory") === "true";
 
   useEffect(() => {
     if (hasInteractiveParams) {
       backendAPI
-        .get("/game-state")
+        .get("/game-state", { params: { forceRefreshInventory } })
         .then((response) => {
           setGameState(dispatch, response.data);
         })

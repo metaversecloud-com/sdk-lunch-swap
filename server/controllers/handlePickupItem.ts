@@ -10,6 +10,8 @@ import {
   updateWorldStats,
   buildBagItemFromDef,
   calculatePickupXp,
+  checkPickupBadges,
+  getVisitorBadges,
 } from "@utils/index.js";
 import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION, getLevelForXp } from "@shared/data/xpConfig.js";
 
@@ -31,7 +33,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     const { foodAsset, foodDef, wasMystery } = resolved;
 
     // Fetch visitor with data and bag
-    const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
+    const { visitor, visitorData, visitorInventory, brownBag } = await getVisitor(credentials, true);
 
     // Check bag capacity (8 pre-completion, 3 post-completion)
     const maxCapacity = visitorData.completedToday ? BAG_CAPACITY_POST_COMPLETION : BAG_CAPACITY;
@@ -59,11 +61,21 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     const wasHotStreak = visitorData.hotStreakActive || false;
     const hotStreakActivated = matchesIdealMeal && currentIdealStreak + 1 >= 3;
 
+    // Track mystery reveals and rarity collection
+    const prevRarity = visitorData.totalItemsCollectedByRarity || { common: 0, rare: 0, epic: 0 };
+    const newMysteryTotal = (visitorData.totalMysteryItemsRevealed || 0) + (wasMystery ? 1 : 0);
+    const newRarityTotals = {
+      ...prevRarity,
+      [foodDef.rarity]: (prevRarity[foodDef.rarity as keyof typeof prevRarity] || 0) + 1,
+    };
+
     const updatedData = {
       pickupsToday: (visitorData.pickupsToday || 0) + 1,
       totalPickups: (visitorData.totalPickups || 0) + 1,
       idealPickupStreak: matchesIdealMeal ? currentIdealStreak + 1 : 0,
       hotStreakActive: wasHotStreak ? false : hotStreakActivated,
+      totalMysteryItemsRevealed: newMysteryTotal,
+      totalItemsCollectedByRarity: newRarityTotals,
     };
 
     if (wasHotStreak) {
@@ -89,6 +101,23 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     // Update world stats
     await updateWorldStats(urlSlug, credentials, { pickups: 1 });
 
+    // Award badges and re-fetch inventory so client can update UI
+    try {
+      await checkPickupBadges({
+        credentials,
+        visitor,
+        visitorInventory,
+        totalMysteryItemsRevealed: newMysteryTotal,
+        totalEpicItemsCollected: newRarityTotals.epic || 0,
+      });
+    } catch (err) {
+      console.warn("Badge check failed:", err);
+    }
+
+    // Re-fetch inventory to include any newly awarded badges
+    await visitor.fetchInventoryItems();
+    const updatedVisitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
+
     // Fire toast with fun fact
     visitor
       .fireToast({
@@ -113,6 +142,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       hotStreakActive: updatedData.hotStreakActive,
       idealPickupStreak: updatedData.idealPickupStreak,
       xpMultiplier,
+      visitorInventory: updatedVisitorInventory,
     });
   } catch (error) {
     return errorHandler({

@@ -11,6 +11,17 @@ export const SET_NEARBY_ITEMS = "SET_NEARBY_ITEMS";
 export const SET_COMPLETED = "SET_COMPLETED";
 export const SET_DAILY_BUFF = "SET_DAILY_BUFF";
 
+export type BadgeType = {
+  id: string;
+  icon: string;
+  description?: string;
+  name: string;
+};
+
+export type VisitorInventoryType = {
+  badges: { [name: string]: BadgeType };
+};
+
 export type InteractiveParams = {
   assetId: string;
   displayName: string;
@@ -55,6 +66,9 @@ export interface InitialState {
   dailyBuff?: string | null;
   hotStreakActive?: boolean;
   idealPickupStreak?: number;
+  // Badges
+  badges?: { [name: string]: BadgeType };
+  visitorInventory?: VisitorInventoryType;
   // Admin settings (world data)
   spawnRadiusMin?: number;
   spawnRadiusMax?: number;
@@ -84,4 +98,5 @@ export type PostPickupResponseType = {
   idealPickupStreak: number;
   funFact: string | null;
   wasMystery: boolean;
+  visitorInventory?: VisitorInventoryType;
 };

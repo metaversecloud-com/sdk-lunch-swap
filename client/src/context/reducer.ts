@@ -37,6 +37,8 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         dailyBuff: payload.dailyBuff,
         hotStreakActive: payload.hotStreakActive,
         idealPickupStreak: payload.idealPickupStreak,
+        badges: payload.badges ?? state.badges,
+        visitorInventory: payload.visitorInventory ?? state.visitorInventory,
         spawnRadiusMin: payload.spawnRadiusMin,
         spawnRadiusMax: payload.spawnRadiusMax,
         proximityRadius: payload.proximityRadius,
@@ -50,6 +52,7 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         ...(payload.level !== undefined && { level: payload.level }),
         hotStreakActive: payload.hotStreakActive,
         idealPickupStreak: payload.idealPickupStreak,
+        ...(payload.visitorInventory && { visitorInventory: payload.visitorInventory }),
       };
     case SET_IDEAL_MEAL:
       return {
@@ -71,6 +74,7 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         level: payload.level,
         currentStreak: payload.currentStreak,
         longestStreak: payload.longestStreak,
+        ...(payload.visitorInventory && { visitorInventory: payload.visitorInventory }),
       };
     case SET_DAILY_BUFF:
       return {

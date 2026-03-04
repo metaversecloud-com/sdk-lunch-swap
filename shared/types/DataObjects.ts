@@ -24,7 +24,13 @@ export interface VisitorGameData {
   currentStreak: number;
   longestStreak: number;
   lastCompletionDate: string;
-  uniqueItemsCollected: string[];
+  totalMysteryItemsRevealed: number;
+  totalItemsCollectedByRarity: {
+    common: number;
+    rare: number;
+    epic: number;
+  };
+  dayStartTimestamp: string | null;
 }
 
 export const VISITOR_DATA_DEFAULTS: VisitorGameData = {
@@ -50,7 +56,13 @@ export const VISITOR_DATA_DEFAULTS: VisitorGameData = {
   currentStreak: 0,
   longestStreak: 0,
   lastCompletionDate: "",
-  uniqueItemsCollected: [],
+  totalMysteryItemsRevealed: 0,
+  totalItemsCollectedByRarity: {
+    common: 0,
+    rare: 0,
+    epic: 0,
+  },
+  dayStartTimestamp: null,
 };
 
 // --- World Data Object ---

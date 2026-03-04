@@ -12,6 +12,8 @@ import {
   updateWorldStats,
   buildBagItemFromDef,
   calculatePickupXp,
+  checkPickupBadges,
+  getVisitorBadges,
 } from "@utils/index.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 
@@ -34,6 +36,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
 
     // Fetch visitor with data and bag
     const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
+    const visitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
 
     // Find drop item in bag
     const droppedItem = brownBag.find((i) => i.itemId === dropItemId);
@@ -74,6 +77,14 @@ export const handleSwapItem = async (req: Request, res: Response) => {
     const wasHotStreak = visitorData.hotStreakActive || false;
     const hotStreakActivated = matchesIdealMeal && currentIdealStreak + 1 >= 3;
 
+    // Track mystery reveals and rarity collection
+    const prevRarity = visitorData.totalItemsCollectedByRarity || { common: 0, rare: 0, epic: 0 };
+    const newMysteryTotal = (visitorData.totalMysteryItemsRevealed || 0) + (wasMystery ? 1 : 0);
+    const newRarityTotals = {
+      ...prevRarity,
+      [foodDef.rarity]: (prevRarity[foodDef.rarity as keyof typeof prevRarity] || 0) + 1,
+    };
+
     const updatedData = {
       dropsToday: (visitorData.dropsToday || 0) + 1,
       totalDrops: (visitorData.totalDrops || 0) + 1,
@@ -81,6 +92,8 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       totalPickups: (visitorData.totalPickups || 0) + 1,
       idealPickupStreak: matchesIdealMeal ? currentIdealStreak + 1 : 0,
       hotStreakActive: wasHotStreak ? false : hotStreakActivated,
+      totalMysteryItemsRevealed: newMysteryTotal,
+      totalItemsCollectedByRarity: newRarityTotals,
     };
 
     if (wasHotStreak) {
@@ -111,6 +124,23 @@ export const handleSwapItem = async (req: Request, res: Response) => {
     // Update world stats (both pickup and drop)
     await updateWorldStats(urlSlug, credentials, { pickups: 1, drops: 1 });
 
+    // Award badges and re-fetch inventory so client can update UI
+    try {
+      await checkPickupBadges({
+        credentials,
+        visitor,
+        visitorInventory: visitorInventory.badges,
+        totalMysteryItemsRevealed: newMysteryTotal,
+        totalEpicItemsCollected: newRarityTotals.epic || 0,
+      });
+    } catch (err) {
+      console.warn("Badge check failed:", err);
+    }
+
+    // Re-fetch inventory to include any newly awarded badges
+    await visitor.fetchInventoryItems();
+    const updatedVisitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
+
     // Fire toast
     visitor
       .fireToast({
@@ -136,6 +166,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       hotStreakActive: updatedData.hotStreakActive,
       idealPickupStreak: updatedData.idealPickupStreak,
       xpMultiplier,
+      visitorInventory: updatedVisitorInventory,
     });
   } catch (error) {
     return errorHandler({

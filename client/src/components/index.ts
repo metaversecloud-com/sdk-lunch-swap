@@ -4,6 +4,7 @@ export * from "./AdminSettings.js";
 export * from "./AdminStats.js";
 export * from "./AdminView.js";
 export * from "./AdminIconButton.js";
+export * from "./BadgesView.js";
 export * from "./BagItemCard.js";
 export * from "./BonusWheel.js";
 export * from "./BonusWheelPrompt.js";
