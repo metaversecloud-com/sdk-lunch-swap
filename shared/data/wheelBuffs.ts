@@ -7,10 +7,15 @@ export interface WheelBuff {
 
 export const WHEEL_BUFFS: WheelBuff[] = [
   { id: "double-xp", name: "Double XP", description: "All XP earned today is 2x!", weight: 30 },
-  { id: "rare-start", name: "Rare Start", description: "One bag item upgraded to rare!", weight: 25 },
-  { id: "big-bag", name: "Big Bag", description: "+2 bag slots for today!", weight: 20 },
-  { id: "combo-finder", name: "Combo Finder", description: "Super combo pairs glow nearby!", weight: 15 },
+  { id: "big-bag", name: "Big Bag", description: "+2 bag slots for today!", weight: 30 },
+  { id: "combo-finder", name: "Combo Finder", description: "Super combo pairs glow nearby!", weight: 20 },
   { id: "epic-drop", name: "Epic Drop", description: "A random epic item appears in your bag!", weight: 10 },
+  {
+    id: "ideal-item",
+    name: "Ideal Item",
+    description: "One bag item upgraded to match your ideal meal!",
+    weight: 10,
+  },
 ];
 
 export function spinWheel(): WheelBuff {

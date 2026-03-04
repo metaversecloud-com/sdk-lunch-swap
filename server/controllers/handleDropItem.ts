@@ -56,8 +56,9 @@ export const handleDropItem = async (req: Request, res: Response) => {
       },
     );
 
-    // XP for dropping
-    const xpEarned = XP_ACTIONS.DROP;
+    // XP for dropping (double-xp buff doubles all XP)
+    const buffMultiplier = visitorData.dailyBuff === "double-xp" ? 2 : 1;
+    const xpEarned = XP_ACTIONS.DROP * buffMultiplier;
 
     // Grant XP to visitor inventory
     const newTotalXp = await grantXp(visitor, credentials, xpEarned);

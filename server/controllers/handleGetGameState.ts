@@ -42,8 +42,17 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     // Check for new day
     const currentDate = getCurrentDateMT();
 
-    let idealMeal = visitorData.idealMeal;
-    let completedToday = visitorData.completedToday;
+    let {
+      dayStartTimestamp,
+      idealMeal,
+      completedToday,
+      nutritionScore,
+      superCombosFound,
+      longestStreak,
+      hotStreakActive,
+      dailyBuff,
+    } = visitorData;
+    let brownBag = currentBag;
 
     if (newDay) {
       // Auto-drop yesterday's bag items into world at key asset position
@@ -71,7 +80,6 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       // Generate new ideal meal and brown bag
       idealMeal = await generateIdealMeal(credentials);
       const newBagItems = await generateBrownBag(credentials, idealMeal);
-      completedToday = false;
 
       // Grant new bag items to visitor inventory
       for (const bagItem of newBagItems) {
@@ -82,27 +90,28 @@ export const handleGetGameState = async (req: Request, res: Response) => {
         }
       }
 
+      completedToday = false;
+      dayStartTimestamp = null;
+      dailyBuff = null;
+      nutritionScore = null;
+      superCombosFound = [];
+
       // Update visitor data for new day
       await visitor.updateDataObject(
         {
+          dayStartTimestamp,
           lastPlayedDate: currentDate,
-          dayStartTimestamp: new Date().toISOString(),
           idealMeal,
           completedToday: false,
           completionTimestamp: null,
           pickupsToday: 0,
           dropsToday: 0,
           itemsMatchedToday: 0,
-          nutritionScore: null,
-          superCombosFound: [],
-          dailyBuff: null,
+          nutritionScore,
+          superCombosFound,
+          dailyBuff,
         },
-        {
-          analytics: [
-            { analyticName: "starts", profileId, urlSlug, uniqueKey: profileId },
-            { analyticName: "joins", profileId, urlSlug, uniqueKey: profileId },
-          ],
-        },
+        {},
       );
 
       // Spawn items into world for this player (skip if already spawned today)
@@ -144,10 +153,10 @@ export const handleGetGameState = async (req: Request, res: Response) => {
         worldData.totalStartsToday = (worldData.totalStartsToday || 0) + 1;
       }
       await world.updateDataObject(worldData);
-    }
 
-    // Track joins for non-new-day loads (new day loads are tracked above)
-    if (!newDay) {
+      // Read current bag from inventory (re-fetch after mutations on new day)
+      brownBag = await getVisitorBag(visitor, idealMeal, credentials);
+    } else {
       await visitor.updateDataObject(
         {},
         {
@@ -155,9 +164,6 @@ export const handleGetGameState = async (req: Request, res: Response) => {
         },
       );
     }
-
-    // Read current bag from inventory (re-fetch after mutations on new day)
-    const brownBag = newDay ? await getVisitorBag(visitor, idealMeal, credentials) : currentBag;
 
     // Calculate display streak
     let displayStreak = visitorData.currentStreak;
@@ -174,20 +180,20 @@ export const handleGetGameState = async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      isNewDay: newDay,
+      isNewDay: !dayStartTimestamp,
       brownBag,
       idealMeal,
       completedToday,
-      nutritionScore: visitorData.nutritionScore,
-      superCombosFound: visitorData.superCombosFound || [],
+      nutritionScore,
+      superCombosFound,
       xp,
       level,
       currentStreak: displayStreak,
-      longestStreak: visitorData.longestStreak,
-      hotStreakActive: visitorData.hotStreakActive || false,
+      longestStreak,
+      hotStreakActive,
       isAdmin,
       hasRewardToken,
-      dailyBuff: (visitorData as any).dailyBuff || null,
+      dailyBuff,
       spawnRadiusMin: worldData.spawnRadiusMin,
       spawnRadiusMax: worldData.spawnRadiusMax,
       proximityRadius: worldData.proximityRadius,

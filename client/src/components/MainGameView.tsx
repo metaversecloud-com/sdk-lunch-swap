@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 
 // components
-import { BrownBag, HotStreakIndicator, IdealMealTracker, NearbyItems } from "@/components";
+import { BrownBag, HotStreakIndicator, IdealMealTracker, NearbyItems, PageFooter } from "@/components";
 
 // context
 import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";
@@ -10,17 +10,20 @@ import { SET_BROWN_BAG, SET_COMPLETED, ErrorType, PostPickupResponseType } from 
 // utils
 import { backendAPI, setErrorMessage } from "@/utils";
 
-const BAG_CAPACITY = 8;
+const BASE_BAG_CAPACITY = 8;
+const BIG_BAG_BONUS = 2;
 
 export const MainGameView = () => {
   const dispatch = useContext(GlobalDispatchContext);
-  const { brownBag, idealMeal, hotStreakActive, idealPickupStreak, xp, level } = useContext(GlobalStateContext);
+  const { brownBag, idealMeal, hotStreakActive, idealPickupStreak, xp, level, dailyBuff } =
+    useContext(GlobalStateContext);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
+  const bagCapacity = BASE_BAG_CAPACITY + (dailyBuff === "big-bag" ? BIG_BAG_BONUS : 0);
   const bagItems = brownBag ?? [];
   const mealItems = idealMeal ?? [];
-  const bagFull = bagItems.length >= BAG_CAPACITY;
+  const bagFull = bagItems.length >= bagCapacity;
   const bagItemIds = new Set(bagItems.map((b) => b.itemId));
   const allCollected = mealItems.length > 0 && mealItems.every((item) => bagItemIds.has(item.itemId));
 
@@ -68,7 +71,14 @@ export const MainGameView = () => {
 
     dispatch!({
       type: SET_BROWN_BAG,
-      payload: { brownBag: updatedBag, xp: newXp, level: newLevel, hotStreakActive, idealPickupStreak, visitorInventory },
+      payload: {
+        brownBag: updatedBag,
+        xp: newXp,
+        level: newLevel,
+        hotStreakActive,
+        idealPickupStreak,
+        visitorInventory,
+      },
     });
 
     let message = `Picked up ${pickedUpItem?.name ?? "item"}`;
@@ -86,12 +96,22 @@ export const MainGameView = () => {
 
     try {
       const response = await backendAPI.post("/submit-meal");
-      const { nutritionScore, superCombosFound, newTotalXp, newLevel, currentStreak, longestStreak, visitorInventory: updatedInventory } = response.data;
+      const {
+        nutritionScore,
+        nutritionBreakdown,
+        superCombosFound,
+        newTotalXp,
+        newLevel,
+        currentStreak,
+        longestStreak,
+        visitorInventory: updatedInventory,
+      } = response.data;
 
       dispatch!({
         type: SET_COMPLETED,
         payload: {
           nutritionScore,
+          nutritionBreakdown,
           superCombosFound,
           xp: newTotalXp,
           level: newLevel,
@@ -140,7 +160,7 @@ export const MainGameView = () => {
 
       {/* Submit button — shown when all ideal meal items are collected */}
       {allCollected && (
-        <div className="sticky bottom-4 z-10">
+        <PageFooter>
           <button
             className={`w-full py-4 px-6 rounded-2xl text-white shadow-xl 
               focus:outline-none focus:ring-2 focus:ring-offset-2 min-h-[44px]
@@ -155,7 +175,7 @@ export const MainGameView = () => {
           >
             {isSubmitting ? "Submitting..." : "Submit Meal!"}
           </button>
-        </div>
+        </PageFooter>
       )}
     </div>
   );

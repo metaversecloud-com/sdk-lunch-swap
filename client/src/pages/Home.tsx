@@ -2,20 +2,25 @@ import { useContext, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 // components
-import { GameView, PageContainer } from "@/components";
+import { PageContainer, BadgesView, BonusWheel, CompletionSummary, MainGameView, NewDayWelcome } from "@/components";
 
 // context
 import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";
-import { ErrorType } from "@/context/types";
+import { ErrorType, SET_BROWN_BAG, SET_DAILY_BUFF } from "@/context/types";
 
 // utils
 import { backendAPI, setErrorMessage, setGameState } from "@/utils";
 
+type NewDayStep = "welcome" | "wheel-spin" | "done";
+type ActiveTab = "game" | "badges";
+
 export const Home = () => {
   const dispatch = useContext(GlobalDispatchContext);
-  const { hasInteractiveParams } = useContext(GlobalStateContext);
+  const { hasInteractiveParams, isNewDay, completedToday } = useContext(GlobalStateContext);
   const [searchParams] = useSearchParams();
 
+  const [step, setStep] = useState<NewDayStep>("welcome");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("game");
   const [isLoading, setIsLoading] = useState(true);
 
   const forceRefreshInventory = searchParams.get("forceRefreshInventory") === "true";
@@ -32,9 +37,42 @@ export const Home = () => {
     }
   }, [hasInteractiveParams]);
 
+  const getMainContent = () => {
+    if (isNewDay && step !== "done") {
+      if (step === "welcome") {
+        return <NewDayWelcome setStep={setStep} />;
+      } else if (step === "wheel-spin") {
+        return (
+          <BonusWheel
+            onSkip={() => setStep("done")}
+            onResult={({ buff, brownBag }) => {
+              dispatch!({ type: SET_DAILY_BUFF, payload: { dailyBuff: buff.id } });
+              if (brownBag) {
+                dispatch!({ type: SET_BROWN_BAG, payload: { brownBag } });
+              }
+              setStep("done");
+            }}
+          />
+        );
+      }
+    } else if (completedToday) {
+      return <CompletionSummary />;
+    }
+    return <MainGameView />;
+  };
+
   return (
     <PageContainer isLoading={isLoading}>
-      <GameView />
+      <div className="tab-container mb-4">
+        <button className={activeTab === "game" ? "btn" : "btn btn-text"} onClick={() => setActiveTab("game")}>
+          Game
+        </button>
+        <button className={activeTab === "badges" ? "btn" : "btn btn-text"} onClick={() => setActiveTab("badges")}>
+          Badges
+        </button>
+      </div>
+
+      {activeTab === "game" ? getMainContent() : <BadgesView />}
     </PageContainer>
   );
 };

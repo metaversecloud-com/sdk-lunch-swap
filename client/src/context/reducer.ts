@@ -69,6 +69,7 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         ...state,
         completedToday: true,
         nutritionScore: payload.nutritionScore,
+        nutritionBreakdown: payload.nutritionBreakdown,
         superCombosFound: payload.superCombosFound,
         xp: payload.xp,
         level: payload.level,

@@ -1,5 +1,14 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, getVisitor, grantRewardToken } from "@utils/index.js";
+import {
+  errorHandler,
+  getCredentials,
+  getVisitor,
+  grantRewardToken,
+  grantFoodToVisitor,
+  removeFoodFromVisitor,
+  getAllFoodItems,
+  getVisitorBag,
+} from "@utils/index.js";
 import { spinWheel } from "@shared/data/wheelBuffs.js";
 
 export const handleSpinWheel = async (req: Request, res: Response) => {
@@ -33,6 +42,61 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
       {},
     );
 
+    // Re-fetch the bag if an item was swapped so the client gets the updated inventory
+    let updatedBag;
+
+    // Apply immediate-effect buffs
+
+    if (buff.id === "epic-drop" || buff.id === "ideal-item") {
+      const allFood = await getAllFoodItems(credentials);
+      const bag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
+      const bagItemIds = new Set(bag.map((b) => b.itemId));
+      const nonIdealBag = bag.filter((b) => !b.matchesIdealMeal && b.rarity === "common");
+      const victim = nonIdealBag[Math.floor(Math.random() * nonIdealBag.length)];
+
+      let newItem;
+
+      if (buff.id === "epic-drop") {
+        // Grant a random epic food item directly into the bag
+        const epicItems = allFood.filter((f) => f.rarity === "epic");
+        if (epicItems.length > 0) {
+          newItem = epicItems[Math.floor(Math.random() * epicItems.length)];
+        }
+      }
+
+      if (buff.id === "ideal-item") {
+        // Upgrade one non-ideal bag item to a missing ideal meal item
+        const missingIdeal = (visitorData.idealMeal || []).filter((i: any) => !bagItemIds.has(i.itemId));
+
+        if (missingIdeal.length > 0 && nonIdealBag.length > 0) {
+          const target = missingIdeal[Math.floor(Math.random() * missingIdeal.length)];
+
+          // Look up full definition for the ideal item
+          newItem = allFood.find((f) => f.itemId === target.itemId);
+        }
+      }
+
+      if (newItem) {
+        await removeFoodFromVisitor(visitor, credentials, victim.itemId);
+        await grantFoodToVisitor(visitor, credentials, {
+          itemId: newItem.itemId,
+          name: newItem.name,
+          foodGroup: newItem.foodGroup,
+          rarity: newItem.rarity,
+          matchesIdealMeal: false,
+          nutrition: newItem.nutrition,
+          funFact: newItem.funFact,
+        });
+
+        buff.description =
+          buff.id === "epic-drop"
+            ? `You received a random epic item: ${newItem.name}!`
+            : `Your ${victim.name} was upgraded to ${newItem.name}!`;
+
+        updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
+      }
+    }
+
     return res.json({
       success: true,
       buff: {
@@ -40,6 +104,7 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
         name: buff.name,
         description: buff.description,
       },
+      ...(updatedBag && { brownBag: updatedBag }),
     });
   } catch (error) {
     return errorHandler({

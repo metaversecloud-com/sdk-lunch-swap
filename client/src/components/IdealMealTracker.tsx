@@ -69,7 +69,7 @@ export const IdealMealTracker = ({ isPreview }: { isPreview: boolean }) => {
 
               {/* Item name */}
               <div className="tooltip truncate">
-                <span className="tooltip-content">{item.name}</span>
+                <span className="tooltip-content p3">{item.name}</span>
                 <p>{item.name}</p>
               </div>
 

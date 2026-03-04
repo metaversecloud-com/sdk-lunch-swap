@@ -1,9 +1,10 @@
-import { useContext, useEffect, useRef, useState, useCallback } from "react";
+import { useContext, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";
 import { BagItem, FOOD_GROUP_COLORS, RARITY_CONFIG } from "@shared/types/FoodItem";
 import { backendAPI } from "@/utils/backendAPI";
 import { setErrorMessage } from "@/utils";
 import { ErrorType, PostPickupResponseType } from "@/context/types";
+import { SUPER_COMBOS } from "@shared/data/superCombos";
 
 interface BagFullSwapModalProps {
   pickupDroppedAssetId: string;
@@ -13,7 +14,7 @@ interface BagFullSwapModalProps {
 
 export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: BagFullSwapModalProps) => {
   const dispatch = useContext(GlobalDispatchContext);
-  const { brownBag } = useContext(GlobalStateContext);
+  const { brownBag, dailyBuff } = useContext(GlobalStateContext);
   const [selectedItem, setSelectedItem] = useState<BagItem | null>(null);
   const [isSwapping, setIsSwapping] = useState(false);
   const [error, setError] = useState("");
@@ -24,6 +25,24 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
   const titleId = "bag-full-swap-title";
 
   const items = brownBag ?? [];
+
+  // Build combo partner map (same logic as BrownBag)
+  const comboPartnerMap = useMemo(() => {
+    if (dailyBuff !== "combo-finder") return new Map<string, string>();
+    const bag = brownBag ?? [];
+    const bagItemIds = new Set(bag.map((i) => i.itemId));
+    const map = new Map<string, string>();
+    for (const combo of SUPER_COMBOS) {
+      const [a, b] = combo.items;
+      if (bagItemIds.has(a) && bagItemIds.has(b)) {
+        const nameA = bag.find((i) => i.itemId === a)?.name ?? a;
+        const nameB = bag.find((i) => i.itemId === b)?.name ?? b;
+        map.set(a, nameB);
+        map.set(b, nameA);
+      }
+    }
+    return map;
+  }, [dailyBuff, brownBag]);
 
   // Escape handler
   useEffect(() => {
@@ -113,27 +132,46 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
               <button
                 key={item.itemId}
                 ref={index === 0 ? firstFocusRef : undefined}
-                className={`relative flex flex-col items-start p-3 rounded-xl border-2 text-left transition-all duration-200 min-h-[72px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                className={`relative flex flex-col items-start p-3 rounded-xl border-2 text-left transition-all duration-200 min-h-[72px] 
                   ${
                     isSelected
-                      ? "bg-red-50 border-red-400 shadow-md ring-2 ring-red-300 scale-[0.97]"
+                      ? "bg-red-50 border-red-400 shadow-md ring-2 ring-red-600 scale-[0.97]"
                       : "bg-white hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
                   }`}
-                style={{ borderColor: isSelected ? undefined : borderColor }}
+                style={{ borderColor: isSelected ? "grey" : borderColor }}
                 onClick={() => handleSelectItem(item)}
                 aria-pressed={isSelected}
                 aria-label={`${item.name} - ${item.foodGroup}, ${rarityConfig.label}${item.matchesIdealMeal ? ", matches ideal meal" : ""}${isSelected ? " - selected for swap" : ""}`}
               >
                 <div className="flex items-center gap-1.5 w-full">
+                  {/* Food group indicator */}
                   <span
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: borderColor }}
                     aria-hidden="true"
                   />
+                  {/* Item name */}
                   <div className="tooltip truncate">
-                    <span className="tooltip-content">{item.name}</span>
+                    <span className="tooltip-content p3">{item.name}</span>
                     <span>{item.name}</span>
                   </div>
+                  {item.matchesIdealMeal && (
+                    <div
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center"
+                      aria-hidden="true"
+                    >
+                      <svg
+                        className="w-3 h-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <span
@@ -142,10 +180,19 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
                   >
                     {rarityConfig.label}
                   </span>
-                  {item.matchesIdealMeal && (
-                    <span className="text-green-500 text-xs" aria-label="Matches ideal meal" role="img">
-                      &#9733;
-                    </span>
+                  {comboPartnerMap.get(item.itemId) && (
+                    <div className="tooltip">
+                      <span className="tooltip-content p3 min-w-[100px] ">
+                        Combo match with {comboPartnerMap.get(item.itemId)}
+                      </span>
+                      <span
+                        className="p2 text-muted"
+                        aria-label={`Combo match with ${comboPartnerMap.get(item.itemId)}`}
+                        role="img"
+                      >
+                        &#9733;
+                      </span>
+                    </div>
                   )}
                 </div>
               </button>

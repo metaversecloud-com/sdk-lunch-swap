@@ -92,6 +92,11 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     const streakXp = Math.min(newStreak * XP_ACTIONS.STREAK_PER_DAY, XP_ACTIONS.STREAK_CAP);
     totalXp += streakXp;
 
+    // Apply double-xp buff
+    if (visitorData.dailyBuff === "double-xp") {
+      totalXp *= 2;
+    }
+
     // Grant XP to visitor inventory and derive level
     const newTotalXp = await grantXp(visitor, credentials, totalXp);
     const newLevel = getLevelForXp(newTotalXp);

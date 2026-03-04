@@ -42,10 +42,12 @@ export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: N
     <>
       <div
         className={`relative flex items-center gap-3 p-3 rounded-xl border-2 bg-white transition-all duration-200
-          ${item.matchesIdealMeal && !item.isMystery ? "shadow-md ring-2 ring-yellow-400" : "shadow-sm"}
+          ${item.matchesIdealMeal && !item.isMystery ? "shadow-md ring-2 ring-yellow-400" : ""}
+          ${item.isComboMatch && !item.isMystery ? "shadow-md ring-2 ring-purple-400" : ""}
+          ${!item.matchesIdealMeal && !item.isComboMatch ? "shadow-sm" : ""}
           hover:shadow-md`}
         style={{ borderColor: item.isMystery ? "#6B7280" : borderColor }}
-        aria-label={`${displayName}${item.matchesIdealMeal && !item.isMystery ? ", matches your ideal meal" : ""}`}
+        aria-label={`${displayName}${item.matchesIdealMeal && !item.isMystery ? ", matches your ideal meal" : ""}${item.isComboMatch && !item.isMystery ? ", super combo pair" : ""}`}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
@@ -54,8 +56,18 @@ export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: N
                 &#9733;
               </span>
             )}
+            {item.isComboMatch && !item.isMystery && (
+              <div className="tooltip">
+                <span className="tooltip-content p3">
+                  Combo match with {item.comboMatchPartner ?? "bag item"}
+                </span>
+                <span className="text-purple-500 text-sm" aria-label="Super combo pair" role="img">
+                  &#9733;
+                </span>
+              </div>
+            )}
             <div className="tooltip truncate">
-              <span className="tooltip-content">{displayName}</span>
+              <span className="tooltip-content p3">{displayName}</span>
               <span className={`p2 ${item.isMystery ? "italic" : ""}`}>{displayName}</span>
             </div>
           </div>
@@ -80,7 +92,7 @@ export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: N
 
           {item.lastDroppedByName && !item.isMystery && (
             <div className="tooltip truncate mt-1">
-              <span className="tooltip-content">Dropped by {item.lastDroppedByName}</span>
+              <span className="tooltip-content p3">Dropped by {item.lastDroppedByName}</span>
               <p className="p3 text-gray-400">Dropped by {item.lastDroppedByName}</p>
             </div>
           )}

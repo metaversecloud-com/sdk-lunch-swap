@@ -10,4 +10,6 @@ export interface NearbyItem {
   matchesIdealMeal: boolean;
   lastDroppedByName: string;
   isMystery?: boolean;
+  isComboMatch?: boolean;
+  comboMatchPartner?: string;
 }

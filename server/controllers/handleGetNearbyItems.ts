@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { getFoodItemsById, errorHandler, getCredentials, Visitor, World } from "@utils/index.js";
 import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { NearbyItem } from "@shared/types/NearbyItem.js";
+import { SUPER_COMBOS } from "@shared/data/superCombos.js";
 
 export const handleGetNearbyItems = async (req: Request, res: Response) => {
   try {
@@ -32,6 +33,33 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
     const now = Date.now();
     const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
     const idealItemIds = new Set(visitorData.idealMeal?.map((i: any) => i.itemId) || []);
+
+    // combo-finder buff: map nearby item IDs to the bag item name they combo with
+    let comboTargetMap: Map<string, string> | null = null;
+    if (visitorData.dailyBuff === "combo-finder") {
+      await visitor.fetchInventoryItems();
+      const allItems: any[] = (visitor as any).inventoryItems || [];
+      const bagItemIds = new Set(
+        allItems
+          .filter(
+            (item: any) =>
+              item.type === "ITEM" &&
+              item.status === "ACTIVE" &&
+              (item.quantity ?? item.availableQuantity ?? 1) > 0 &&
+              item.item?.name !== "Experience Points" &&
+              item.item?.name !== "Reward Token",
+          )
+          .map((item: any) => item.metadata?.itemId ?? item.item?.metadata?.itemId ?? item.name),
+      );
+      comboTargetMap = new Map<string, string>();
+      for (const combo of SUPER_COMBOS) {
+        const [a, b] = combo.items;
+        const nameA = foodItemsById.get(a)?.name ?? a;
+        const nameB = foodItemsById.get(b)?.name ?? b;
+        if (bagItemIds.has(a) && !bagItemIds.has(b)) comboTargetMap.set(b, nameA);
+        if (bagItemIds.has(b) && !bagItemIds.has(a)) comboTargetMap.set(a, nameB);
+      }
+    }
 
     const nearbyItems: NearbyItem[] = [];
 
@@ -84,6 +112,8 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
         matchesIdealMeal: isMystery ? false : idealItemIds.has(itemId),
         lastDroppedByName: "", // Would need data object; not critical for list view
         isMystery,
+        isComboMatch: !isMystery && comboTargetMap ? comboTargetMap.has(itemId) : false,
+        comboMatchPartner: !isMystery && comboTargetMap?.get(itemId) || undefined,
       });
     }
 

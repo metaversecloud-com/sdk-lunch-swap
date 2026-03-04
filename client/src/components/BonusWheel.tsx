@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { WHEEL_BUFFS } from "@shared/data/wheelBuffs";
+import { BagItem } from "@shared/types/FoodItem";
 import { backendAPI } from "@/utils";
 
-interface BonusWheelProps {
-  onResult: (buff: { id: string; name: string; description: string }) => void;
+interface SpinResult {
+  buff: { id: string; name: string; description: string };
+  brownBag?: BagItem[];
 }
 
-const SEGMENT_COLORS = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7"];
+interface BonusWheelProps {
+  onSkip: () => void;
+  onResult: (result: SpinResult) => void;
+}
+
+const SEGMENT_COLORS = ["#FF6B6B", "#ffa94d", "#45B7D1", "#4ECDC4", "#cf8df7"];
 const SPIN_DURATION_MS = 2500;
 const SEGMENT_ANGLE = 360 / WHEEL_BUFFS.length;
 
-export const BonusWheel = ({ onResult }: BonusWheelProps) => {
+export const BonusWheel = ({ onSkip, onResult }: BonusWheelProps) => {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [wonBuff, setWonBuff] = useState<{
@@ -22,6 +29,7 @@ export const BonusWheel = ({ onResult }: BonusWheelProps) => {
   const [reducedMotion, setReducedMotion] = useState(false);
   const wheelRef = useRef<SVGSVGElement>(null);
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spinResultRef = useRef<SpinResult | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -42,7 +50,8 @@ export const BonusWheel = ({ onResult }: BonusWheelProps) => {
 
     try {
       const response = await backendAPI.post("/spin-wheel");
-      const { buff } = response.data;
+      const { buff, brownBag } = response.data;
+      spinResultRef.current = { buff, brownBag };
 
       // Find the index of the winning buff
       const winIndex = WHEEL_BUFFS.findIndex((b) => b.id === buff.id);
@@ -77,8 +86,8 @@ export const BonusWheel = ({ onResult }: BonusWheelProps) => {
   }, [spinning, reducedMotion]);
 
   const handleClaim = () => {
-    if (wonBuff) {
-      onResult(wonBuff);
+    if (spinResultRef.current) {
+      onResult(spinResultRef.current);
     }
   };
 
@@ -103,7 +112,7 @@ export const BonusWheel = ({ onResult }: BonusWheelProps) => {
   // Calculate text position for each segment label
   const getTextPosition = (index: number) => {
     const midAngle = ((index * SEGMENT_ANGLE + SEGMENT_ANGLE / 2) * Math.PI) / 180;
-    const textRadius = 62;
+    const textRadius = 70;
     const cx = 100;
     const cy = 100;
     return {
@@ -114,11 +123,24 @@ export const BonusWheel = ({ onResult }: BonusWheelProps) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 p-4" role="region" aria-label="Bonus wheel spinner">
-      <h2 className="text-xl font-bold text-gray-900">Spin to Win!</h2>
+    <div className="grid gap-4" role="region" aria-label="Bonus wheel spinner">
+      <div
+        className="grid gap-2 p-3 rounded-2xl text-center"
+        style={{ backgroundColor: "#FFF8E1", border: "3px solid #FFD700" }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bonus-wheel-title"
+        aria-describedby="bonus-wheel-description"
+      >
+        <h4 id="bonus-wheel-title">You have a Reward Token!</h4>
+
+        <p id="bonus-wheel-description" className="p2">
+          Spin the wheel for today&apos;s bonus?
+        </p>
+      </div>
 
       {/* Wheel container with pointer */}
-      <div className="relative w-56 h-56">
+      <div className="relative mt-2">
         {/* Pointer triangle at top */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10" aria-hidden="true">
           <div
@@ -154,8 +176,7 @@ export const BonusWheel = ({ onResult }: BonusWheelProps) => {
                   dominantBaseline="middle"
                   transform={`rotate(${textPos.angle}, ${textPos.x}, ${textPos.y})`}
                   fill="#333333"
-                  fontSize="8"
-                  fontWeight="bold"
+                  fontSize="10"
                   className="select-none"
                 >
                   {buff.name}
@@ -164,18 +185,7 @@ export const BonusWheel = ({ onResult }: BonusWheelProps) => {
             );
           })}
           {/* Center circle */}
-          <circle cx="100" cy="100" r="15" fill="#FFFFFF" stroke="#333" strokeWidth="2" />
-          <text
-            x="100"
-            y="100"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="#333"
-            fontSize="14"
-            className="select-none"
-          >
-            {"\u{1F3B2}"}
-          </text>
+          <circle cx="100" cy="100" r="6" fill="#FFFFFF" />
         </svg>
       </div>
 
@@ -188,7 +198,7 @@ export const BonusWheel = ({ onResult }: BonusWheelProps) => {
       {/* Celebration result */}
       {wonBuff && (
         <div
-          className="flex flex-col items-center gap-2 p-4 rounded-xl text-center"
+          className="grid gap-2 p-4 rounded-xl text-center"
           style={{
             backgroundColor: "#E8F5E9",
             border: "2px solid #4CAF50",
@@ -196,17 +206,13 @@ export const BonusWheel = ({ onResult }: BonusWheelProps) => {
           }}
           role="alert"
         >
-          <span className="text-2xl" aria-hidden="true">
-            {"\u{1F389}"}
-          </span>
-          <span className="text-lg font-bold text-gray-900">{wonBuff.name}</span>
-          <span className="text-sm text-gray-700">{wonBuff.description}</span>
+          <h3 aria-hidden="true">{"\u{1F389}"}</h3>
+          <h3>{wonBuff.name}</h3>
+          <p>{wonBuff.description}</p>
           <button
-            className="btn mt-2 text-sm font-bold py-2 px-6 rounded-xl text-white"
+            className="btn text-white mt-1"
             style={{
               backgroundColor: "#4CAF50",
-              minHeight: "44px",
-              minWidth: "44px",
             }}
             onClick={handleClaim}
             aria-label={`Claim your ${wonBuff.name} buff`}
@@ -218,26 +224,32 @@ export const BonusWheel = ({ onResult }: BonusWheelProps) => {
 
       {/* Error */}
       {error && (
-        <div className="text-sm text-red-600 font-medium text-center" role="alert">
+        <div className="p3 text-error" role="alert">
           {error}
         </div>
       )}
 
       {/* Spin button (only shown before spinning) */}
       {!wonBuff && (
-        <button
-          className="btn text-base font-bold py-3 px-8 rounded-xl text-white"
-          style={{
-            backgroundColor: spinning ? "#999" : "#FF6B6B",
-            minHeight: "44px",
-            minWidth: "44px",
-          }}
-          onClick={handleSpin}
-          disabled={spinning}
-          aria-label={spinning ? "Wheel is spinning" : "Spin the bonus wheel"}
-        >
-          {spinning ? "Spinning..." : "Spin!"}
-        </button>
+        <div className="grid gap-2">
+          <button
+            className="btn"
+            onClick={handleSpin}
+            disabled={spinning}
+            aria-label={spinning ? "Wheel is spinning" : "Spin the bonus wheel"}
+          >
+            {spinning ? "Spinning..." : "Spin to win!"}
+          </button>
+
+          <button
+            className="btn btn-outline"
+            onClick={onSkip}
+            disabled={spinning}
+            aria-label="Save reward token for later"
+          >
+            Save for later
+          </button>
+        </div>
       )}
 
       {/* Keyframe styles for celebration */}

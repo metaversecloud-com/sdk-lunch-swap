@@ -5,8 +5,17 @@ import { XpBreakdown } from "@/components/XpBreakdown";
 import { StreakCounter } from "@/components/StreakCounter";
 
 export const CompletionSummary = () => {
-  const { completedToday, nutritionScore,  nutritionBreakdown, superCombosFound, xp, level, currentStreak, longestStreak } =
-    useContext(GlobalStateContext);
+  const {
+    completedToday,
+    nutritionScore,
+    nutritionBreakdown,
+    superCombosFound,
+    xp,
+    level,
+    currentStreak,
+    longestStreak,
+  } = useContext(GlobalStateContext);
+  console.log("🚀 ~ CompletionSummary.tsx:10 ~ nutritionBreakdown:", nutritionBreakdown);
 
   if (!completedToday) return null;
 
@@ -38,7 +47,10 @@ export const CompletionSummary = () => {
 
       <div className="w-full border-t border-gray-300" aria-hidden="true" />
 
-      <p className="p2">Done for today! <br />Come back tomorrow for a new meal.</p>
+      <p className="p2">
+        Done for today! <br />
+        Come back tomorrow for a new meal.
+      </p>
     </section>
   );
 };

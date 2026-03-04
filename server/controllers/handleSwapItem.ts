@@ -115,7 +115,8 @@ export const handleSwapItem = async (req: Request, res: Response) => {
     });
 
     // Calculate XP: DROP + PICKUP (with rarity multiplier, ideal meal bonus, hot streak multiplier)
-    const xpEarned = XP_ACTIONS.DROP + calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier);
+    const buffMultiplier = visitorData.dailyBuff === "double-xp" ? 2 : 1;
+    const xpEarned = (XP_ACTIONS.DROP + calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier)) * buffMultiplier;
 
     // Grant XP to visitor inventory
     const newTotalXp = await grantXp(visitor, credentials, xpEarned);

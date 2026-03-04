@@ -5,4 +5,5 @@ export * from "./handleDropItem.js";
 export * from "./handleSwapItem.js";
 export * from "./handleSubmitMeal.js";
 export * from "./handleSpinWheel.js";
+export * from "./handleStart.js";
 export * from "./admin/index.js";

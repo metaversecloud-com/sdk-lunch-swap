@@ -35,8 +35,9 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     // Fetch visitor with data and bag
     const { visitor, visitorData, visitorInventory, brownBag } = await getVisitor(credentials, true);
 
-    // Check bag capacity (8 pre-completion, 3 post-completion)
-    const maxCapacity = visitorData.completedToday ? BAG_CAPACITY_POST_COMPLETION : BAG_CAPACITY;
+    // Check bag capacity (8 pre-completion, 3 post-completion; big-bag buff adds 2)
+    const bigBagBonus = visitorData.dailyBuff === "big-bag" ? 2 : 0;
+    const maxCapacity = (visitorData.completedToday ? BAG_CAPACITY_POST_COMPLETION : BAG_CAPACITY) + bigBagBonus;
     if (brownBag.length >= maxCapacity) {
       return res.status(400).json({
         success: false,
@@ -93,8 +94,9 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       analytics: [{ analyticName: "pickups", profileId, urlSlug, uniqueKey: profileId }],
     });
 
-    // Calculate and grant XP
-    const xpEarned = calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier);
+    // Calculate and grant XP (double-xp buff doubles all XP)
+    const buffMultiplier = visitorData.dailyBuff === "double-xp" ? 2 : 1;
+    const xpEarned = calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier) * buffMultiplier;
     const newTotalXp = await grantXp(visitor, credentials, xpEarned);
     const newLevel = getLevelForXp(newTotalXp);
 
