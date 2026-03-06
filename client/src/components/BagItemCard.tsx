@@ -22,21 +22,22 @@ export const BagItemCard = ({ item, isPreview, onDrop, expanded, onToggle, combo
     );
   }
 
-  const borderColor = FOOD_GROUP_COLORS[item.foodGroup];
+  const foodGroupColor = FOOD_GROUP_COLORS[item.foodGroup];
   const cursor = isPreview ? "default" : "pointer";
   const rarityConfig = RARITY_CONFIG[item.rarity];
 
   return (
     <div
       className={`w-full p-2 rounded-xl border-2 transition-all duration-200 min-h-[70px] ${item.matchesIdealMeal ? "shadow-lg ring-2 ring-green-100 motion-safe:animate-pulse" : ""}`}
-      style={{ borderColor, cursor }}
+      style={{ borderColor: foodGroupColor, cursor }}
       onClick={isPreview ? () => {} : onToggle}
       aria-expanded={expanded}
       aria-label={`${item.name} - ${item.foodGroup}, ${rarityConfig.label} rarity${item.matchesIdealMeal ? ", matches your ideal meal" : ""}${comboPartnerName ? `, combo match with ${comboPartnerName}` : ""}. ${expanded ? "Collapse" : "Tap for details"}`}
     >
       <div className="flex items-center gap-1.5 m-auto relative">
-        {/* Food group indicator */}
-        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: borderColor }} aria-hidden="true" />
+        {/* Item image */}
+        <img src={item.image} alt={item.name} className="h-7 object-contain" />
+
         {/* Item name */}
         <div className="tooltip truncate max-w-[100px]">
           <span className="tooltip-content p3">{item.name}</span>
@@ -68,29 +69,23 @@ export const BagItemCard = ({ item, isPreview, onDrop, expanded, onToggle, combo
           </div>
         )}
       </div>
+
+      {/* Food group label */}
+      <div className="chip text-white capitalize" style={{ backgroundColor: foodGroupColor, fontSize: "0.625rem" }}>
+        {item.foodGroup}
+      </div>
+
       {/* Rarity label */}
-      <div
-        className="text-xs uppercase mt-1 px-1.5 pt-0.5 rounded-full text-white"
-        style={{ backgroundColor: rarityConfig.color }}
-      >
+      <div className="chip text-white" style={{ backgroundColor: rarityConfig.color, fontSize: "0.625rem" }}>
         {rarityConfig.label}
       </div>
 
       {!isPreview && expanded && (
-        <div className="flex flex-col gap-3 border-t border-gray-100">
-          <div className="flex items-center gap-2 pt-2 p3">
-            <span
-              className="inline-block w-2.5 h-2.5 rounded-sm"
-              style={{ backgroundColor: borderColor }}
-              aria-hidden="true"
-            />
-            <span className="capitalize">{item.foodGroup}</span>
-          </div>
-
+        <div className="flex flex-col gap-3 pt-3">
           {item.nutrition && <NutritionPreview nutrition={item.nutrition} name={item.name} />}
 
           <button
-            className="btn btn-danger"
+            className="btn btn-danger-outline"
             onClick={(e) => {
               e.stopPropagation();
               onDrop?.(item.itemId);

@@ -12,6 +12,7 @@ export * from "./CompletionSummary.js";
 export * from "./ConfirmationModal.js";
 export * from "./HotStreakIndicator.js";
 export * from "./IdealMealTracker.js";
+export * from "./Leaderboard.js";
 export * from "./Loading.js";
 export * from "./MainGameView.js";
 export * from "./MysteryReveal.js";

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import {
   errorHandler,
   getCredentials,
+  pickupFoodAsset,
   dropFoodItem,
   getVisitor,
   grantFoodToVisitor,
@@ -44,10 +45,9 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "Item not found in bag" });
     }
 
-    // Delete the pickup target from world (race condition guard)
-    try {
-      await foodAsset.deleteDroppedAsset();
-    } catch {
+    // Delete the dropped asset from world (race condition guard)
+    const { pickedUp } = await pickupFoodAsset(foodAsset, urlSlug, credentials);
+    if (!pickedUp) {
       return res.status(409).json({ success: false, message: "This item was already picked up" });
     }
 
@@ -63,6 +63,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       },
       itemId: droppedItem.itemId,
       rarity: droppedItem.rarity,
+      shouldTriggerParticle: true,
     });
 
     // --- PICKUP phase (mirrors handlePickupItem) ---
@@ -116,7 +117,8 @@ export const handleSwapItem = async (req: Request, res: Response) => {
 
     // Calculate XP: DROP + PICKUP (with rarity multiplier, ideal meal bonus, hot streak multiplier)
     const buffMultiplier = visitorData.dailyBuff === "double-xp" ? 2 : 1;
-    const xpEarned = (XP_ACTIONS.DROP + calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier)) * buffMultiplier;
+    const xpEarned =
+      (XP_ACTIONS.DROP + calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier)) * buffMultiplier;
 
     // Grant XP to visitor inventory
     const newTotalXp = await grantXp(visitor, credentials, xpEarned);

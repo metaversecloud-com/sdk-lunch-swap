@@ -1,5 +1,6 @@
 import { DroppedAssetInterface } from "@rtsdk/topia";
 import { BagItem, IdealMealItem } from "@shared/types/FoodItem";
+import { LeaderboardEntry } from "@shared/types/DataObjects";
 import { NearbyItem } from "@shared/types/NearbyItem";
 
 export const SET_HAS_INTERACTIVE_PARAMS = "SET_HAS_INTERACTIVE_PARAMS";
@@ -69,6 +70,8 @@ export interface InitialState {
   // Badges
   badges?: { [name: string]: BadgeType };
   visitorInventory?: VisitorInventoryType;
+  // Leaderboard
+  leaderboard?: LeaderboardEntry[];
   // Admin settings (world data)
   spawnRadiusMin?: number;
   spawnRadiusMax?: number;

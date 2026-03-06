@@ -3,6 +3,8 @@ import {
   errorHandler,
   getCredentials,
   getKeyAsset,
+  getFoodItemsById,
+  parseLeaderboard,
   World,
   dropFoodItem,
   getVisitor,
@@ -38,6 +40,9 @@ export const handleGetGameState = async (req: Request, res: Response) => {
 
     await world.fetchDataObject();
     const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
+
+    // Parse leaderboard from key asset
+    const leaderboard = parseLeaderboard(droppedAsset);
 
     // Check for new day
     const currentDate = getCurrentDateMT();
@@ -165,6 +170,15 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       );
     }
 
+    // Enrich ideal meal items with images (for meals stored before image field existed)
+    if (idealMeal?.length && !idealMeal[0].image) {
+      const foodItemsById = await getFoodItemsById(credentials);
+      for (const item of idealMeal) {
+        const def = foodItemsById.get(item.itemId);
+        if (def?.image) item.image = def.image;
+      }
+    }
+
     // Calculate display streak
     let displayStreak = visitorData.currentStreak;
     if (visitorData.lastCompletionDate) {
@@ -199,6 +213,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       proximityRadius: worldData.proximityRadius,
       badges,
       visitorInventory: getVisitorBadges((visitor as any).inventoryItems || []),
+      leaderboard,
     });
   } catch (error) {
     return errorHandler({

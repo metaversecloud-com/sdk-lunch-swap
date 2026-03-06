@@ -9,6 +9,7 @@ import { SET_BROWN_BAG, SET_COMPLETED, ErrorType, PostPickupResponseType } from 
 
 // utils
 import { backendAPI, setErrorMessage } from "@/utils";
+import { getLevelTitle } from "@shared/data/xpConfig";
 
 const BASE_BAG_CAPACITY = 8;
 const BIG_BAG_BONUS = 2;
@@ -33,6 +34,11 @@ export const MainGameView = () => {
   };
 
   const handleDrop = async (itemId: string) => {
+    // Optimistically remove item from UI
+    const previousBag = brownBag;
+    const optimisticBag = bagItems.filter((item) => item.itemId !== itemId);
+    dispatch!({ type: SET_BROWN_BAG, payload: { brownBag: optimisticBag } });
+
     try {
       const response = await backendAPI.post("/drop-item", { itemId });
       const { brownBag: updatedBag, droppedItem, xpEarned, xp: newXp, level: newLevel } = response.data;
@@ -41,6 +47,34 @@ export const MainGameView = () => {
 
       showTemporaryMessage(`Dropped ${droppedItem?.name ?? "item"}${xpEarned ? ` (+${xpEarned} XP)` : ""}`);
     } catch (error) {
+      // Revert on failure
+      dispatch!({ type: SET_BROWN_BAG, payload: { brownBag: previousBag } });
+      setErrorMessage(dispatch, error as ErrorType);
+    }
+  };
+
+  const handleDropAllNonMatches = async () => {
+    // Optimistically remove non-matching items from UI
+    const previousBag = brownBag;
+    const optimisticBag = bagItems.filter((item) => item.matchesIdealMeal);
+    dispatch!({ type: SET_BROWN_BAG, payload: { brownBag: optimisticBag } });
+
+    try {
+      const response = await backendAPI.post("/drop-all-non-matches");
+      const { brownBag: updatedBag, droppedCount, xpEarned, xp: newXp, level: newLevel } = response.data;
+
+      dispatch!({ type: SET_BROWN_BAG, payload: { brownBag: updatedBag, xp: newXp, level: newLevel } });
+
+      if (droppedCount > 0) {
+        showTemporaryMessage(
+          `Dropped ${droppedCount} non-matching item${droppedCount > 1 ? "s" : ""}${xpEarned ? ` (+${xpEarned} XP)` : ""}`,
+        );
+      } else {
+        showTemporaryMessage("No non-matching items to drop");
+      }
+    } catch (error) {
+      // Revert on failure
+      dispatch!({ type: SET_BROWN_BAG, payload: { brownBag: previousBag } });
       setErrorMessage(dispatch, error as ErrorType);
     }
   };
@@ -58,14 +92,11 @@ export const MainGameView = () => {
     const {
       brownBag: updatedBag,
       pickedUpItem,
-      matchesIdealMeal,
       xpEarned,
       xp: newXp,
       level: newLevel,
       hotStreakActive,
       idealPickupStreak,
-      funFact,
-      wasMystery,
       visitorInventory,
     } = data;
 
@@ -82,10 +113,7 @@ export const MainGameView = () => {
     });
 
     let message = `Picked up ${pickedUpItem?.name ?? "item"}`;
-    if (wasMystery) message = `Mystery revealed: ${pickedUpItem?.name ?? "item"}!`;
-    if (matchesIdealMeal) message += " - Ideal meal match!";
     if (xpEarned) message += ` (+${xpEarned} XP)`;
-    if (funFact) message += ` | ${funFact}`;
 
     showTemporaryMessage(message);
   };
@@ -105,6 +133,7 @@ export const MainGameView = () => {
         currentStreak,
         longestStreak,
         visitorInventory: updatedInventory,
+        leaderboard,
       } = response.data;
 
       dispatch!({
@@ -118,6 +147,7 @@ export const MainGameView = () => {
           currentStreak,
           longestStreak,
           visitorInventory: updatedInventory,
+          leaderboard,
         },
       });
     } catch (error) {
@@ -128,10 +158,15 @@ export const MainGameView = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {/* Status bar */}
       <div className="flex items-center justify-between text-muted p2">
-        <span>Level {level ?? 1}</span>
+        <div className="flex grid-cols-2">
+          <span className="flex items-center justify-center -mt-1 mr-2 rounded-full border border-gray-500 w-6 h-6">
+            {level}
+          </span>
+          {getLevelTitle(level ?? 1)}
+        </div>
         {hotStreakActive && idealPickupStreak && (
           <HotStreakIndicator hotStreakActive={hotStreakActive} streak={idealPickupStreak} />
         )}
@@ -152,8 +187,12 @@ export const MainGameView = () => {
       {/* Ideal meal tracker */}
       <IdealMealTracker isPreview={false} />
 
+      <hr />
+
       {/* Brown bag */}
-      <BrownBag onDrop={handleDrop} />
+      <BrownBag onDrop={handleDrop} onDropAllNonMatches={handleDropAllNonMatches} />
+
+      <hr />
 
       {/* Nearby items */}
       <NearbyItems onPickup={handlePickup} afterSwap={handleAfterPickup} bagFull={bagFull} />

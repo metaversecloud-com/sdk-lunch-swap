@@ -9,12 +9,15 @@ const BIG_BAG_BONUS = 2;
 interface BrownBagProps {
   isPreview?: boolean;
   onDrop?: (itemId: string) => void;
+  onDropAllNonMatches?: () => Promise<void>;
 }
 
-export const BrownBag = ({ isPreview, onDrop }: BrownBagProps) => {
+export const BrownBag = ({ isPreview, onDrop, onDropAllNonMatches }: BrownBagProps) => {
   const { brownBag, dailyBuff } = useContext(GlobalStateContext);
   const BAG_SLOTS = BASE_BAG_SLOTS + (dailyBuff === "big-bag" ? BIG_BAG_BONUS : 0);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandAll, setExpandAll] = useState(false);
+  const [isDroppingAll, setIsDroppingAll] = useState(false);
 
   const items = brownBag ?? [];
   const filledCount = items.length;
@@ -38,6 +41,7 @@ export const BrownBag = ({ isPreview, onDrop }: BrownBagProps) => {
   }, [dailyBuff, brownBag]);
 
   const handleToggle = (index: number) => {
+    setExpandAll(false);
     setExpandedIndex((prev) => (prev === index ? null : index));
   };
 
@@ -45,8 +49,18 @@ export const BrownBag = ({ isPreview, onDrop }: BrownBagProps) => {
     <section aria-label="Your brown bag">
       <div className="flex items-center justify-between mb-3">
         <h3>Your Bag</h3>
-        <span className="p2 text-muted">
+        <span className="grid p2 text-muted text-right">
           {filledCount}/{BAG_SLOTS} items
+          <button
+            className="btn-text mt-1"
+            onClick={() => {
+              setExpandAll((prev) => !prev);
+              setExpandedIndex(null);
+            }}
+            aria-label={expandAll ? "Collapse all items" : "Expand all items"}
+          >
+            {expandAll ? "Collapse all" : "Expand all"}
+          </button>
         </span>
       </div>
 
@@ -58,14 +72,35 @@ export const BrownBag = ({ isPreview, onDrop }: BrownBagProps) => {
               key={item ? item.itemId : `empty-${index}`}
               item={item}
               isPreview={isPreview}
-              onDrop={onDrop}
-              expanded={expandedIndex === index}
+              onDrop={(itemId) => {
+                setExpandedIndex(null);
+                onDrop?.(itemId);
+              }}
+              expanded={expandAll || expandedIndex === index}
               onToggle={() => handleToggle(index)}
               comboPartnerName={item ? comboPartnerMap.get(item.itemId) : undefined}
             />
           );
         })}
       </div>
+
+      {!isPreview && onDropAllNonMatches && items.some((item) => !item.matchesIdealMeal) && (
+        <button
+          className="btn btn-danger w-full mt-3"
+          onClick={async () => {
+            setIsDroppingAll(true);
+            try {
+              await onDropAllNonMatches();
+            } finally {
+              setIsDroppingAll(false);
+            }
+          }}
+          disabled={isDroppingAll}
+          aria-label={isDroppingAll ? "Dropping items..." : "Drop all non-matching items from your bag"}
+        >
+          {isDroppingAll ? "Dropping..." : "Drop All Non-Matching Items"}
+        </button>
+      )}
     </section>
   );
 };

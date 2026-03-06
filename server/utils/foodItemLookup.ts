@@ -2,7 +2,11 @@ import { Credentials } from "../types/index.js";
 import { FoodItemDefinition, FoodGroup, NutritionInfo } from "@shared/types/FoodItem.js";
 import { getCachedInventoryItems } from "./inventoryCache.js";
 
-function toFoodItemDefinition(item: { name: string; metadata?: Record<string, any> }): FoodItemDefinition | null {
+function toFoodItemDefinition(item: {
+  name: string;
+  metadata?: Record<string, any>;
+  image_path?: string;
+}): FoodItemDefinition | null {
   const m = item.metadata;
   if (!m?.itemId) return null;
   return {
@@ -14,6 +18,7 @@ function toFoodItemDefinition(item: { name: string; metadata?: Record<string, an
     funFact: m.funFact || "",
     superComboPairs: m.superComboPairs || [],
     sortOrder: m.sortOrder ?? 0,
+    image: item.image_path || "",
   };
 }
 

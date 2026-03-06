@@ -1,5 +1,5 @@
 import { Credentials } from "../../types/index.js";
-import { Asset, DroppedAsset } from "../topiaInit.js";
+import { Asset, DroppedAsset, World } from "../topiaInit.js";
 import { getCachedInventoryItems } from "../inventoryCache.js";
 
 interface DropFoodItemParams {
@@ -9,6 +9,7 @@ interface DropFoodItemParams {
   rarity: string;
   offsetRange?: number;
   mystery?: boolean;
+  shouldTriggerParticle?: boolean;
 }
 
 export async function dropFoodItem({
@@ -18,6 +19,7 @@ export async function dropFoodItem({
   rarity,
   offsetRange = 100,
   mystery = false,
+  shouldTriggerParticle = false,
 }: DropFoodItemParams) {
   const { interactivePublicKey, sceneDropId, urlSlug } = credentials;
 
@@ -30,12 +32,13 @@ export async function dropFoodItem({
 
   if (!inventoryItem) throw "Item not found in inventory: " + itemId;
 
+  const positionWithOffset = {
+    x: position.x + offsetX,
+    y: position.y + offsetY,
+  };
   const asset = await Asset.create("webImageAsset", { credentials });
   const droppedAsset = await DroppedAsset.drop(asset, {
-    position: {
-      x: position.x + offsetX,
-      y: position.y + offsetY,
-    },
+    position: positionWithOffset,
     uniqueName: `lunch-swap-food|${itemId}|${rarity}|${Date.now()}|${mysteryFlag}`,
     urlSlug,
     isInteractive: true,
@@ -44,6 +47,12 @@ export async function dropFoodItem({
     layer0: inventoryItem.image_path || "",
     assetScale: 0.5,
   });
+
+  // Particle effect at drop location
+  if (shouldTriggerParticle) {
+    const world = World.create(urlSlug, { credentials });
+    world.triggerParticle({ name: "sparkles_float", duration: 2, position: positionWithOffset }).catch(() => {});
+  }
 
   return droppedAsset;
 }

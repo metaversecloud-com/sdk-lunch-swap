@@ -18,6 +18,7 @@ export interface FoodItemDefinition {
   funFact: string;
   superComboPairs: string[];
   sortOrder: number;
+  image?: string;
 }
 
 export interface BagItem {
@@ -28,6 +29,7 @@ export interface BagItem {
   matchesIdealMeal: boolean;
   nutrition?: NutritionInfo;
   funFact?: string;
+  image?: string;
 }
 
 export interface IdealMealItem {
@@ -35,6 +37,7 @@ export interface IdealMealItem {
   name: string;
   foodGroup: FoodGroup;
   rarity: Rarity;
+  image?: string;
 }
 
 export const FOOD_GROUP_COLORS: Record<FoodGroup, string> = {
@@ -55,7 +58,7 @@ export const RARITY_CONFIG: Record<
   }
 > = {
   common: { label: "Common", color: "#8E8E93", spawnMultiplier: 3, xpMultiplier: 1.0 },
-  rare: { label: "Rare", color: "#4A90D9", spawnMultiplier: 2, xpMultiplier: 1.5 },
-  epic: { label: "Epic", color: "#9B59B6", spawnMultiplier: 1, xpMultiplier: 2.5 },
+  rare: { label: "Rare", color: "#83d5ec", spawnMultiplier: 2, xpMultiplier: 1.5 },
+  epic: { label: "Epic", color: "#df6dc7", spawnMultiplier: 1, xpMultiplier: 2.5 },
   legendary: { label: "Legendary", color: "#F5A623", spawnMultiplier: 0, xpMultiplier: 5.0 },
 };

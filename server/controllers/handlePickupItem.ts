@@ -8,6 +8,7 @@ import {
   grantXp,
   resolveFoodAsset,
   updateWorldStats,
+  pickupFoodAsset,
   buildBagItemFromDef,
   calculatePickupXp,
   checkPickupBadges,
@@ -46,9 +47,8 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     }
 
     // Delete the dropped asset from world (race condition guard)
-    try {
-      await foodAsset.deleteDroppedAsset();
-    } catch {
+    const { pickedUp } = await pickupFoodAsset(foodAsset, urlSlug, credentials);
+    if (!pickedUp) {
       return res.status(409).json({ success: false, message: "This item was already picked up" });
     }
 
@@ -121,9 +121,13 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     const updatedVisitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
 
     // Fire toast with fun fact
+    let title = `Picked up ${foodDef.name}!`;
+    if (wasMystery) title = `Mystery revealed: ${foodDef?.name ?? "item"}!`;
+    if (matchesIdealMeal) title += " Ideal meal match!";
+    if (xpEarned) title += ` (+${xpEarned} XP)`;
     visitor
       .fireToast({
-        title: matchesIdealMeal ? "Great find!" : `Picked up ${foodDef.name}!`,
+        title,
         text: foodDef.funFact,
       })
       .catch(() => {});

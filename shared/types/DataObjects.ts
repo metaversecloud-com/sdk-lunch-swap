@@ -99,7 +99,15 @@ export interface KeyAssetData {
   appVersion: number;
   appName: string;
   initialized: boolean;
+  leaderboard?: Record<string, string>;
 }
+
+export type LeaderboardEntry = {
+  profileId: string;
+  name: string;
+  totalMealsCompleted: number;
+  longestStreak: number;
+};
 
 export const KEY_ASSET_DATA_DEFAULTS: KeyAssetData = {
   appVersion: 1,

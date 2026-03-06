@@ -52,15 +52,13 @@ export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: N
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
             {item.matchesIdealMeal && !item.isMystery && (
-              <span className="text-yellow-500 text-sm" aria-label="Matches ideal meal" role="img">
+              <span className="text-green-500 text-sm" aria-label="Matches ideal meal" role="img">
                 &#9733;
               </span>
             )}
             {item.isComboMatch && !item.isMystery && (
               <div className="tooltip">
-                <span className="tooltip-content p3">
-                  Combo match with {item.comboMatchPartner ?? "bag item"}
-                </span>
+                <span className="tooltip-content p3">Combo Match!</span>
                 <span className="text-purple-500 text-sm" aria-label="Super combo pair" role="img">
                   &#9733;
                 </span>

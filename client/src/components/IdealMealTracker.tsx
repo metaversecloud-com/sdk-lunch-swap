@@ -42,7 +42,7 @@ export const IdealMealTracker = ({ isPreview }: { isPreview: boolean }) => {
 
       {/* 6-slot display */}
       <div
-        className={`grid grid-cols-2 gap-2 ${allCollected ? "motion-safe:animate-pulse" : ""}`}
+        className={`grid grid-cols-3 gap-2 ${allCollected ? "motion-safe:animate-pulse" : ""}`}
         role="list"
         aria-label="Ideal meal items"
       >
@@ -60,21 +60,17 @@ export const IdealMealTracker = ({ isPreview }: { isPreview: boolean }) => {
               style={{ borderColor: isCollected(item.itemId) ? borderColor : `${borderColor}80` }}
               aria-label={`${item.name} - ${item.foodGroup}, ${rarityConfig.label}${isCollected(item.itemId) ? ", collected" : ", not yet collected"}`}
             >
-              {/* Food group color dot */}
-              <div
-                className={`w-4 h-4 rounded-full mx-auto`}
-                style={{ backgroundColor: borderColor }}
-                aria-hidden="true"
-              />
+              {/* Item image */}
+              <img src={item.image} alt={item.name} className="h-10 mx-auto object-contain" />
 
               {/* Item name */}
               <div className="tooltip truncate">
                 <span className="tooltip-content p3">{item.name}</span>
-                <p>{item.name}</p>
+                <p className="p2">{item.name}</p>
               </div>
 
               {/* Rarity label */}
-              <p className="p3 uppercase">{rarityConfig.label}</p>
+              {/* <p className="p3 uppercase">{rarityConfig.label}</p> */}
 
               {/* Checkmark overlay for collected */}
               {isCollected(item.itemId) && (

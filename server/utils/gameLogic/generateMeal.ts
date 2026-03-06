@@ -26,5 +26,6 @@ export async function generateIdealMeal(credentials: Credentials): Promise<Ideal
     name: item.name,
     foodGroup: item.foodGroup,
     rarity: item.rarity,
+    image: item.image,
   }));
 }

@@ -39,6 +39,7 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         idealPickupStreak: payload.idealPickupStreak,
         badges: payload.badges ?? state.badges,
         visitorInventory: payload.visitorInventory ?? state.visitorInventory,
+        leaderboard: payload.leaderboard ?? state.leaderboard,
         spawnRadiusMin: payload.spawnRadiusMin,
         spawnRadiusMax: payload.spawnRadiusMax,
         proximityRadius: payload.proximityRadius,
@@ -53,16 +54,19 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         hotStreakActive: payload.hotStreakActive,
         idealPickupStreak: payload.idealPickupStreak,
         ...(payload.visitorInventory && { visitorInventory: payload.visitorInventory }),
+        error: "",
       };
     case SET_IDEAL_MEAL:
       return {
         ...state,
         idealMeal: payload.idealMeal,
+        error: "",
       };
     case SET_NEARBY_ITEMS:
       return {
         ...state,
         nearbyItems: payload.nearbyItems,
+        error: "",
       };
     case SET_COMPLETED:
       return {
@@ -76,12 +80,15 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         currentStreak: payload.currentStreak,
         longestStreak: payload.longestStreak,
         ...(payload.visitorInventory && { visitorInventory: payload.visitorInventory }),
+        ...(payload.leaderboard && { leaderboard: payload.leaderboard }),
+        error: "",
       };
     case SET_DAILY_BUFF:
       return {
         ...state,
         dailyBuff: payload.dailyBuff,
         hasRewardToken: false,
+        error: "",
       };
     case SET_ERROR:
       return {

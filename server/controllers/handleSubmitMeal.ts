@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import {
   errorHandler,
   getCredentials,
+  getKeyAsset,
+  parseLeaderboard,
+  updateLeaderboard,
   World,
   dropFoodItem,
   getFoodItemsById,
@@ -190,6 +193,17 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     await visitor.fetchInventoryItems();
     const updatedVisitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
 
+    // Update leaderboard on key asset and return parsed result
+    let leaderboard;
+    try {
+      const keyAsset = await getKeyAsset(credentials);
+      await updateLeaderboard(keyAsset, profileId, credentials.displayName, newTotalMeals, newLongestStreak);
+      await keyAsset.fetchDataObject();
+      leaderboard = parseLeaderboard(keyAsset);
+    } catch (err) {
+      console.warn("Leaderboard update failed:", err);
+    }
+
     // Celebration toast
     visitor
       .fireToast({
@@ -210,6 +224,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
       longestStreak: newLongestStreak,
       completedToday: true,
       visitorInventory: updatedVisitorInventory,
+      ...(leaderboard && { leaderboard }),
     });
   } catch (error) {
     return errorHandler({

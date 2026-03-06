@@ -15,7 +15,6 @@ export const CompletionSummary = () => {
     currentStreak,
     longestStreak,
   } = useContext(GlobalStateContext);
-  console.log("🚀 ~ CompletionSummary.tsx:10 ~ nutritionBreakdown:", nutritionBreakdown);
 
   if (!completedToday) return null;
 

@@ -2,7 +2,15 @@ import { useContext, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 // components
-import { PageContainer, BadgesView, BonusWheel, CompletionSummary, MainGameView, NewDayWelcome } from "@/components";
+import {
+  PageContainer,
+  BadgesView,
+  BonusWheel,
+  CompletionSummary,
+  Leaderboard,
+  MainGameView,
+  NewDayWelcome,
+} from "@/components";
 
 // context
 import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";
@@ -12,7 +20,7 @@ import { ErrorType, SET_BROWN_BAG, SET_DAILY_BUFF } from "@/context/types";
 import { backendAPI, setErrorMessage, setGameState } from "@/utils";
 
 type NewDayStep = "welcome" | "wheel-spin" | "done";
-type ActiveTab = "game" | "badges";
+type ActiveTab = "game" | "badges" | "leaderboard";
 
 export const Home = () => {
   const dispatch = useContext(GlobalDispatchContext);
@@ -64,15 +72,21 @@ export const Home = () => {
   return (
     <PageContainer isLoading={isLoading}>
       <div className="tab-container mb-4">
-        <button className={activeTab === "game" ? "btn" : "btn btn-text"} onClick={() => setActiveTab("game")}>
+        <button className={`${activeTab === "game" ? "btn" : "btn btn-text"}`} onClick={() => setActiveTab("game")}>
           Game
         </button>
-        <button className={activeTab === "badges" ? "btn" : "btn btn-text"} onClick={() => setActiveTab("badges")}>
+        <button className={`${activeTab === "badges" ? "btn" : "btn btn-text"}`} onClick={() => setActiveTab("badges")}>
           Badges
+        </button>
+        <button
+          className={`${activeTab === "leaderboard" ? "btn" : "btn btn-text"}`}
+          onClick={() => setActiveTab("leaderboard")}
+        >
+          Leaderboard
         </button>
       </div>
 
-      {activeTab === "game" ? getMainContent() : <BadgesView />}
+      {activeTab === "game" ? getMainContent() : activeTab === "badges" ? <BadgesView /> : <Leaderboard />}
     </PageContainer>
   );
 };

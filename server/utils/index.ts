@@ -17,3 +17,4 @@ export * from "./getVisitorBadges.js";
 export * from "./foodItemLookup.js";
 export * from "./resolveFoodAsset.js";
 export * from "./updateWorldStats.js";
+export * from "./leaderboard.js";

@@ -84,6 +84,7 @@ export const handleAdminSpawnItems = async (req: Request, res: Response) => {
           itemId: foodDef.itemId,
           rarity: foodDef.rarity,
           offsetRange: radius,
+          mystery: Math.random() < 0.05,
         }).then(() => ({ itemId: foodDef.itemId, name: foodDef.name, rarity: foodDef.rarity })),
       ),
     );

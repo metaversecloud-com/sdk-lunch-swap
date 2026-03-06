@@ -33,7 +33,7 @@ function askYesNo(question, defaultYes = true) {
 }
 
 async function main() {
-  console.log("\n🚀 Topia SDK App — Developer Setup\n");
+  console.log("\nTopia SDK App — Developer Setup\n");
 
   // Check if .env already exists
   if (existsSync(ENV_PATH)) {

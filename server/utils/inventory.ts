@@ -34,6 +34,7 @@ export const buildBagFromItems = (
         matchesIdealMeal: idealItemIds.has(itemId),
         nutrition: foodDef?.nutrition,
         funFact: foodDef?.funFact,
+        image: foodDef?.image,
       };
     });
 };
@@ -72,6 +73,7 @@ export const buildBagItemFromDef = (
     matchesIdealMeal,
     nutrition: foodDef.nutrition,
     funFact: foodDef.funFact,
+    image: foodDef.image,
   };
 
   return { bagItem, matchesIdealMeal };
