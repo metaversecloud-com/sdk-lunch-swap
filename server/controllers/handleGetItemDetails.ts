@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, resolveFoodAsset, getVisitor } from "@utils/index.js";
+import { errorHandler, getCredentials, resolveFoodAsset, getVisitor, getFoodItemsById } from "@utils/index.js";
 import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION } from "@shared/data/xpConfig.js";
 
 export const handleGetItemDetails = async (req: Request, res: Response) => {
@@ -26,6 +26,15 @@ export const handleGetItemDetails = async (req: Request, res: Response) => {
     // Check ideal meal match
     const idealMeal = visitorData.idealMeal || [];
     const matchesIdealMeal = idealMeal.some((item) => item.itemId === foodDef.itemId);
+
+    // Enrich ideal meal items with images (for meals stored before image field existed)
+    if (idealMeal?.length && !idealMeal[0].image) {
+      const foodItemsById = await getFoodItemsById(credentials);
+      for (const item of idealMeal) {
+        const def = foodItemsById.get(item.itemId);
+        if (def?.image) item.image = def.image;
+      }
+    }
 
     // Check bag capacity
     const bigBagBonus = visitorData.dailyBuff === "big-bag" ? 2 : 0;

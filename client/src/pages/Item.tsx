@@ -129,7 +129,7 @@ export const Item = () => {
     const { foodDef, wasMystery } = itemDetails!;
     const { name, image } = foodDef;
     return (
-      <div className="flex flex-col items-center justify-center gap-4 text-center relative overflow-hidden">
+      <div className="flex flex-col items-center justify-center gap-4 text-center relative">
         <Confetti />
         <h3>{wasMystery ? `Mystery revealed: ${name}!` : `Picked up ${name}!`}</h3>
         {image && <img src={image} alt={name} className="h-24 object-contain" />}
