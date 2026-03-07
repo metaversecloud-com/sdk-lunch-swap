@@ -206,11 +206,11 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
             role="status"
             aria-live="polite"
           >
-            <p className="text-sm font-semibold text-amber-800">
+            <p className="text-warning">
               Swap out <strong>{selectedItem.name}</strong>?
             </p>
             {selectedItem.matchesIdealMeal && (
-              <p className="text-xs text-amber-600 mt-1 font-medium">Warning: This item is part of your ideal meal!</p>
+              <p className="text-warning">Warning: This item is part of your ideal meal!</p>
             )}
           </div>
         )}

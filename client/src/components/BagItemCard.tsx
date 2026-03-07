@@ -82,7 +82,12 @@ export const BagItemCard = ({ item, isPreview, onDrop, expanded, onToggle, combo
 
       {!isPreview && expanded && (
         <div className="flex flex-col gap-3 pt-3">
-          {item.nutrition && <NutritionPreview nutrition={item.nutrition} name={item.name} />}
+          {item.nutrition && (
+            <>
+              <p className="p3 uppercase tracking-wide">Nutrition</p>
+              <NutritionPreview nutrition={item.nutrition} name={item.name} />
+            </>
+          )}
 
           <button
             className="btn btn-danger-outline"

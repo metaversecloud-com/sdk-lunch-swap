@@ -30,11 +30,7 @@ export const resolveFoodAsset = async (
     return { success: false, status: 409, message: "This item was already picked up" };
   }
 
-  try {
-    await foodAsset.fetchDataObject();
-  } catch {
-    return { success: false, status: 409, message: "This item was already picked up" };
-  }
+  await foodAsset.fetchDataObject();
 
   // Parse uniqueName: lunch-swap-food|{itemId}|{rarity}|{timestamp}|{mystery}
   const parts = ((foodAsset as any).uniqueName || "").split("|");

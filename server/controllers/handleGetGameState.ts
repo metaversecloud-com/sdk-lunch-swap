@@ -75,6 +75,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
               itemId: bagItem.itemId,
               rarity: bagItem.rarity,
               offsetRange: 200,
+              host: req.hostname,
             });
           } catch (err) {
             console.warn("Failed to auto-drop bag item:", bagItem.itemId, err);
@@ -119,33 +120,28 @@ export const handleGetGameState = async (req: Request, res: Response) => {
         {},
       );
 
-      // Spawn items into world for this player (skip if already spawned today)
-      const spawnedByPlayer = worldData.spawnedItemsByPlayer || {};
-      if (!spawnedByPlayer[profileId]?.length) {
-        const itemsToSpawn = newBagItems.filter((item) => !item.matchesIdealMeal).slice(0, 3);
-        const spawnedIds: string[] = [];
-        const spawnCenter = {
-          x: droppedAsset.position?.x ?? 0,
-          y: droppedAsset.position?.y ?? 0,
-        };
-        for (const item of itemsToSpawn) {
-          try {
-            await dropFoodItem({
-              credentials,
-              position: spawnCenter,
-              itemId: item.itemId,
-              rarity: item.rarity,
-              offsetRange: worldData.spawnRadiusMax || 2000,
-              mystery: Math.random() < 0.15,
-            });
-            spawnedIds.push(item.itemId);
-          } catch (err) {
-            console.warn("Failed to spawn item:", item.itemId, err);
-          }
+      const itemsToSpawn = newBagItems.filter((item) => !item.matchesIdealMeal).slice(0, 3);
+      const spawnedIds: string[] = [];
+      const spawnCenter = {
+        x: droppedAsset.position?.x ?? 0,
+        y: droppedAsset.position?.y ?? 0,
+      };
+      for (const item of itemsToSpawn) {
+        try {
+          await dropFoodItem({
+            credentials,
+            position: spawnCenter,
+            itemId: item.itemId,
+            rarity: item.rarity,
+            minOffset: worldData.spawnRadiusMin,
+            offsetRange: worldData.spawnRadiusMax || 2000,
+            mystery: Math.random() < 0.15,
+            host: req.hostname,
+          });
+          spawnedIds.push(item.itemId);
+        } catch (err) {
+          console.warn("Failed to spawn item:", item.itemId, err);
         }
-
-        // Track spawned items
-        worldData.spawnedItemsByPlayer = { ...spawnedByPlayer, [profileId]: spawnedIds };
       }
 
       // Update world data object

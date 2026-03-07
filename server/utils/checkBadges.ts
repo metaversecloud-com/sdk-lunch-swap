@@ -14,6 +14,9 @@ const BADGES = {
   EPIC_COLLECTOR: "Epic Collector",
   COMBO_MASTER: "Combo Master",
   NUTRITION_NINJA: "Nutrition Ninja",
+  MASTER_CHEF: "Master Chef",
+  GOLDEN_FORK: "Golden Fork",
+  CAFETERIA_BOSS: "Cafeteria Boss",
 } as const;
 
 interface BadgeContext {
@@ -105,6 +108,35 @@ export const checkPickupBadges = async ({
   // Epic Collector: Collect 10 epic rarity items
   if (totalEpicItemsCollected >= 10) {
     promises.push(awardBadge({ ...ctx, badgeName: BADGES.EPIC_COLLECTOR }));
+  }
+
+  if (promises.length > 0) {
+    await Promise.allSettled(promises);
+  }
+};
+
+export const checkLevelBadges = async ({
+  credentials,
+  visitor,
+  visitorInventory,
+  level,
+}: BadgeContext & { level: number }) => {
+  const ctx = { credentials, visitor, visitorInventory };
+  const promises: Promise<{ success: boolean }>[] = [];
+
+  // Master Chef: Reach level 45
+  if (level >= 45) {
+    promises.push(awardBadge({ ...ctx, badgeName: BADGES.MASTER_CHEF }));
+  }
+
+  // Golden Fork: Reach level 60
+  if (level >= 60) {
+    promises.push(awardBadge({ ...ctx, badgeName: BADGES.GOLDEN_FORK }));
+  }
+
+  // Cafeteria Boss: Reach level 75
+  if (level >= 75) {
+    promises.push(awardBadge({ ...ctx, badgeName: BADGES.CAFETERIA_BOSS }));
   }
 
   if (promises.length > 0) {

@@ -71,15 +71,24 @@ export const Home = () => {
 
   return (
     <PageContainer isLoading={isLoading}>
-      <div className="tab-container mb-4">
-        <button className={`${activeTab === "game" ? "btn" : "btn btn-text"}`} onClick={() => setActiveTab("game")}>
+      <div className="tab-text-container mb-4 items-center justify-center">
+        <button
+          className={`btn btn-text ${activeTab === "game" && "active"}`}
+          style={{ width: "auto" }}
+          onClick={() => setActiveTab("game")}
+        >
           Game
         </button>
-        <button className={`${activeTab === "badges" ? "btn" : "btn btn-text"}`} onClick={() => setActiveTab("badges")}>
+        <button
+          className={`btn btn-text ${activeTab === "badges" && "active"}`}
+          style={{ width: "auto" }}
+          onClick={() => setActiveTab("badges")}
+        >
           Badges
         </button>
         <button
-          className={`${activeTab === "leaderboard" ? "btn" : "btn btn-text"}`}
+          className={`btn btn-text ${activeTab === "leaderboard" && "active"}`}
+          style={{ width: "auto" }}
           onClick={() => setActiveTab("leaderboard")}
         >
           Leaderboard

@@ -22,7 +22,6 @@ export const NutritionPreview = ({ nutrition, name }: NutritionPreviewProps) => 
 
   return (
     <div className="flex flex-col gap-1 w-full" role="group" aria-label={`Nutrition info for ${name}`}>
-      <p className="p3 uppercase tracking-wide">Nutrition</p>
       {NUTRITION_BARS.map(({ key, label, color, max }) => {
         const value = getValue(key);
         const percentage = Math.min(Math.round((value / max) * 100), 100);

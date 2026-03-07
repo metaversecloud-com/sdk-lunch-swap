@@ -17,18 +17,19 @@ export type BadgeRecord = {
 export const getBadges = async (credentials: Credentials, forceRefresh = false): Promise<BadgeRecord> => {
   const inventoryItems = await getCachedInventoryItems({ credentials, forceRefresh });
 
-  const badges: BadgeRecord = {};
+  const badgeItems = inventoryItems
+    .filter((item: any) => item.name && item.type === "BADGE" && item.status === "ACTIVE")
+    .sort((a: any, b: any) => (a.metadata?.sortOrder ?? Infinity) - (b.metadata?.sortOrder ?? Infinity));
 
-  for (const item of inventoryItems) {
-    const { id, name, image_path, description, type, status } = item as any;
-    if (name && type === "BADGE" && status === "ACTIVE") {
-      badges[name] = {
-        id,
-        name,
-        icon: image_path || "",
-        description: description || "",
-      };
-    }
+  const badges: BadgeRecord = {};
+  for (const item of badgeItems) {
+    const { id, name, image_path, description } = item as any;
+    badges[name] = {
+      id,
+      name,
+      icon: image_path || "",
+      description: description || "",
+    };
   }
 
   return badges;

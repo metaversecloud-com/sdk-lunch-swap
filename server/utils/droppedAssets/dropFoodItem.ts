@@ -1,6 +1,7 @@
 import { Credentials } from "../../types/index.js";
 import { Asset, DroppedAsset, World } from "../topiaInit.js";
 import { getCachedInventoryItems } from "../inventoryCache.js";
+import { DroppedAssetClickType } from "@rtsdk/topia";
 
 interface DropFoodItemParams {
   credentials: Credentials;
@@ -8,8 +9,10 @@ interface DropFoodItemParams {
   itemId: string;
   rarity: string;
   offsetRange?: number;
+  minOffset?: number;
   mystery?: boolean;
   shouldTriggerParticle?: boolean;
+  host: string;
 }
 
 export async function dropFoodItem({
@@ -18,13 +21,27 @@ export async function dropFoodItem({
   itemId,
   rarity,
   offsetRange = 100,
+  minOffset = 0,
   mystery = false,
   shouldTriggerParticle = false,
+  host
 }: DropFoodItemParams) {
   const { interactivePublicKey, sceneDropId, urlSlug } = credentials;
 
-  const offsetX = (Math.random() - 0.5) * offsetRange;
-  const offsetY = (Math.random() - 0.5) * offsetRange;
+  let offsetX: number;
+  let offsetY: number;
+
+  if (minOffset > 0) {
+    // Place at random angle, random distance between minOffset and offsetRange/2
+    const angle = Math.random() * 2 * Math.PI;
+    const maxDist = offsetRange / 2;
+    const dist = minOffset + Math.random() * (maxDist - minOffset);
+    offsetX = Math.cos(angle) * dist;
+    offsetY = Math.sin(angle) * dist;
+  } else {
+    offsetX = (Math.random() - 0.5) * offsetRange;
+    offsetY = (Math.random() - 0.5) * offsetRange;
+  }
   const mysteryFlag = mystery ? "1" : "0";
 
   const items = await getCachedInventoryItems({ credentials });
@@ -32,12 +49,20 @@ export async function dropFoodItem({
 
   if (!inventoryItem) throw "Item not found in inventory: " + itemId;
 
+    const protocol = process.env.INSTANCE_PROTOCOL;
+    let BASE_URL = `${protocol}://${host}`;
+    if (host === "localhost") BASE_URL = "http://localhost:3001";
+
   const positionWithOffset = {
     x: position.x + offsetX,
     y: position.y + offsetY,
   };
   const asset = await Asset.create("webImageAsset", { credentials });
   const droppedAsset = await DroppedAsset.drop(asset, {
+  clickType: DroppedAssetClickType.LINK,
+  clickableLink: `${BASE_URL}/item/${itemId}?mystery=${mysteryFlag}`,
+  clickableLinkTitle: "View Crop",
+  isOpenLinkInDrawer: true,
     position: positionWithOffset,
     uniqueName: `lunch-swap-food|${itemId}|${rarity}|${Date.now()}|${mysteryFlag}`,
     urlSlug,

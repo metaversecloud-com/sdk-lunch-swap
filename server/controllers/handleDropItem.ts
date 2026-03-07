@@ -8,7 +8,6 @@ import {
   getVisitorBag,
   grantXp,
   updateWorldStats,
-  World,
 } from "@utils/index.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 
@@ -44,6 +43,7 @@ export const handleDropItem = async (req: Request, res: Response) => {
       itemId: droppedItem.itemId,
       rarity: droppedItem.rarity,
       shouldTriggerParticle: true,
+      host: req.hostname,
     });
 
     // Update visitor data (reset idealPickupStreak on drop)

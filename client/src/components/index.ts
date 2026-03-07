@@ -9,6 +9,7 @@ export * from "./BagItemCard.js";
 export * from "./BonusWheel.js";
 export * from "./BrownBag.js";
 export * from "./CompletionSummary.js";
+export * from "./Confetti.js";
 export * from "./ConfirmationModal.js";
 export * from "./HotStreakIndicator.js";
 export * from "./IdealMealTracker.js";

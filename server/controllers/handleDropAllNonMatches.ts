@@ -39,6 +39,7 @@ export const handleDropAllNonMatches = async (req: Request, res: Response) => {
         itemId: item.itemId,
         rarity: item.rarity,
         offsetRange: 200,
+        host: req.hostname,
       });
     }
 

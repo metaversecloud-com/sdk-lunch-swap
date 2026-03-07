@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import { Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
 
 // pages
-import { Error, Home } from "./pages";
+import { Error, Home, Item } from "./pages";
 
 // context
 import { GlobalDispatchContext } from "./context/GlobalContext";
@@ -35,6 +35,8 @@ const App = () => {
     };
   }, [searchParams]);
 
+  const isFoodItem = interactiveParams.uniqueName?.startsWith("lunch-swap-food");
+
   useEffect(() => {
     if (interactiveParams.assetId) {
       dispatch!({
@@ -43,6 +45,12 @@ const App = () => {
       });
     }
   }, [interactiveParams]);
+
+  useEffect(() => {
+    if (isFoodItem && hasInitBackendAPI) {
+      navigate(`/item?${searchParams.toString()}`);
+    }
+  }, [isFoodItem, hasInitBackendAPI, navigate, searchParams]);
 
   useEffect(() => {
     if (!interactiveParams.assetId) setHasMissingParams(true);
@@ -84,6 +92,7 @@ const App = () => {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/item" element={<Item />} />
       <Route path="*" element={<Error />} />
     </Routes>
   );

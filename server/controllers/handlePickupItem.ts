@@ -12,6 +12,7 @@ import {
   buildBagItemFromDef,
   calculatePickupXp,
   checkPickupBadges,
+  checkLevelBadges,
   getVisitorBadges,
 } from "@utils/index.js";
 import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION, getLevelForXp } from "@shared/data/xpConfig.js";
@@ -33,6 +34,20 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     }
     const { foodAsset, foodDef, wasMystery } = resolved;
 
+    // Lock the asset while we process the pickup to prevent race conditions
+    try {
+      await foodAsset.updateDataObject(
+        {},
+        {
+          lock: {
+            lockId: `${urlSlug}-${droppedAssetId}-${new Date(Math.round(new Date().getTime() / 60000) * 60000)}`,
+          },
+        },
+      );
+    } catch {
+      return res.status(409).json({ success: false, message: "This item is already being picked up" });
+    }
+
     // Fetch visitor with data and bag
     const { visitor, visitorData, visitorInventory, brownBag } = await getVisitor(credentials, true);
 
@@ -44,12 +59,6 @@ export const handlePickupItem = async (req: Request, res: Response) => {
         success: false,
         message: `Bag is full (${brownBag.length}/${maxCapacity})`,
       });
-    }
-
-    // Delete the dropped asset from world (race condition guard)
-    const { pickedUp } = await pickupFoodAsset(foodAsset, urlSlug, credentials);
-    if (!pickedUp) {
-      return res.status(409).json({ success: false, message: "This item was already picked up" });
     }
 
     // Build bag item and grant to inventory
@@ -112,6 +121,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
         totalMysteryItemsRevealed: newMysteryTotal,
         totalEpicItemsCollected: newRarityTotals.epic || 0,
       });
+      await checkLevelBadges({ credentials, visitor, visitorInventory, level: newLevel });
     } catch (err) {
       console.warn("Badge check failed:", err);
     }
@@ -134,6 +144,12 @@ export const handlePickupItem = async (req: Request, res: Response) => {
 
     // Read updated bag from inventory
     const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
+
+    // Delete the dropped asset from world (race condition guard)
+    const { pickedUp } = await pickupFoodAsset(foodAsset, urlSlug, credentials);
+    if (!pickedUp) {
+      return res.status(409).json({ success: false, message: "This item was already picked up" });
+    }
 
     return res.json({
       success: true,

@@ -51,16 +51,18 @@ export const BrownBag = ({ isPreview, onDrop, onDropAllNonMatches }: BrownBagPro
         <h3>Your Bag</h3>
         <span className="grid p2 text-muted text-right">
           {filledCount}/{BAG_SLOTS} items
-          <button
-            className="btn-text mt-1"
-            onClick={() => {
-              setExpandAll((prev) => !prev);
-              setExpandedIndex(null);
-            }}
-            aria-label={expandAll ? "Collapse all items" : "Expand all items"}
-          >
-            {expandAll ? "Collapse all" : "Expand all"}
-          </button>
+          {!isPreview && (
+            <button
+              className="btn-text mt-1"
+              onClick={() => {
+                setExpandAll((prev) => !prev);
+                setExpandedIndex(null);
+              }}
+              aria-label={expandAll ? "Collapse all items" : "Expand all items"}
+            >
+              {expandAll ? "Collapse all" : "Expand all"}
+            </button>
+          )}
         </span>
       </div>
 

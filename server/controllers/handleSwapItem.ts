@@ -14,6 +14,7 @@ import {
   buildBagItemFromDef,
   calculatePickupXp,
   checkPickupBadges,
+  checkLevelBadges,
   getVisitorBadges,
 } from "@utils/index.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
@@ -35,6 +36,20 @@ export const handleSwapItem = async (req: Request, res: Response) => {
     }
     const { foodAsset, foodDef, wasMystery } = resolved;
 
+    // Lock the asset while we process the pickup to prevent race conditions
+    try {
+      await foodAsset.updateDataObject(
+        {},
+        {
+          lock: {
+            lockId: `${urlSlug}-${pickupDroppedAssetId}-${new Date(Math.round(new Date().getTime() / 60000) * 60000)}`,
+          },
+        },
+      );
+    } catch {
+      return res.status(409).json({ success: false, message: "This item is already being picked up" });
+    }
+
     // Fetch visitor with data and bag
     const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
     const visitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
@@ -43,12 +58,6 @@ export const handleSwapItem = async (req: Request, res: Response) => {
     const droppedItem = brownBag.find((i) => i.itemId === dropItemId);
     if (!droppedItem) {
       return res.status(400).json({ success: false, message: "Item not found in bag" });
-    }
-
-    // Delete the dropped asset from world (race condition guard)
-    const { pickedUp } = await pickupFoodAsset(foodAsset, urlSlug, credentials);
-    if (!pickedUp) {
-      return res.status(409).json({ success: false, message: "This item was already picked up" });
     }
 
     // --- DROP phase (mirrors handleDropItem) ---
@@ -64,6 +73,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       itemId: droppedItem.itemId,
       rarity: droppedItem.rarity,
       shouldTriggerParticle: true,
+      host: req.hostname,
     });
 
     // --- PICKUP phase (mirrors handlePickupItem) ---
@@ -136,6 +146,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
         totalMysteryItemsRevealed: newMysteryTotal,
         totalEpicItemsCollected: newRarityTotals.epic || 0,
       });
+      await checkLevelBadges({ credentials, visitor, visitorInventory: visitorInventory.badges, level: newLevel });
     } catch (err) {
       console.warn("Badge check failed:", err);
     }
@@ -154,6 +165,12 @@ export const handleSwapItem = async (req: Request, res: Response) => {
 
     // Read updated bag from inventory
     const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
+
+    // Delete the dropped asset from world (race condition guard)
+    const { pickedUp } = await pickupFoodAsset(foodAsset, urlSlug, credentials);
+    if (!pickedUp) {
+      return res.status(409).json({ success: false, message: "This item was already picked up" });
+    }
 
     return res.json({
       success: true,

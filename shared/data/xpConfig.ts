@@ -54,6 +54,41 @@ export const LEVEL_THRESHOLDS: number[] = [
   70300,
   74100,
   78000, // 31-40
+  82000,
+  86100,
+  90300,
+  94600,
+  99000,
+  103500,
+  108100,
+  112800,
+  117600,
+  122500, // 41-50
+  127500,
+  132600,
+  137800,
+  143100,
+  148500,
+  154000,
+  159600,
+  165300,
+  171100,
+  177000, // 51-60
+  183000,
+  189100,
+  195300,
+  201600,
+  208000,
+  214500,
+  221100,
+  227800,
+  234600,
+  241500, // 61-70
+  248500,
+  255600,
+  262800,
+  270100,
+  277500, // 71-75
 ];
 
 export function getLevelForXp(xp: number): number {
@@ -64,12 +99,12 @@ export function getLevelForXp(xp: number): number {
 }
 
 const LEVEL_TITLES: [number, string][] = [
-  [70, "Cafeteria Boss"],
-  [56, "Golden Fork"],
-  [44, "Master Chef"],
+  [75, "Cafeteria Boss"],
+  [60, "Golden Fork"],
+  [45, "Master Chef"],
   [36, "Meal MVP"],
-  [28, "Tray Superstar"],
-  [20, "Lunch Hero"],
+  [28, "Lunch Hero"],
+  [20, "Tray Superstar"],
   [14, "Bag Pro"],
   [8, "Lunch Legend"],
   [4, "Snack Stacker"],

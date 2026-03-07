@@ -38,9 +38,9 @@ export const NewDayWelcome = ({ setStep }: NewDayWelcomeProps) => {
       {/* Header */}
       <div className="text-center">
         <h2>New Day!</h2>
-        <p className="p2">
+        <p className="p2 pt-2">
           {currentStreak && currentStreak > 1
-            ? `Day ${currentStreak} streak! Level ${level ?? 1}`
+            ? `${currentStreak} day streak - keep it going!`
             : `Level ${level ?? 1} - Let's go!`}
         </p>
       </div>

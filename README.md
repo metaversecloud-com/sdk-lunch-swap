@@ -89,7 +89,6 @@ Tracks global stats and daily spawn tracking per player.
   currentDate: string;
   totalStartsToday: number;
   totalCompletionsToday: number;
-  spawnedItemsByPlayer: Record<string, string[]>;
   totalPickups: number;
   totalDrops: number;
 }

@@ -74,7 +74,6 @@ export interface WorldGameData {
   currentDate: string;
   totalStartsToday: number;
   totalCompletionsToday: number;
-  spawnedItemsByPlayer: Record<string, string[]>;
   totalPickups: number;
   totalDrops: number;
   totalMealSubmissions: number;
@@ -88,7 +87,6 @@ export const WORLD_DATA_DEFAULTS: WorldGameData = {
   currentDate: "",
   totalStartsToday: 0,
   totalCompletionsToday: 0,
-  spawnedItemsByPlayer: {},
   totalPickups: 0,
   totalDrops: 0,
   totalMealSubmissions: 0,

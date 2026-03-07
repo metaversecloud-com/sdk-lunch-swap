@@ -1,6 +1,7 @@
 import express from "express";
 import {
   handleGetGameState,
+  handleGetItemDetails,
   handleGetNearbyItems,
   handlePickupItem,
   handleDropItem,
@@ -38,6 +39,7 @@ router.get("/system/health", (req, res) => {
 });
 
 router.get("/game-state", handleGetGameState);
+router.get("/item-details", handleGetItemDetails);
 router.post("/start", handleStart);
 router.post("/spin-wheel", handleSpinWheel);
 router.get("/nearby-items", handleGetNearbyItems);

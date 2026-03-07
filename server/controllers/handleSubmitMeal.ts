@@ -13,6 +13,7 @@ import {
   grantXp,
   grantRewardToken,
   checkSubmitMealBadges,
+  checkLevelBadges,
   getVisitorBadges,
 } from "@utils/index.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
@@ -156,6 +157,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
             itemId: item.itemId,
             rarity: item.rarity,
             offsetRange: 150,
+            host: req.hostname,
           });
         } catch (err) {
           console.warn("Failed to auto-drop remaining item:", item.itemId, err);
@@ -185,6 +187,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
         totalSuperCombos: newTotalCombos,
         dayStartTimestamp: visitorData.dayStartTimestamp,
       });
+      await checkLevelBadges({ credentials, visitor, visitorInventory, level: newLevel });
     } catch (err) {
       console.warn("Badge check failed:", err);
     }

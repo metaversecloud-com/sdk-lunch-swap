@@ -15,6 +15,20 @@ type SaveStatus = {
   message: string;
 } | null;
 
+const InfoTooltip = ({ text }: { text: string }) => (
+  <div className="tooltip ml-auto">
+    <span className="tooltip-content p3 min-w-[100px]" style={{ left: "-30px" }}>
+      {text}
+    </span>
+    <span
+      className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-500 text-gray-500 text-xs"
+      aria-hidden="true"
+    >
+      i
+    </span>
+  </div>
+);
+
 export const AdminSettings = () => {
   const state = useContext(GlobalStateContext);
   const dispatch = useContext(GlobalDispatchContext);
@@ -56,7 +70,7 @@ export const AdminSettings = () => {
 
   return (
     <section aria-label="World settings">
-      <div className="grid gap-1">
+      <div className="grid gap-2">
         <h3>World Settings</h3>
 
         {saveStatus && (
@@ -73,8 +87,9 @@ export const AdminSettings = () => {
         )}
 
         <div>
-          <label htmlFor="spawn-radius-min" className="p2">
+          <label htmlFor="spawn-radius-min" className="p2 flex items-center">
             Spawn Radius Min
+            <InfoTooltip text="Minimum distance (in pixels) from the key asset where items can spawn." />
           </label>
           <input
             id="spawn-radius-min"
@@ -89,8 +104,9 @@ export const AdminSettings = () => {
         </div>
 
         <div>
-          <label htmlFor="spawn-radius-max" className="p2">
+          <label htmlFor="spawn-radius-max" className="p2 flex items-center">
             Spawn Radius Max
+            <InfoTooltip text="Maximum distance (in pixels) from the key asset where items can spawn." />
           </label>
           <input
             id="spawn-radius-max"
@@ -105,8 +121,9 @@ export const AdminSettings = () => {
         </div>
 
         <div>
-          <label htmlFor="proximity-radius" className="p2">
+          <label htmlFor="proximity-radius" className="p2 flex items-center">
             Proximity Radius
+            <InfoTooltip text="How close (in pixels) a player must be to an item for it to appear in their nearby list." />
           </label>
           <input
             id="proximity-radius"
@@ -120,7 +137,7 @@ export const AdminSettings = () => {
           />
         </div>
 
-        <button className="btn grid items-center gap-2 mt-2" disabled={isSaving} onClick={handleSave}>
+        <button className="btn grid items-center gap-2 mt-1" disabled={isSaving} onClick={handleSave}>
           {isSaving && <Loading isSpinner={true} />}
           {isSaving ? "Saving..." : "Save Settings"}
         </button>
