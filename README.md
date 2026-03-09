@@ -106,6 +106,17 @@ Stores app identity and initialization status.
 }
 ```
 
+## Implementation Requirements
+
+### Required Assets with Unique Names
+
+The app uses the following unique name patterns for managing dropped assets:
+
+| Unique Name Pattern                           | Description |
+| --------------------------------------------- | ----------- |
+| `LunchSwap_keyAsset`                          | Key asset   |
+| `LunchSwap_foodItem_${itemId}_${mysteryFlag}` | Food Item   |
+
 ## Developers
 
 ### Built With

@@ -24,7 +24,7 @@ export async function dropFoodItem({
   minOffset = 0,
   mystery = false,
   shouldTriggerParticle = false,
-  host
+  host,
 }: DropFoodItemParams) {
   const { interactivePublicKey, sceneDropId, urlSlug } = credentials;
 
@@ -49,9 +49,9 @@ export async function dropFoodItem({
 
   if (!inventoryItem) throw "Item not found in inventory: " + itemId;
 
-    const protocol = process.env.INSTANCE_PROTOCOL;
-    let BASE_URL = `${protocol}://${host}`;
-    if (host === "localhost") BASE_URL = "http://localhost:3001";
+  const protocol = process.env.INSTANCE_PROTOCOL;
+  let BASE_URL = `${protocol}://${host}`;
+  if (host === "localhost") BASE_URL = "http://localhost:3001";
 
   const positionWithOffset = {
     x: position.x + offsetX,
@@ -59,12 +59,12 @@ export async function dropFoodItem({
   };
   const asset = await Asset.create("webImageAsset", { credentials });
   const droppedAsset = await DroppedAsset.drop(asset, {
-  clickType: DroppedAssetClickType.LINK,
-  clickableLink: `${BASE_URL}/item/${itemId}?mystery=${mysteryFlag}`,
-  clickableLinkTitle: "View Crop",
-  isOpenLinkInDrawer: true,
+    clickType: DroppedAssetClickType.LINK,
+    clickableLink: `${BASE_URL}/item/${itemId}?mystery=${mysteryFlag}`,
+    clickableLinkTitle: "View Crop",
+    isOpenLinkInDrawer: true,
     position: positionWithOffset,
-    uniqueName: `lunch-swap-food|${itemId}|${rarity}|${Date.now()}|${mysteryFlag}`,
+    uniqueName: `LunchSwap_foodItem_${itemId}_${mysteryFlag}`,
     urlSlug,
     isInteractive: true,
     interactivePublicKey,

@@ -35,7 +35,7 @@ const App = () => {
     };
   }, [searchParams]);
 
-  const isFoodItem = interactiveParams.uniqueName?.startsWith("lunch-swap-food");
+  const isFoodItem = interactiveParams.uniqueName?.startsWith("LunchSwap_foodItem");
 
   useEffect(() => {
     if (interactiveParams.assetId) {

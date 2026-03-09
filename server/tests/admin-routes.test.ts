@@ -31,17 +31,91 @@ jest.mock("@utils/gameLogic/index.js", () => ({
 }));
 
 jest.mock("@utils/foodItemLookup.js", () => ({
-  getFoodItemsById: jest.fn().mockResolvedValue(new Map([
-    ["apple", { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] }, funFact: "Apple fact", superComboPairs: [] }],
-    ["banana", { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] }, funFact: "Banana fact", superComboPairs: [] }],
-    ["water", { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] }, funFact: "Water fact", superComboPairs: [] }],
-    ["milk", { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common", nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] }, funFact: "Milk fact", superComboPairs: [] }],
-    ["sandwich", { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", nutrition: { calories: 350, protein: 18, carbs: 35, fiber: 3, vitamins: ["B1", "B3", "Iron"] }, funFact: "Sandwich fact", superComboPairs: [] }],
-    ["granola-bar", { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common", nutrition: { calories: 190, protein: 4, carbs: 29, fiber: 3, vitamins: ["E", "B1", "Iron"] }, funFact: "Granola fact", superComboPairs: [] }],
-  ])),
+  getFoodItemsById: jest.fn().mockResolvedValue(
+    new Map([
+      [
+        "apple",
+        {
+          itemId: "apple",
+          name: "Apple",
+          foodGroup: "fruit",
+          rarity: "common",
+          nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] },
+          funFact: "Apple fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "banana",
+        {
+          itemId: "banana",
+          name: "Banana",
+          foodGroup: "fruit",
+          rarity: "common",
+          nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] },
+          funFact: "Banana fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "water",
+        {
+          itemId: "water",
+          name: "Water",
+          foodGroup: "drink",
+          rarity: "common",
+          nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] },
+          funFact: "Water fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "milk",
+        {
+          itemId: "milk",
+          name: "Milk",
+          foodGroup: "drink",
+          rarity: "common",
+          nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] },
+          funFact: "Milk fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "sandwich",
+        {
+          itemId: "sandwich",
+          name: "Sandwich",
+          foodGroup: "main",
+          rarity: "common",
+          nutrition: { calories: 350, protein: 18, carbs: 35, fiber: 3, vitamins: ["B1", "B3", "Iron"] },
+          funFact: "Sandwich fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "granola-bar",
+        {
+          itemId: "granola-bar",
+          name: "Granola Bar",
+          foodGroup: "snack",
+          rarity: "common",
+          nutrition: { calories: 190, protein: 4, carbs: 29, fiber: 3, vitamins: ["E", "B1", "Iron"] },
+          funFact: "Granola fact",
+          superComboPairs: [],
+        },
+      ],
+    ]),
+  ),
   getFoodItemsByGroup: jest.fn().mockResolvedValue({
-    drink: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }, { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common" }],
-    fruit: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }, { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" }],
+    drink: [
+      { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
+      { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common" },
+    ],
+    fruit: [
+      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" },
+      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" },
+    ],
     veggie: [{ itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common" }],
     main: [{ itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common" }],
     snack: [{ itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common" }],
@@ -121,11 +195,7 @@ describe("Admin Routes", () => {
     });
 
     test("admin removes all food assets and returns removedCount", async () => {
-      const mockFoodAssets = [
-        { id: "food-1" },
-        { id: "food-2" },
-        { id: "food-3" },
-      ];
+      const mockFoodAssets = [{ id: "food-1" }, { id: "food-2" }, { id: "food-3" }];
       const { mockWorld } = setupMocks({ isAdmin: true, foodAssets: mockFoodAssets });
 
       const app = makeApp();
@@ -136,7 +206,7 @@ describe("Admin Routes", () => {
       expect(res.body.removedCount).toBe(3);
       expect(res.body.totalFound).toBe(3);
       expect(mockWorld.fetchDroppedAssetsWithUniqueName).toHaveBeenCalledWith({
-        uniqueName: "lunch-swap-food",
+        uniqueName: "LunchSwap_foodItem",
         isPartial: true,
       });
       const call = (mockUtils.World.deleteDroppedAssets as jest.Mock).mock.calls[0];
@@ -167,10 +237,7 @@ describe("Admin Routes", () => {
       setupMocks({ isAdmin: false });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/admin/spawn-items")
-        .query(baseCreds)
-        .send({ count: 5 });
+      const res = await request(app).post("/api/admin/spawn-items").query(baseCreds).send({ count: 5 });
 
       expect(res.status).toBe(403);
       expect(res.body.success).toBe(false);
@@ -181,10 +248,7 @@ describe("Admin Routes", () => {
       setupMocks({ isAdmin: true });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/admin/spawn-items")
-        .query(baseCreds)
-        .send({ count: 3 });
+      const res = await request(app).post("/api/admin/spawn-items").query(baseCreds).send({ count: 3 });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -202,10 +266,7 @@ describe("Admin Routes", () => {
       setupMocks({ isAdmin: true });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/admin/spawn-items")
-        .query(baseCreds)
-        .send({ count: 100 });
+      const res = await request(app).post("/api/admin/spawn-items").query(baseCreds).send({ count: 100 });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -218,10 +279,7 @@ describe("Admin Routes", () => {
       setupMocks({ isAdmin: true });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/admin/spawn-items")
-        .query(baseCreds)
-        .send({});
+      const res = await request(app).post("/api/admin/spawn-items").query(baseCreds).send({});
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
@@ -246,13 +304,7 @@ describe("Admin Routes", () => {
     });
 
     test("admin returns world stats including itemsInWorld count", async () => {
-      const mockFoodAssets = [
-        { id: "food-1" },
-        { id: "food-2" },
-        { id: "food-3" },
-        { id: "food-4" },
-        { id: "food-5" },
-      ];
+      const mockFoodAssets = [{ id: "food-1" }, { id: "food-2" }, { id: "food-3" }, { id: "food-4" }, { id: "food-5" }];
       setupMocks({
         isAdmin: true,
         foodAssets: mockFoodAssets,

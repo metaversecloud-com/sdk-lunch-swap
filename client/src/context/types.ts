@@ -100,6 +100,6 @@ export type PostPickupResponseType = {
   hotStreakActive: boolean;
   idealPickupStreak: number;
   funFact: string | null;
-  wasMystery: boolean;
+  isMystery: boolean;
   visitorInventory?: VisitorInventoryType;
 };

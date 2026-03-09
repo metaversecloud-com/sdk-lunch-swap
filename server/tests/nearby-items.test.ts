@@ -40,17 +40,91 @@ jest.mock("@utils/gameLogic/index.js", () => ({
 }));
 
 jest.mock("@utils/foodItemLookup.js", () => ({
-  getFoodItemsById: jest.fn().mockResolvedValue(new Map([
-    ["apple", { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] }, funFact: "Apple fact", superComboPairs: [] }],
-    ["banana", { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] }, funFact: "Banana fact", superComboPairs: [] }],
-    ["water", { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] }, funFact: "Water fact", superComboPairs: [] }],
-    ["milk", { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common", nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] }, funFact: "Milk fact", superComboPairs: [] }],
-    ["sandwich", { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", nutrition: { calories: 350, protein: 18, carbs: 35, fiber: 3, vitamins: ["B1", "B3", "Iron"] }, funFact: "Sandwich fact", superComboPairs: [] }],
-    ["granola-bar", { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common", nutrition: { calories: 190, protein: 4, carbs: 29, fiber: 3, vitamins: ["E", "B1", "Iron"] }, funFact: "Granola fact", superComboPairs: [] }],
-  ])),
+  getFoodItemsById: jest.fn().mockResolvedValue(
+    new Map([
+      [
+        "apple",
+        {
+          itemId: "apple",
+          name: "Apple",
+          foodGroup: "fruit",
+          rarity: "common",
+          nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] },
+          funFact: "Apple fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "banana",
+        {
+          itemId: "banana",
+          name: "Banana",
+          foodGroup: "fruit",
+          rarity: "common",
+          nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] },
+          funFact: "Banana fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "water",
+        {
+          itemId: "water",
+          name: "Water",
+          foodGroup: "drink",
+          rarity: "common",
+          nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] },
+          funFact: "Water fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "milk",
+        {
+          itemId: "milk",
+          name: "Milk",
+          foodGroup: "drink",
+          rarity: "common",
+          nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] },
+          funFact: "Milk fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "sandwich",
+        {
+          itemId: "sandwich",
+          name: "Sandwich",
+          foodGroup: "main",
+          rarity: "common",
+          nutrition: { calories: 350, protein: 18, carbs: 35, fiber: 3, vitamins: ["B1", "B3", "Iron"] },
+          funFact: "Sandwich fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "granola-bar",
+        {
+          itemId: "granola-bar",
+          name: "Granola Bar",
+          foodGroup: "snack",
+          rarity: "common",
+          nutrition: { calories: 190, protein: 4, carbs: 29, fiber: 3, vitamins: ["E", "B1", "Iron"] },
+          funFact: "Granola fact",
+          superComboPairs: [],
+        },
+      ],
+    ]),
+  ),
   getFoodItemsByGroup: jest.fn().mockResolvedValue({
-    drink: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }, { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common" }],
-    fruit: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }, { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" }],
+    drink: [
+      { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
+      { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common" },
+    ],
+    fruit: [
+      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" },
+      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" },
+    ],
     veggie: [{ itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common" }],
     main: [{ itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common" }],
     snack: [{ itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common" }],
@@ -97,8 +171,18 @@ describe("GET /api/nearby-items", () => {
     const now = Date.now();
     setupMocks({
       foodAssets: [
-        { id: "fa-1", uniqueName: `lunch-swap-food|apple|common|${now}`, position: { x: 120, y: 210 }, deleteDroppedAsset: jest.fn() },
-        { id: "fa-2", uniqueName: `lunch-swap-food|banana|common|${now}`, position: { x: 105, y: 205 }, deleteDroppedAsset: jest.fn() },
+        {
+          id: "fa-1",
+          uniqueName: `LunchSwap_foodItem|apple|common|${now}`,
+          position: { x: 120, y: 210 },
+          deleteDroppedAsset: jest.fn(),
+        },
+        {
+          id: "fa-2",
+          uniqueName: `LunchSwap_foodItem|banana|common|${now}`,
+          position: { x: 105, y: 205 },
+          deleteDroppedAsset: jest.fn(),
+        },
       ],
       visitorData: { idealMeal: [{ itemId: "apple" }] },
       worldData: { proximityRadius: 500 },
@@ -122,8 +206,18 @@ describe("GET /api/nearby-items", () => {
 
     setupMocks({
       foodAssets: [
-        { id: "fa-1", uniqueName: `lunch-swap-food|apple|common|${expired}`, position: { x: 110, y: 210 }, deleteDroppedAsset: deleteExpired },
-        { id: "fa-2", uniqueName: `lunch-swap-food|banana|common|${fresh}`, position: { x: 110, y: 210 }, deleteDroppedAsset: jest.fn() },
+        {
+          id: "fa-1",
+          uniqueName: `LunchSwap_foodItem|apple|common|${expired}`,
+          position: { x: 110, y: 210 },
+          deleteDroppedAsset: deleteExpired,
+        },
+        {
+          id: "fa-2",
+          uniqueName: `LunchSwap_foodItem|banana|common|${fresh}`,
+          position: { x: 110, y: 210 },
+          deleteDroppedAsset: jest.fn(),
+        },
       ],
       worldData: { proximityRadius: 500 },
     });
@@ -141,8 +235,18 @@ describe("GET /api/nearby-items", () => {
     const now = Date.now();
     setupMocks({
       foodAssets: [
-        { id: "fa-1", uniqueName: `lunch-swap-food|apple|common|${now}`, position: { x: 110, y: 210 }, deleteDroppedAsset: jest.fn() },
-        { id: "fa-2", uniqueName: `lunch-swap-food|banana|common|${now}`, position: { x: 105, y: 205 }, deleteDroppedAsset: jest.fn() },
+        {
+          id: "fa-1",
+          uniqueName: `LunchSwap_foodItem|apple|common|${now}`,
+          position: { x: 110, y: 210 },
+          deleteDroppedAsset: jest.fn(),
+        },
+        {
+          id: "fa-2",
+          uniqueName: `LunchSwap_foodItem|banana|common|${now}`,
+          position: { x: 105, y: 205 },
+          deleteDroppedAsset: jest.fn(),
+        },
       ],
       visitorData: { idealMeal: [{ itemId: "apple" }, { itemId: "water" }] },
       worldData: { proximityRadius: 500 },
@@ -172,8 +276,18 @@ describe("GET /api/nearby-items", () => {
     const now = Date.now();
     setupMocks({
       foodAssets: [
-        { id: "fa-1", uniqueName: `lunch-swap-food|apple|common|${now}`, position: { x: 110, y: 210 }, deleteDroppedAsset: jest.fn() },
-        { id: "fa-2", uniqueName: `lunch-swap-food|banana|common|${now}`, position: { x: 9999, y: 9999 }, deleteDroppedAsset: jest.fn() },
+        {
+          id: "fa-1",
+          uniqueName: `LunchSwap_foodItem|apple|common|${now}`,
+          position: { x: 110, y: 210 },
+          deleteDroppedAsset: jest.fn(),
+        },
+        {
+          id: "fa-2",
+          uniqueName: `LunchSwap_foodItem|banana|common|${now}`,
+          position: { x: 9999, y: 9999 },
+          deleteDroppedAsset: jest.fn(),
+        },
       ],
       worldData: { proximityRadius: 50 },
     });
@@ -189,8 +303,18 @@ describe("GET /api/nearby-items", () => {
     const now = Date.now();
     setupMocks({
       foodAssets: [
-        { id: "fa-1", uniqueName: "lunch-swap-food|apple", position: { x: 110, y: 210 }, deleteDroppedAsset: jest.fn() },
-        { id: "fa-2", uniqueName: `lunch-swap-food|banana|common|${now}`, position: { x: 105, y: 205 }, deleteDroppedAsset: jest.fn() },
+        {
+          id: "fa-1",
+          uniqueName: "LunchSwap_foodItem|apple",
+          position: { x: 110, y: 210 },
+          deleteDroppedAsset: jest.fn(),
+        },
+        {
+          id: "fa-2",
+          uniqueName: `LunchSwap_foodItem|banana|common|${now}`,
+          position: { x: 105, y: 205 },
+          deleteDroppedAsset: jest.fn(),
+        },
       ],
       worldData: { proximityRadius: 500 },
     });
@@ -206,8 +330,18 @@ describe("GET /api/nearby-items", () => {
     const now = Date.now();
     setupMocks({
       foodAssets: [
-        { id: "fa-1", uniqueName: `lunch-swap-food|unknown-food-xyz|common|${now}`, position: { x: 110, y: 210 }, deleteDroppedAsset: jest.fn() },
-        { id: "fa-2", uniqueName: `lunch-swap-food|apple|common|${now}`, position: { x: 105, y: 205 }, deleteDroppedAsset: jest.fn() },
+        {
+          id: "fa-1",
+          uniqueName: `LunchSwap_foodItem|unknown-food-xyz|common|${now}`,
+          position: { x: 110, y: 210 },
+          deleteDroppedAsset: jest.fn(),
+        },
+        {
+          id: "fa-2",
+          uniqueName: `LunchSwap_foodItem|apple|common|${now}`,
+          position: { x: 105, y: 205 },
+          deleteDroppedAsset: jest.fn(),
+        },
       ],
       worldData: { proximityRadius: 500 },
     });
@@ -223,7 +357,12 @@ describe("GET /api/nearby-items", () => {
     const now = Date.now();
     setupMocks({
       foodAssets: [
-        { id: "fa-1", uniqueName: `lunch-swap-food|apple|common|${now}`, position: { x: 100, y: 200 }, deleteDroppedAsset: jest.fn() },
+        {
+          id: "fa-1",
+          uniqueName: `LunchSwap_foodItem|apple|common|${now}`,
+          position: { x: 100, y: 200 },
+          deleteDroppedAsset: jest.fn(),
+        },
       ],
       worldData: { proximityRadius: 500 },
     });
@@ -260,9 +399,19 @@ describe("GET /api/nearby-items", () => {
     setupMocks({
       foodAssets: [
         // 22.36 units away (within 150)
-        { id: "fa-1", uniqueName: `lunch-swap-food|apple|common|${now}`, position: { x: 120, y: 210 }, deleteDroppedAsset: jest.fn() },
+        {
+          id: "fa-1",
+          uniqueName: `LunchSwap_foodItem|apple|common|${now}`,
+          position: { x: 120, y: 210 },
+          deleteDroppedAsset: jest.fn(),
+        },
         // ~13900 units away (outside 150)
-        { id: "fa-2", uniqueName: `lunch-swap-food|banana|common|${now}`, position: { x: 9999, y: 9999 }, deleteDroppedAsset: jest.fn() },
+        {
+          id: "fa-2",
+          uniqueName: `LunchSwap_foodItem|banana|common|${now}`,
+          position: { x: 9999, y: 9999 },
+          deleteDroppedAsset: jest.fn(),
+        },
       ],
       worldData: {}, // no proximityRadius set
     });

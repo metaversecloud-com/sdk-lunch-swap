@@ -2,13 +2,14 @@ import { Credentials } from "../types/index.js";
 import { FoodItemDefinition, Rarity } from "@shared/types/FoodItem.js";
 import { DroppedAsset } from "./topiaInit.js";
 import { getFoodItemsById } from "./foodItemLookup.js";
+import { DroppedAssetInterface } from "@rtsdk/topia";
 
 export interface ResolvedFoodAsset {
-  foodAsset: any;
+  foodAsset: DroppedAssetInterface;
   foodDef: FoodItemDefinition;
   itemId: string;
   rarity: Rarity;
-  wasMystery: boolean;
+  isMystery: boolean;
 }
 
 export type ResolveFoodAssetResult =
@@ -25,28 +26,26 @@ export const resolveFoodAsset = async (
   urlSlug: string,
   credentials: Credentials,
 ): Promise<ResolveFoodAssetResult> => {
-  const foodAsset = await DroppedAsset.get(droppedAssetId, urlSlug, { credentials });
+  const foodAsset: DroppedAssetInterface = await DroppedAsset.get(droppedAssetId, urlSlug, { credentials });
   if (!foodAsset) {
     return { success: false, status: 409, message: "This item was already picked up" };
   }
 
   await foodAsset.fetchDataObject();
 
-  // Parse uniqueName: lunch-swap-food|{itemId}|{rarity}|{timestamp}|{mystery}
-  const parts = ((foodAsset as any).uniqueName || "").split("|");
+  // Parse uniqueName: `LunchSwap_foodItem_${itemId}_${mysteryFlag}`
+  const parts = (foodAsset.uniqueName || "").split("_");
+
   let itemId = "";
-  let rarity: Rarity = "common";
   const dataObj = foodAsset.dataObject as Record<string, any> | null | undefined;
 
   if (parts.length >= 3) {
-    itemId = parts[1];
-    rarity = parts[2] as Rarity;
+    itemId = parts[2];
   } else if (dataObj?.itemId) {
     itemId = dataObj.itemId;
-    rarity = dataObj.rarity || "common";
   }
 
-  const wasMystery = parts.length >= 5 ? parts[4] === "1" : false;
+  const isMystery = parts.length >= 4 ? parts[3] === "1" : false;
 
   const foodItemsById = await getFoodItemsById(credentials);
   const foodDef = foodItemsById.get(itemId);
@@ -54,5 +53,7 @@ export const resolveFoodAsset = async (
     return { success: false, status: 400, message: "Unknown food item" };
   }
 
-  return { success: true, foodAsset, foodDef, itemId, rarity, wasMystery };
+  const rarity: Rarity = foodDef.rarity;
+
+  return { success: true, foodAsset, foodDef, itemId, rarity, isMystery };
 };

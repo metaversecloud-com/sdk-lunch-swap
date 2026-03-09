@@ -3,6 +3,7 @@ import { getFoodItemsById, errorHandler, getCredentials, Visitor, World } from "
 import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { NearbyItem } from "@shared/types/NearbyItem.js";
 import { SUPER_COMBOS } from "@shared/data/superCombos.js";
+import { DroppedAssetInterface } from "@rtsdk/topia";
 
 export const handleGetNearbyItems = async (req: Request, res: Response) => {
   try {
@@ -23,8 +24,8 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
     const proximityRadius = worldData.proximityRadius || 300;
 
     // Fetch all food items with isPartial to avoid loading data objects
-    const allFoodAssets = await world.fetchDroppedAssetsWithUniqueName({
-      uniqueName: "lunch-swap-food",
+    const allFoodAssets: DroppedAssetInterface[] = await world.fetchDroppedAssetsWithUniqueName({
+      uniqueName: "LunchSwap_foodItem",
       isPartial: true,
     });
 
@@ -64,29 +65,19 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
     const nearbyItems: NearbyItem[] = [];
 
     for (const asset of allFoodAssets) {
-      // Parse uniqueName for metadata (cast needed: SDK types don't expose uniqueName on DroppedAsset class)
-      const parts = ((asset as any).uniqueName || "").split("|");
-      if (parts.length < 4) continue;
+      // Parse uniqueName: `LunchSwap_foodItem_${itemId}_${mysteryFlag}`
+      const parts = (asset.uniqueName || "").split("_");
 
-      const [, itemId, , timestampStr] = parts;
-      const timestamp = parseInt(timestampStr, 10);
+      let itemId = "";
+      const dataObj = asset.dataObject as Record<string, any> | null | undefined;
 
-      // Check 24h TTL
-      if (now - timestamp > TTL_MS) {
-        // Delete expired item (fire and forget)
-        try {
-          if (asset.deleteDroppedAsset) {
-            asset.deleteDroppedAsset().catch(() => {});
-          }
-        } catch {
-          // Non-critical: ignore deletion failures
-        }
-        continue;
+      if (parts.length >= 3) {
+        itemId = parts[2];
+      } else if (dataObj?.itemId) {
+        itemId = dataObj.itemId;
       }
 
-      // Parse mystery flag from 5th segment (backward-compatible: default to "0")
-      const mysteryFlag = parts.length >= 5 ? parts[4] : "0";
-      const isMystery = mysteryFlag === "1";
+      const isMystery = parts.length >= 4 ? parts[3] === "1" : false;
 
       // Look up item details from inventory cache
       const foodDef = foodItemsById.get(itemId);
@@ -113,7 +104,7 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
         lastDroppedByName: "", // Would need data object; not critical for list view
         isMystery,
         isComboMatch: !isMystery && comboTargetMap ? comboTargetMap.has(itemId) : false,
-        comboMatchPartner: !isMystery && comboTargetMap?.get(itemId) || undefined,
+        comboMatchPartner: (!isMystery && comboTargetMap?.get(itemId)) || undefined,
       });
     }
 

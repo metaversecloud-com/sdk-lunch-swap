@@ -27,17 +27,91 @@ jest.mock("@utils/gameLogic/index.js", () => ({
 }));
 
 jest.mock("@utils/foodItemLookup.js", () => ({
-  getFoodItemsById: jest.fn().mockResolvedValue(new Map([
-    ["apple", { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] }, funFact: "Apple fact", superComboPairs: [] }],
-    ["banana", { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] }, funFact: "Banana fact", superComboPairs: [] }],
-    ["water", { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] }, funFact: "Water fact", superComboPairs: [] }],
-    ["milk", { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common", nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] }, funFact: "Milk fact", superComboPairs: [] }],
-    ["sandwich", { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", nutrition: { calories: 350, protein: 18, carbs: 35, fiber: 3, vitamins: ["B1", "B3", "Iron"] }, funFact: "Sandwich fact", superComboPairs: [] }],
-    ["granola-bar", { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common", nutrition: { calories: 190, protein: 4, carbs: 29, fiber: 3, vitamins: ["E", "B1", "Iron"] }, funFact: "Granola fact", superComboPairs: [] }],
-  ])),
+  getFoodItemsById: jest.fn().mockResolvedValue(
+    new Map([
+      [
+        "apple",
+        {
+          itemId: "apple",
+          name: "Apple",
+          foodGroup: "fruit",
+          rarity: "common",
+          nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] },
+          funFact: "Apple fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "banana",
+        {
+          itemId: "banana",
+          name: "Banana",
+          foodGroup: "fruit",
+          rarity: "common",
+          nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] },
+          funFact: "Banana fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "water",
+        {
+          itemId: "water",
+          name: "Water",
+          foodGroup: "drink",
+          rarity: "common",
+          nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] },
+          funFact: "Water fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "milk",
+        {
+          itemId: "milk",
+          name: "Milk",
+          foodGroup: "drink",
+          rarity: "common",
+          nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] },
+          funFact: "Milk fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "sandwich",
+        {
+          itemId: "sandwich",
+          name: "Sandwich",
+          foodGroup: "main",
+          rarity: "common",
+          nutrition: { calories: 350, protein: 18, carbs: 35, fiber: 3, vitamins: ["B1", "B3", "Iron"] },
+          funFact: "Sandwich fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "granola-bar",
+        {
+          itemId: "granola-bar",
+          name: "Granola Bar",
+          foodGroup: "snack",
+          rarity: "common",
+          nutrition: { calories: 190, protein: 4, carbs: 29, fiber: 3, vitamins: ["E", "B1", "Iron"] },
+          funFact: "Granola fact",
+          superComboPairs: [],
+        },
+      ],
+    ]),
+  ),
   getFoodItemsByGroup: jest.fn().mockResolvedValue({
-    drink: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }, { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common" }],
-    fruit: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }, { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" }],
+    drink: [
+      { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
+      { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common" },
+    ],
+    fruit: [
+      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" },
+      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" },
+    ],
     veggie: [{ itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common" }],
     main: [{ itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common" }],
     snack: [{ itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common" }],
@@ -99,13 +173,15 @@ function setupNearbyMocks(opts: { foodAssets?: any[]; visitorData?: any; worldDa
 
 // --- Helpers for pickup-item tests ---
 
-function setupPickupMocks(opts: {
-  brownBag?: any[];
-  visitorData?: any;
-  foodAssetExists?: boolean;
-  foodAssetUniqueName?: string;
-  deleteThrows?: boolean;
-} = {}) {
+function setupPickupMocks(
+  opts: {
+    brownBag?: any[];
+    visitorData?: any;
+    foodAssetExists?: boolean;
+    foodAssetUniqueName?: string;
+    deleteThrows?: boolean;
+  } = {},
+) {
   const {
     brownBag = [],
     visitorData = {
@@ -116,7 +192,7 @@ function setupPickupMocks(opts: {
       hotStreakActive: false,
     },
     foodAssetExists = true,
-    foodAssetUniqueName = `lunch-swap-food|apple|common|${Date.now()}|1`,
+    foodAssetUniqueName = `LunchSwap_foodItem|apple|common|${Date.now()}|1`,
     deleteThrows = false,
   } = opts;
 
@@ -183,7 +259,7 @@ describe("Mystery Items", () => {
         foodAssets: [
           {
             id: "fa-1",
-            uniqueName: `lunch-swap-food|apple|common|${now}|1`,
+            uniqueName: `LunchSwap_foodItem|apple|common|${now}|1`,
             position: { x: 110, y: 210 },
             deleteDroppedAsset: jest.fn(),
           },
@@ -209,7 +285,7 @@ describe("Mystery Items", () => {
         foodAssets: [
           {
             id: "fa-1",
-            uniqueName: `lunch-swap-food|apple|common|${now}|1`,
+            uniqueName: `LunchSwap_foodItem|apple|common|${now}|1`,
             position: { x: 110, y: 210 },
             deleteDroppedAsset: jest.fn(),
           },
@@ -230,7 +306,7 @@ describe("Mystery Items", () => {
         foodAssets: [
           {
             id: "fa-1",
-            uniqueName: `lunch-swap-food|apple|common|${now}|0`,
+            uniqueName: `LunchSwap_foodItem|apple|common|${now}|0`,
             position: { x: 110, y: 210 },
             deleteDroppedAsset: jest.fn(),
           },
@@ -255,7 +331,7 @@ describe("Mystery Items", () => {
         foodAssets: [
           {
             id: "fa-1",
-            uniqueName: `lunch-swap-food|apple|common|${now}`,
+            uniqueName: `LunchSwap_foodItem|apple|common|${now}`,
             position: { x: 110, y: 210 },
             deleteDroppedAsset: jest.fn(),
           },
@@ -277,7 +353,7 @@ describe("Mystery Items", () => {
         foodAssets: [
           {
             id: "fa-1",
-            uniqueName: `lunch-swap-food|apple|common|${now}|1`,
+            uniqueName: `LunchSwap_foodItem|apple|common|${now}|1`,
             position: { x: 110, y: 210 },
             deleteDroppedAsset: jest.fn(),
           },
@@ -295,55 +371,46 @@ describe("Mystery Items", () => {
   });
 
   describe("POST /api/pickup-item — mystery item reveal", () => {
-    test("pickup of mystery item has wasMystery: true and reveals real item data", async () => {
+    test("pickup of mystery item has isMystery: true and reveals real item data", async () => {
       setupPickupMocks({
-        foodAssetUniqueName: `lunch-swap-food|apple|common|${Date.now()}|1`,
+        foodAssetUniqueName: `LunchSwap_foodItem|apple|common|${Date.now()}|1`,
       });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/pickup-item")
-        .query(baseCreds)
-        .send({ droppedAssetId: "food-asset-1" });
+      const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.wasMystery).toBe(true);
+      expect(res.body.isMystery).toBe(true);
       // Real identity is revealed in the bag
       expect(res.body.pickedUpItem.itemId).toBe("apple");
       expect(res.body.pickedUpItem.name).toBe("Apple");
       expect(res.body.pickedUpItem.rarity).toBe("common");
     });
 
-    test("pickup of non-mystery item has wasMystery: false", async () => {
+    test("pickup of non-mystery item has isMystery: false", async () => {
       setupPickupMocks({
-        foodAssetUniqueName: `lunch-swap-food|apple|common|${Date.now()}|0`,
+        foodAssetUniqueName: `LunchSwap_foodItem|apple|common|${Date.now()}|0`,
       });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/pickup-item")
-        .query(baseCreds)
-        .send({ droppedAssetId: "food-asset-1" });
+      const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      expect(res.body.wasMystery).toBe(false);
+      expect(res.body.isMystery).toBe(false);
       expect(res.body.pickedUpItem.itemId).toBe("apple");
     });
 
-    test("legacy 4-segment uniqueName pickup has wasMystery: false", async () => {
+    test("legacy 4-segment uniqueName pickup has isMystery: false", async () => {
       setupPickupMocks({
-        foodAssetUniqueName: `lunch-swap-food|apple|common|${Date.now()}`,
+        foodAssetUniqueName: `LunchSwap_foodItem|apple|common|${Date.now()}`,
       });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/pickup-item")
-        .query(baseCreds)
-        .send({ droppedAssetId: "food-asset-1" });
+      const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      expect(res.body.wasMystery).toBe(false);
+      expect(res.body.isMystery).toBe(false);
     });
   });
 });

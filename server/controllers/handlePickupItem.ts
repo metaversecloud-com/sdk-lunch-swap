@@ -32,7 +32,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     if (!resolved.success) {
       return res.status(resolved.status).json({ success: false, message: resolved.message });
     }
-    const { foodAsset, foodDef, wasMystery } = resolved;
+    const { foodAsset, foodDef, isMystery } = resolved;
 
     // Lock the asset while we process the pickup to prevent race conditions
     try {
@@ -73,7 +73,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
 
     // Track mystery reveals and rarity collection
     const prevRarity = visitorData.totalItemsCollectedByRarity || { common: 0, rare: 0, epic: 0 };
-    const newMysteryTotal = (visitorData.totalMysteryItemsRevealed || 0) + (wasMystery ? 1 : 0);
+    const newMysteryTotal = (visitorData.totalMysteryItemsRevealed || 0) + (isMystery ? 1 : 0);
     const newRarityTotals = {
       ...prevRarity,
       [foodDef.rarity]: (prevRarity[foodDef.rarity as keyof typeof prevRarity] || 0) + 1,
@@ -132,7 +132,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
 
     // Fire toast with fun fact
     let title = `Picked up ${foodDef.name}!`;
-    if (wasMystery) title = `Mystery revealed: ${foodDef?.name ?? "item"}!`;
+    if (isMystery) title = `Mystery revealed: ${foodDef?.name ?? "item"}!`;
     if (matchesIdealMeal) title += " Ideal meal match!";
     if (xpEarned) title += ` (+${xpEarned} XP)`;
     visitor
@@ -160,7 +160,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       xp: newTotalXp,
       level: newLevel,
       funFact: foodDef.funFact,
-      wasMystery,
+      isMystery,
       hotStreakActive: updatedData.hotStreakActive,
       idealPickupStreak: updatedData.idealPickupStreak,
       xpMultiplier,

@@ -27,17 +27,91 @@ jest.mock("@utils/gameLogic/index.js", () => ({
 }));
 
 jest.mock("@utils/foodItemLookup.js", () => ({
-  getFoodItemsById: jest.fn().mockResolvedValue(new Map([
-    ["apple", { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] }, funFact: "Apple fact", superComboPairs: [] }],
-    ["banana", { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] }, funFact: "Banana fact", superComboPairs: [] }],
-    ["water", { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] }, funFact: "Water fact", superComboPairs: [] }],
-    ["milk", { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common", nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] }, funFact: "Milk fact", superComboPairs: [] }],
-    ["sandwich", { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", nutrition: { calories: 350, protein: 18, carbs: 35, fiber: 3, vitamins: ["B1", "B3", "Iron"] }, funFact: "Sandwich fact", superComboPairs: [] }],
-    ["granola-bar", { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common", nutrition: { calories: 190, protein: 4, carbs: 29, fiber: 3, vitamins: ["E", "B1", "Iron"] }, funFact: "Granola fact", superComboPairs: [] }],
-  ])),
+  getFoodItemsById: jest.fn().mockResolvedValue(
+    new Map([
+      [
+        "apple",
+        {
+          itemId: "apple",
+          name: "Apple",
+          foodGroup: "fruit",
+          rarity: "common",
+          nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] },
+          funFact: "Apple fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "banana",
+        {
+          itemId: "banana",
+          name: "Banana",
+          foodGroup: "fruit",
+          rarity: "common",
+          nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] },
+          funFact: "Banana fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "water",
+        {
+          itemId: "water",
+          name: "Water",
+          foodGroup: "drink",
+          rarity: "common",
+          nutrition: { calories: 0, protein: 0, carbs: 0, fiber: 0, vitamins: [] },
+          funFact: "Water fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "milk",
+        {
+          itemId: "milk",
+          name: "Milk",
+          foodGroup: "drink",
+          rarity: "common",
+          nutrition: { calories: 150, protein: 8, carbs: 12, fiber: 0, vitamins: ["D", "B12", "A"] },
+          funFact: "Milk fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "sandwich",
+        {
+          itemId: "sandwich",
+          name: "Sandwich",
+          foodGroup: "main",
+          rarity: "common",
+          nutrition: { calories: 350, protein: 18, carbs: 35, fiber: 3, vitamins: ["B1", "B3", "Iron"] },
+          funFact: "Sandwich fact",
+          superComboPairs: [],
+        },
+      ],
+      [
+        "granola-bar",
+        {
+          itemId: "granola-bar",
+          name: "Granola Bar",
+          foodGroup: "snack",
+          rarity: "common",
+          nutrition: { calories: 190, protein: 4, carbs: 29, fiber: 3, vitamins: ["E", "B1", "Iron"] },
+          funFact: "Granola fact",
+          superComboPairs: [],
+        },
+      ],
+    ]),
+  ),
   getFoodItemsByGroup: jest.fn().mockResolvedValue({
-    drink: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }, { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common" }],
-    fruit: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }, { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" }],
+    drink: [
+      { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
+      { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common" },
+    ],
+    fruit: [
+      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" },
+      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common" },
+    ],
     veggie: [{ itemId: "carrots", name: "Carrots", foodGroup: "veggie", rarity: "common" }],
     main: [{ itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common" }],
     snack: [{ itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common" }],
@@ -65,13 +139,15 @@ jest.mock("@utils/index.js", () => ({
 
 const mockUtils = jest.mocked(require("@utils/index.js"));
 
-function setupPickupMocks(opts: {
-  brownBag?: any[];
-  visitorData?: any;
-  foodAssetExists?: boolean;
-  foodAssetUniqueName?: string;
-  deleteThrows?: boolean;
-} = {}) {
+function setupPickupMocks(
+  opts: {
+    brownBag?: any[];
+    visitorData?: any;
+    foodAssetExists?: boolean;
+    foodAssetUniqueName?: string;
+    deleteThrows?: boolean;
+  } = {},
+) {
   const {
     brownBag = [],
     visitorData = {
@@ -82,7 +158,7 @@ function setupPickupMocks(opts: {
       hotStreakActive: false,
     },
     foodAssetExists = true,
-    foodAssetUniqueName = `lunch-swap-food|apple|common|${Date.now()}|0`,
+    foodAssetUniqueName = `LunchSwap_foodItem|apple|common|${Date.now()}|0`,
     deleteThrows = false,
   } = opts;
 
@@ -140,10 +216,12 @@ function setupPickupMocks(opts: {
   return { mockFoodAsset, mockVisitor, mockWorld };
 }
 
-function setupDropMocks(opts: {
-  brownBag?: any[];
-  visitorData?: any;
-} = {}) {
+function setupDropMocks(
+  opts: {
+    brownBag?: any[];
+    visitorData?: any;
+  } = {},
+) {
   const {
     brownBag = [
       { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
@@ -181,7 +259,7 @@ function setupDropMocks(opts: {
   };
 
   mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
-  mockUtils.getVisitorBag.mockResolvedValue(brownBag.filter(i => i.itemId !== "apple"));
+  mockUtils.getVisitorBag.mockResolvedValue(brownBag.filter((i) => i.itemId !== "apple"));
   mockUtils.dropFoodItem.mockResolvedValue({ id: "new-dropped-asset" });
   mockUtils.World.create.mockReturnValue(mockWorld);
 
@@ -204,10 +282,7 @@ describe("Hot Streaks", () => {
       });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/pickup-item")
-        .query(baseCreds)
-        .send({ droppedAssetId: "food-asset-1" });
+      const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
       expect(res.body.idealPickupStreak).toBe(2);
@@ -235,10 +310,7 @@ describe("Hot Streaks", () => {
       });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/pickup-item")
-        .query(baseCreds)
-        .send({ droppedAssetId: "food-asset-1" });
+      const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
       expect(res.body.idealPickupStreak).toBe(0);
@@ -263,10 +335,7 @@ describe("Hot Streaks", () => {
       });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/pickup-item")
-        .query(baseCreds)
-        .send({ droppedAssetId: "food-asset-1" });
+      const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
       expect(res.body.idealPickupStreak).toBe(3);
@@ -293,10 +362,7 @@ describe("Hot Streaks", () => {
       });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/pickup-item")
-        .query(baseCreds)
-        .send({ droppedAssetId: "food-asset-1" });
+      const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
       // apple doesn't match ideal meal (water is ideal), so base XP = 10
@@ -326,10 +392,7 @@ describe("Hot Streaks", () => {
       });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/pickup-item")
-        .query(baseCreds)
-        .send({ droppedAssetId: "food-asset-1" });
+      const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
       // Base XP = 10 (pickup) + 25 (ideal match) = 35
@@ -350,10 +413,7 @@ describe("Hot Streaks", () => {
       });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/pickup-item")
-        .query(baseCreds)
-        .send({ droppedAssetId: "food-asset-1" });
+      const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
       expect(res.body.idealPickupStreak).toBe(1);
@@ -364,9 +424,7 @@ describe("Hot Streaks", () => {
   describe("POST /api/drop-item — streak reset", () => {
     test("dropping an item resets idealPickupStreak to 0", async () => {
       const { mockVisitor } = setupDropMocks({
-        brownBag: [
-          { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
-        ],
+        brownBag: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false }],
         visitorData: {
           idealMeal: [],
           completedToday: false,
@@ -378,10 +436,7 @@ describe("Hot Streaks", () => {
       });
 
       const app = makeApp();
-      const res = await request(app)
-        .post("/api/drop-item")
-        .query(baseCreds)
-        .send({ itemId: "apple" });
+      const res = await request(app).post("/api/drop-item").query(baseCreds).send({ itemId: "apple" });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);

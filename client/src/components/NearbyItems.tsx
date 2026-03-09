@@ -20,7 +20,7 @@ interface NearbyItemsProps {
     hotStreakActive: boolean;
     idealPickupStreak: number;
     funFact: string | null;
-    wasMystery: boolean;
+    isMystery: boolean;
   }) => void;
 }
 

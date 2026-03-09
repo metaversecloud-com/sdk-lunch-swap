@@ -21,7 +21,7 @@ export const handleGetItemDetails = async (req: Request, res: Response) => {
       return res.status(resolved.status).json({ success: false, message: resolved.message });
     }
 
-    const { foodDef, wasMystery } = resolved;
+    const { foodDef, isMystery } = resolved;
 
     // Check ideal meal match
     const idealMeal = visitorData.idealMeal || [];
@@ -44,7 +44,7 @@ export const handleGetItemDetails = async (req: Request, res: Response) => {
     return res.json({
       success: true,
       foodDef,
-      wasMystery,
+      isMystery,
       matchesIdealMeal,
       bagFull,
       brownBag,

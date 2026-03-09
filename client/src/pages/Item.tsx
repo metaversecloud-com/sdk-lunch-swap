@@ -18,7 +18,7 @@ import { FoodItemDefinition, FOOD_GROUP_COLORS, RARITY_CONFIG } from "@shared/ty
 
 type ItemDetails = {
   foodDef: FoodItemDefinition;
-  wasMystery: boolean;
+  isMystery: boolean;
   matchesIdealMeal: boolean;
   bagFull: boolean;
 };
@@ -126,12 +126,12 @@ export const Item = () => {
   };
 
   const pickedUp = () => {
-    const { foodDef, wasMystery } = itemDetails!;
+    const { foodDef, isMystery } = itemDetails!;
     const { name, image } = foodDef;
     return (
       <div className="flex flex-col items-center justify-center gap-4 text-center relative">
         <Confetti />
-        <h3>{wasMystery ? `Mystery revealed: ${name}!` : `Picked up ${name}!`}</h3>
+        <h3>{isMystery ? `Mystery revealed: ${name}!` : `Picked up ${name}!`}</h3>
         {image && <img src={image} alt={name} className="h-24 object-contain" />}
         {pickupXp > 0 && <p className="p2 text-muted">+{pickupXp} XP</p>}
         {mealComplete ? (
@@ -161,12 +161,12 @@ export const Item = () => {
   };
 
   const available = () => {
-    const { foodDef, matchesIdealMeal, bagFull, wasMystery } = itemDetails!;
+    const { foodDef, matchesIdealMeal, bagFull, isMystery } = itemDetails!;
     const { name, image, foodGroup, rarity, nutrition, funFact } = foodDef;
     return (
       <>
         <div className="flex flex-col gap-4">
-          {wasMystery ? (
+          {isMystery ? (
             mystery()
           ) : (
             <>
@@ -260,18 +260,14 @@ export const Item = () => {
                 onClick={handleButtonClick}
                 disabled={isPickingUp}
                 aria-label={
-                  isPickingUp
-                    ? "Picking up..."
-                    : wasMystery
-                      ? "Reveal and pick up this mystery item"
-                      : `Pick up ${name}`
+                  isPickingUp ? "Picking up..." : isMystery ? "Reveal and pick up this mystery item" : `Pick up ${name}`
                 }
               >
                 {isPickingUp
                   ? "Picking up..."
                   : bagFull
                     ? "Swap for this item"
-                    : wasMystery
+                    : isMystery
                       ? "Reveal & Pick Up"
                       : "Pick Up"}
               </button>

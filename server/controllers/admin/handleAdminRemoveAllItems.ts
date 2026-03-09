@@ -15,7 +15,7 @@ export const handleAdminRemoveAllItems = async (req: Request, res: Response) => 
     // Fetch all lunch-swap food items
     const world = World.create(urlSlug, { credentials });
     const foodAssets = await world.fetchDroppedAssetsWithUniqueName({
-      uniqueName: "lunch-swap-food",
+      uniqueName: "LunchSwap_foodItem",
       isPartial: true,
     });
 

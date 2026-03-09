@@ -19,7 +19,7 @@ export const handleAdminGetStats = async (req: Request, res: Response) => {
 
     // Count food items currently in world
     const foodAssets = await world.fetchDroppedAssetsWithUniqueName({
-      uniqueName: "lunch-swap-food",
+      uniqueName: "LunchSwap_foodItem",
       isPartial: true,
     });
 
