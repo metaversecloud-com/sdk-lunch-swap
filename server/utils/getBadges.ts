@@ -23,7 +23,7 @@ export const getBadges = async (credentials: Credentials, forceRefresh = false):
 
   const badges: BadgeRecord = {};
   for (const item of badgeItems) {
-    const { id, name, image_path, description } = item as any;
+    const { id, name, image_path, description } = item;
     badges[name] = {
       id,
       name,

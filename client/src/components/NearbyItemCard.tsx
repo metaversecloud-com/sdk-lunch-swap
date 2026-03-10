@@ -20,12 +20,15 @@ const formatDistance = (distance: number): string => {
 
 export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: NearbyItemCardProps) => {
   const [showSwapModal, setShowSwapModal] = useState(false);
+  const [isGrabbing, setIsGrabbing] = useState(false);
 
   const borderColor = FOOD_GROUP_COLORS[item.foodGroup];
   const rarityConfig = RARITY_CONFIG[item.rarity];
   const displayName = item.isMystery ? "???" : item.name;
 
   const handleClick = () => {
+    if (isGrabbing) return;
+    setIsGrabbing(true);
     if (bagFull) {
       setShowSwapModal(true);
     } else {
@@ -99,8 +102,10 @@ export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: N
         <button
           className="btn btn-success flex-shrink-0 p3 transition-colors max-w-[44px]
             focus:outline-none focus:ring-2 focus:ring-offset-2
-            bg-green-500 hover:bg-green-600 active:bg-green-700 focus:ring-green-400"
+            bg-green-500 hover:bg-green-600 active:bg-green-700 focus:ring-green-400
+            disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={handleClick}
+          disabled={isGrabbing}
           aria-label={`Pick up ${displayName}`}
         >
           {item.isMystery ? "?" : "Grab it!"}

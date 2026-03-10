@@ -1,29 +1,30 @@
 import { Credentials } from "../types/index.js";
 import { BagItem, FoodItemDefinition, IdealMealItem } from "@shared/types/FoodItem.js";
-import { getCachedInventoryItems } from "./inventoryCache.js";
+import { getCachedInventoryItems, InventoryItemType } from "./inventoryCache.js";
 import { getFoodItemsById } from "./foodItemLookup.js";
+import { InventoryItemInterface, VisitorInterface } from "@rtsdk/topia";
 
 /**
  * Build a BagItem[] from raw inventory items.
  * Shared by getVisitor (already has items in memory) and getVisitorBag (re-fetches).
  */
 export const buildBagFromItems = (
-  allItems: any[],
+  allItems: InventoryItemType[],
   idealMeal: IdealMealItem[],
-  foodItemsById: Map<string, any>,
+  foodItemsById: Map<string, FoodItemDefinition>,
 ): BagItem[] => {
   const idealItemIds = new Set(idealMeal.map((i) => i.itemId));
 
   return allItems
     .filter(
-      (item: any) =>
+      (item: InventoryItemType) =>
         item.type === "ITEM" &&
         item.status === "ACTIVE" &&
         (item.quantity ?? item.availableQuantity ?? 1) > 0 &&
         item.item?.name !== "Experience Points" &&
         item.item?.name !== "Reward Token",
     )
-    .map((item: any) => {
+    .map((item: InventoryItemType) => {
       const itemId = item.metadata?.itemId ?? item.item?.metadata?.itemId ?? item.name;
       const foodDef = foodItemsById.get(itemId);
       return {
@@ -44,15 +45,15 @@ export const buildBagFromItems = (
  * Re-fetches inventory items then builds the bag.
  */
 export const getVisitorBag = async (
-  visitor: any,
+  visitor: VisitorInterface,
   idealMeal: IdealMealItem[],
   credentials: Credentials,
 ): Promise<BagItem[]> => {
   await visitor.fetchInventoryItems();
-  const allItems: any[] = visitor.inventoryItems || [];
+  const allItems: InventoryItemInterface[] = visitor.inventoryItems || [];
   const foodItemsById = await getFoodItemsById(credentials);
 
-  return buildBagFromItems(allItems, idealMeal, foodItemsById);
+  return buildBagFromItems(allItems as InventoryItemType[], idealMeal, foodItemsById);
 };
 
 /**
@@ -84,14 +85,12 @@ export const buildBagItemFromDef = (
  * Looks up the ecosystem item by itemId metadata and grants 1 unit.
  */
 export const grantFoodToVisitor = async (
-  visitor: any,
+  visitor: VisitorInterface,
   credentials: Credentials,
   bagItem: BagItem,
 ): Promise<void> => {
   const items = await getCachedInventoryItems({ credentials });
-  const ecosystemItem = items.find(
-    (item) => item.type === "ITEM" && item.metadata?.itemId === bagItem.itemId,
-  );
+  const ecosystemItem = items.find((item) => item.type === "ITEM" && item.metadata?.itemId === bagItem.itemId);
 
   if (!ecosystemItem) {
     console.warn(`Ecosystem item not found for itemId: ${bagItem.itemId}`);
@@ -106,14 +105,12 @@ export const grantFoodToVisitor = async (
  * Looks up the ecosystem item by itemId metadata and decrements by 1.
  */
 export const removeFoodFromVisitor = async (
-  visitor: any,
+  visitor: VisitorInterface,
   credentials: Credentials,
   itemId: string,
 ): Promise<void> => {
   const items = await getCachedInventoryItems({ credentials });
-  const ecosystemItem = items.find(
-    (item) => item.type === "ITEM" && item.metadata?.itemId === itemId,
-  );
+  const ecosystemItem = items.find((item) => item.type === "ITEM" && item.metadata?.itemId === itemId);
 
   if (!ecosystemItem) {
     console.warn(`Ecosystem item not found for itemId: ${itemId}`);
@@ -126,9 +123,9 @@ export const removeFoodFromVisitor = async (
 /**
  * Read Reward Token count from already-fetched visitor inventory items.
  */
-export const getVisitorRewardTokens = (allItems: any[]): number => {
+export const getVisitorRewardTokens = (allItems: InventoryItemType[]): number => {
   const tokenItem = allItems.find(
-    (item: any) => item.item?.name === "Reward Token" && item.status === "ACTIVE",
+    (item: InventoryItemType) => item.item?.name === "Reward Token" && item.status === "ACTIVE",
   );
   return tokenItem?.quantity ?? tokenItem?.availableQuantity ?? 0;
 };
@@ -139,14 +136,12 @@ export const getVisitorRewardTokens = (allItems: any[]): number => {
  * Returns the new token quantity.
  */
 export const grantRewardToken = async (
-  visitor: any,
+  visitor: VisitorInterface,
   credentials: Credentials,
   amount: number,
 ): Promise<number> => {
   const items = await getCachedInventoryItems({ credentials });
-  const tokenItem = items.find(
-    (item) => item.name === "Reward Token" && item.status === "ACTIVE",
-  );
+  const tokenItem = items.find((item) => item.name === "Reward Token" && item.status === "ACTIVE");
 
   if (!tokenItem) {
     console.warn("Reward Token item not found in ecosystem");
@@ -160,9 +155,9 @@ export const grantRewardToken = async (
 /**
  * Read XP from already-fetched visitor inventory items.
  */
-export const getVisitorXp = (allItems: any[]): number => {
+export const getVisitorXp = (allItems: InventoryItemType[]): number => {
   const xpItem = allItems.find(
-    (item: any) => item.item?.name === "Experience Points" && item.status === "ACTIVE",
+    (item: InventoryItemType) => item.item?.name === "Experience Points" && item.status === "ACTIVE",
   );
   return xpItem?.quantity ?? xpItem?.availableQuantity ?? 0;
 };
@@ -171,15 +166,9 @@ export const getVisitorXp = (allItems: any[]): number => {
  * Grant XP to a visitor via the "Experience Points" inventory item.
  * Returns the new total XP quantity.
  */
-export const grantXp = async (
-  visitor: any,
-  credentials: Credentials,
-  amount: number,
-): Promise<number> => {
+export const grantXp = async (visitor: any, credentials: Credentials, amount: number): Promise<number> => {
   const items = await getCachedInventoryItems({ credentials });
-  const xpItem = items.find(
-    (item) => item.name === "Experience Points" && item.status === "ACTIVE",
-  );
+  const xpItem = items.find((item) => item.name === "Experience Points" && item.status === "ACTIVE");
 
   if (!xpItem) {
     console.warn("Experience Points item not found in ecosystem");

@@ -2,14 +2,15 @@ import { Request, Response } from "express";
 import { errorHandler, getCredentials, getKeyAsset, Visitor, World, dropFoodItem } from "@utils/index.js";
 import { getFoodItemsById } from "@utils/foodItemLookup.js";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
+import { VisitorInterface } from "@rtsdk/topia";
 
 export const handleAdminSpawnItems = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
     const { urlSlug, visitorId } = credentials;
 
-    const visitor = await Visitor.get(visitorId, urlSlug, { credentials });
-    if (!(visitor as any).isAdmin) {
+    const visitor: VisitorInterface = await Visitor.get(visitorId, urlSlug, { credentials });
+    if (!visitor.isAdmin) {
       return res.status(403).json({ success: false, message: "Admin access required" });
     }
 
@@ -76,20 +77,27 @@ export const handleAdminSpawnItems = async (req: Request, res: Response) => {
     // Shuffle final list
     spawnList.sort(() => Math.random() - 0.5);
 
-    const results = await Promise.allSettled(
-      spawnList.map((foodDef) =>
-        dropFoodItem({
-          credentials,
-          position: { x: centerX, y: centerY },
-          itemId: foodDef.itemId,
-          rarity: foodDef.rarity,
-          offsetRange: radius,
-          minOffset: worldData.spawnRadiusMin,
-          mystery: Math.random() < 0.05,
-          host: req.hostname,
-        }).then(() => ({ itemId: foodDef.itemId, name: foodDef.name, rarity: foodDef.rarity })),
-      ),
-    );
+    // Spawn in batches of 30
+    const BATCH_SIZE = 30;
+    const results: PromiseSettledResult<{ itemId: string; name: string; rarity: string }>[] = [];
+    for (let i = 0; i < spawnList.length; i += BATCH_SIZE) {
+      const batch = spawnList.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.allSettled(
+        batch.map((foodDef) =>
+          dropFoodItem({
+            credentials,
+            position: { x: centerX, y: centerY },
+            itemId: foodDef.itemId,
+            rarity: foodDef.rarity,
+            offsetRange: radius,
+            minOffset: worldData.spawnRadiusMin,
+            mystery: Math.random() < 0.05,
+            host: req.hostname,
+          }).then(() => ({ itemId: foodDef.itemId, name: foodDef.name, rarity: foodDef.rarity })),
+        ),
+      );
+      results.push(...batchResults);
+    }
 
     const spawnedItems = results
       .filter((r) => r.status === "fulfilled")

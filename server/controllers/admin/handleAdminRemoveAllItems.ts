@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { errorHandler, getCredentials, Visitor, World } from "@utils/index.js";
+import { VisitorInterface } from "@rtsdk/topia";
 
 export const handleAdminRemoveAllItems = async (req: Request, res: Response) => {
   try {
@@ -7,8 +8,8 @@ export const handleAdminRemoveAllItems = async (req: Request, res: Response) => 
     const { urlSlug, visitorId } = credentials;
 
     // Admin check
-    const visitor = await Visitor.get(visitorId, urlSlug, { credentials });
-    if (!(visitor as any).isAdmin) {
+    const visitor: VisitorInterface = await Visitor.get(visitorId, urlSlug, { credentials });
+    if (!visitor.isAdmin) {
       return res.status(403).json({ success: false, message: "Admin access required" });
     }
 
@@ -19,11 +20,15 @@ export const handleAdminRemoveAllItems = async (req: Request, res: Response) => 
       isPartial: true,
     });
 
-    // Delete all
+    // Delete in batches of 30
     const removedCount = foodAssets.length;
     if (foodAssets.length > 0) {
       const assetIds = foodAssets.map((a) => a.id).filter(Boolean) as string[];
-      await World.deleteDroppedAssets(urlSlug, assetIds, process.env.INTERACTIVE_SECRET!, credentials);
+      const BATCH_SIZE = 30;
+      for (let i = 0; i < assetIds.length; i += BATCH_SIZE) {
+        const batch = assetIds.slice(i, i + BATCH_SIZE);
+        await World.deleteDroppedAssets(urlSlug, batch, process.env.INTERACTIVE_SECRET!, credentials);
+      }
     }
 
     return res.json({

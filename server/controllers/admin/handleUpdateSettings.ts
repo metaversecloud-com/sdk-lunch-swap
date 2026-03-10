@@ -1,14 +1,15 @@
 import { Request, Response } from "express";
 import { errorHandler, getCredentials, Visitor, World } from "@utils/index.js";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
+import { VisitorInterface } from "@rtsdk/topia";
 
 export const handleUpdateSettings = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
     const { urlSlug, visitorId } = credentials;
 
-    const visitor = await Visitor.get(visitorId, urlSlug, { credentials });
-    if (!(visitor as any).isAdmin) {
+    const visitor: VisitorInterface = await Visitor.get(visitorId, urlSlug, { credentials });
+    if (!visitor.isAdmin) {
       return res.status(403).json({ success: false, message: "Admin access required" });
     }
 

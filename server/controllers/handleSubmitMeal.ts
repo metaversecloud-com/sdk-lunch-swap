@@ -145,8 +145,8 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     // Auto-drop remaining non-meal items into world
     if (remainingBag.length > 0) {
       const center = {
-        x: (visitor as any).moveTo?.x ?? 0,
-        y: (visitor as any).moveTo?.y ?? 0,
+        x: visitor.moveTo?.x ?? 0,
+        y: visitor.moveTo?.y ?? 0,
       };
 
       for (const item of remainingBag) {
@@ -194,7 +194,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
 
     // Re-fetch inventory to include any newly awarded badges
     await visitor.fetchInventoryItems();
-    const updatedVisitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
+    const updatedVisitorInventory = getVisitorBadges(visitor.inventoryItems || []);
 
     // Update leaderboard on key asset and return parsed result
     let leaderboard;

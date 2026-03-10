@@ -37,8 +37,8 @@ export const handleDropItem = async (req: Request, res: Response) => {
     const droppedAsset = await dropFoodItem({
       credentials,
       position: {
-        x: (visitor as any).moveTo?.x ?? 0,
-        y: (visitor as any).moveTo?.y ?? 0,
+        x: visitor.moveTo?.x ?? 0,
+        y: visitor.moveTo?.y ?? 0,
       },
       itemId: droppedItem.itemId,
       rarity: droppedItem.rarity,

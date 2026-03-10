@@ -22,7 +22,7 @@ export const awardBadge = async ({
     const inventoryItem = inventoryItems?.find((item) => item.name === badgeName);
     if (!inventoryItem) throw new Error(`Inventory item ${badgeName} not found in ecosystem`);
 
-    await (visitor as any).grantInventoryItem(inventoryItem, 1);
+    await visitor.grantInventoryItem(inventoryItem, 1);
 
     await visitor
       .fireToast({

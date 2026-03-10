@@ -128,7 +128,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
 
     // Re-fetch inventory to include any newly awarded badges
     await visitor.fetchInventoryItems();
-    const updatedVisitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
+    const updatedVisitorInventory = getVisitorBadges(visitor.inventoryItems || []);
 
     // Fire toast with fun fact
     let title = `Picked up ${foodDef.name}!`;

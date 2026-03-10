@@ -26,8 +26,8 @@ export const handleDropAllNonMatches = async (req: Request, res: Response) => {
     }
 
     const visitorPos = {
-      x: (visitor as any).moveTo?.x ?? 0,
-      y: (visitor as any).moveTo?.y ?? 0,
+      x: visitor.moveTo?.x ?? 0,
+      y: visitor.moveTo?.y ?? 0,
     };
 
     // Drop each non-matching item
@@ -46,7 +46,7 @@ export const handleDropAllNonMatches = async (req: Request, res: Response) => {
     const droppedCount = nonMatchItems.length;
 
     // Smoke effect at visitor's avatar
-    (visitor as any).triggerParticle?.({ name: "sparkles_float", duration: 2 })?.catch(() => {});
+    visitor.triggerParticle?.({ name: "sparkles_float", duration: 2 })?.catch(() => {});
 
     // Update visitor data
     await visitor.updateDataObject(

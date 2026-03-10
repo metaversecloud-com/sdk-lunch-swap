@@ -3,7 +3,6 @@ export * from "./gameLogic/index.js";
 export * from "./cleanReturnPayload.js";
 export * from "./errorHandler.js";
 export * from "./getCredentials.js";
-export * from "./getDevCredentials.js";
 export * from "./getVersion.js";
 export * from "./getVisitor.js";
 export * from "./standardizeError.js";

@@ -69,7 +69,7 @@ export async function dropFoodItem({
     isInteractive: true,
     interactivePublicKey,
     sceneDropId,
-    layer0: inventoryItem.image_path || "",
+    layer1: inventoryItem.image_path || "",
     assetScale: 0.5,
   });
 

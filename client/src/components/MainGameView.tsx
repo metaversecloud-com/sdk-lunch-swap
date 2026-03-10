@@ -167,11 +167,13 @@ export const MainGameView = () => {
           </span>
           {getLevelTitle(level ?? 1)}
         </div>
-        {hotStreakActive && idealPickupStreak && (
-          <HotStreakIndicator hotStreakActive={hotStreakActive} streak={idealPickupStreak} />
-        )}
         <span>{xp ?? 0} XP</span>
       </div>
+
+      {/* Hot streak indicator */}
+      {hotStreakActive && idealPickupStreak && (
+        <HotStreakIndicator hotStreakActive={hotStreakActive} streak={idealPickupStreak} />
+      )}
 
       {/* Action message toast */}
       {actionMessage && (

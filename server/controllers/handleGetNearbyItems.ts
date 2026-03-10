@@ -3,20 +3,20 @@ import { getFoodItemsById, errorHandler, getCredentials, Visitor, World } from "
 import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { NearbyItem } from "@shared/types/NearbyItem.js";
 import { SUPER_COMBOS } from "@shared/data/superCombos.js";
-import { DroppedAssetInterface } from "@rtsdk/topia";
+import { DroppedAssetInterface, VisitorInterface } from "@rtsdk/topia";
 
 export const handleGetNearbyItems = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
     const { urlSlug, visitorId } = credentials;
 
-    const visitor = await Visitor.get(visitorId, urlSlug, { credentials });
+    const visitor: VisitorInterface = await Visitor.get(visitorId, urlSlug, { credentials });
     await visitor.fetchDataObject();
     const visitorData = { ...VISITOR_DATA_DEFAULTS, ...visitor.dataObject };
 
     // Use visitor.moveTo for position (NOT visitor.position)
-    const visitorX = (visitor as any).moveTo?.x ?? 0;
-    const visitorY = (visitor as any).moveTo?.y ?? 0;
+    const visitorX = visitor.moveTo?.x ?? 0;
+    const visitorY = visitor.moveTo?.y ?? 0;
 
     const world = World.create(urlSlug, { credentials });
     await world.fetchDataObject();
@@ -39,7 +39,7 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
     let comboTargetMap: Map<string, string> | null = null;
     if (visitorData.dailyBuff === "combo-finder") {
       await visitor.fetchInventoryItems();
-      const allItems: any[] = (visitor as any).inventoryItems || [];
+      const allItems: any[] = visitor.inventoryItems || [];
       const bagItemIds = new Set(
         allItems
           .filter(
@@ -98,7 +98,7 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
         itemId: isMystery ? "mystery" : itemId,
         name: isMystery ? "???" : foodDef.name,
         foodGroup: foodDef.foodGroup, // Keep foodGroup as a hint even for mystery items
-        rarity: isMystery ? ("mystery" as any) : foodDef.rarity,
+        rarity: isMystery ? "mystery" : foodDef.rarity,
         distance: Math.round(distance),
         matchesIdealMeal: isMystery ? false : idealItemIds.has(itemId),
         lastDroppedByName: "", // Would need data object; not critical for list view

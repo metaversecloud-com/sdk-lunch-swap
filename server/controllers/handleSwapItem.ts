@@ -52,7 +52,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
 
     // Fetch visitor with data and bag
     const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
-    const visitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
+    const visitorInventory = getVisitorBadges(visitor.inventoryItems || []);
 
     // Find drop item in bag
     const droppedItem = brownBag.find((i) => i.itemId === dropItemId);
@@ -67,8 +67,8 @@ export const handleSwapItem = async (req: Request, res: Response) => {
     await dropFoodItem({
       credentials,
       position: {
-        x: (visitor as any).moveTo?.x ?? 0,
-        y: (visitor as any).moveTo?.y ?? 0,
+        x: visitor.moveTo?.x ?? 0,
+        y: visitor.moveTo?.y ?? 0,
       },
       itemId: droppedItem.itemId,
       rarity: droppedItem.rarity,
@@ -153,7 +153,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
 
     // Re-fetch inventory to include any newly awarded badges
     await visitor.fetchInventoryItems();
-    const updatedVisitorInventory = getVisitorBadges((visitor as any).inventoryItems || []);
+    const updatedVisitorInventory = getVisitorBadges(visitor.inventoryItems || []);
 
     // Fire toast
     visitor

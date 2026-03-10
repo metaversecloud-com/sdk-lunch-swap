@@ -208,7 +208,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       spawnRadiusMax: worldData.spawnRadiusMax,
       proximityRadius: worldData.proximityRadius,
       badges,
-      visitorInventory: getVisitorBadges((visitor as any).inventoryItems || []),
+      visitorInventory: getVisitorBadges(visitor.inventoryItems || []),
       leaderboard,
     });
   } catch (error) {
