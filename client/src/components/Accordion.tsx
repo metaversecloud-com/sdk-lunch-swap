@@ -10,6 +10,7 @@ export const Accordion = ({ children, title }: { children: ReactNode; title: str
             <img
               className="accordion-icon"
               aria-hidden="true"
+              alt=""
               src="https://sdk-style.s3.amazonaws.com/icons/chevronDown.svg"
             />
           </summary>

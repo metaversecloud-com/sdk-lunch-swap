@@ -6,8 +6,16 @@ export const AdminIconButton = ({
   showSettings: boolean;
 }) => {
   return (
-    <button className="icon-with-rounded-border mb-4" onClick={() => setShowSettings(showSettings)}>
-      <img src={`https://sdk-style.s3.amazonaws.com/icons/${showSettings ? "arrow" : "cog"}.svg`} />
+    <button
+      className="icon-with-rounded-border mb-4"
+      onClick={() => setShowSettings(showSettings)}
+      aria-label={showSettings ? "Back to game" : "Open admin settings"}
+    >
+      <img
+        src={`https://sdk-style.s3.amazonaws.com/icons/${showSettings ? "arrow" : "cog"}.svg`}
+        alt=""
+        aria-hidden="true"
+      />
     </button>
   );
 };

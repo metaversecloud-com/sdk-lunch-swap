@@ -1,7 +1,6 @@
 import { DroppedAssetInterface } from "@rtsdk/topia";
+import { KeyAssetData } from "@shared/types/DataObjects.js";
 
-export interface IDroppedAsset extends DroppedAssetInterface {
-  dataObject: {
-    droppedAssetCount?: number;
-  };
+export interface IKeyAsset extends DroppedAssetInterface {
+  dataObject: KeyAssetData;
 }

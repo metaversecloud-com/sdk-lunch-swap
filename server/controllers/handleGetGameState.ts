@@ -1,60 +1,221 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, getDroppedAsset, Visitor, World } from "../utils/index.js";
+import {
+  errorHandler,
+  getCredentials,
+  getKeyAsset,
+  getFoodItemsById,
+  parseLeaderboard,
+  World,
+  dropFoodItem,
+  getVisitor,
+  getVisitorBag,
+  grantFoodToVisitor,
+  removeFoodFromVisitor,
+  getBadges,
+  getVisitorBadges,
+} from "@utils/index.js";
+import { generateIdealMeal, generateBrownBag, getCurrentDateMT } from "@utils/gameLogic/index.js";
 import { VisitorInterface } from "@rtsdk/topia";
-import axios from "axios";
+import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 
 export const handleGetGameState = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
-    const { assetId, displayName, interactiveNonce, interactivePublicKey, profileId, urlSlug, visitorId } = credentials;
+    const { profileId, urlSlug } = credentials;
+    const forceRefreshInventory = req.query.forceRefreshInventory === "true";
 
-    const droppedAsset = await getDroppedAsset(credentials);
+    // Fetch key asset, visitor (with data + inventory), and world in parallel
+    const [
+      droppedAsset,
+      { visitor, visitorData, brownBag: currentBag, newDay, xp, level, hasRewardToken },
+      world,
+      badges,
+    ] = await Promise.all([
+      getKeyAsset(credentials),
+      getVisitor(credentials, true),
+      World.create(credentials.urlSlug, { credentials }),
+      getBadges(credentials, forceRefreshInventory),
+    ]);
+    const isAdmin = (visitor as VisitorInterface).isAdmin || false;
 
-    const world = World.create(urlSlug, { credentials });
-    world.triggerParticle({ name: "Sparkle", duration: 3, position: droppedAsset.position }).catch((error: any) =>
-      errorHandler({
-        error,
-        functionName: "handleGetGameState",
-        message: "Error triggering particle effects",
-      }),
-    );
+    await world.fetchDataObject();
+    const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
 
-    const visitor: VisitorInterface = await Visitor.get(visitorId, urlSlug, { credentials });
-    const { isAdmin } = visitor;
+    // Parse leaderboard from key asset
+    const leaderboard = parseLeaderboard(droppedAsset);
 
-    try {
-      await axios.post(
-        `${process.env.LEADERBOARD_BASE_URL || "http://v2lboard0-prod-topia.topia-rtsdk.com"}/api/dropped-asset/increment-player-stats?assetId=${assetId}&displayName=${displayName}&interactiveNonce=${interactiveNonce}&interactivePublicKey=${interactivePublicKey}&profileId=${profileId}&urlSlug=${urlSlug}&visitorId=${visitorId}`,
+    // Check for new day
+    const currentDate = getCurrentDateMT();
+
+    let {
+      dayStartTimestamp,
+      idealMeal,
+      completedToday,
+      nutritionScore,
+      superCombosFound,
+      longestStreak,
+      hotStreakActive,
+      dailyBuff,
+    } = visitorData;
+    let brownBag = currentBag;
+
+    if (newDay) {
+      // Auto-drop yesterday's bag items into world at key asset position
+      if (currentBag.length > 0) {
+        const center = {
+          x: droppedAsset.position?.x ?? 0,
+          y: droppedAsset.position?.y ?? 0,
+        };
+        for (const bagItem of currentBag) {
+          try {
+            await removeFoodFromVisitor(visitor, credentials, bagItem.itemId);
+            await dropFoodItem({
+              credentials,
+              position: center,
+              itemId: bagItem.itemId,
+              rarity: bagItem.rarity,
+              offsetRange: 200,
+              host: req.hostname,
+            });
+          } catch (err) {
+            console.warn("Failed to auto-drop bag item:", bagItem.itemId, err);
+          }
+        }
+      }
+
+      // Generate new ideal meal and brown bag
+      idealMeal = await generateIdealMeal(credentials);
+      const newBagItems = await generateBrownBag(credentials, idealMeal);
+
+      // Grant new bag items to visitor inventory
+      for (const bagItem of newBagItems) {
+        try {
+          await grantFoodToVisitor(visitor, credentials, bagItem);
+        } catch (err) {
+          console.warn("Failed to grant bag item:", bagItem.itemId, err);
+        }
+      }
+
+      completedToday = false;
+      dayStartTimestamp = null;
+      dailyBuff = null;
+      nutritionScore = null;
+      superCombosFound = [];
+
+      // Update visitor data for new day
+      await visitor.updateDataObject(
         {
-          publicKey: interactivePublicKey,
-          secret: process.env.INTERACTIVE_SECRET,
-          profileId,
-          displayName,
-          incrementBy: 1,
+          dayStartTimestamp,
+          lastPlayedDate: currentDate,
+          idealMeal,
+          completedToday: false,
+          completionTimestamp: null,
+          pickupsToday: 0,
+          dropsToday: 0,
+          itemsMatchedToday: 0,
+          nutritionScore,
+          superCombosFound,
+          dailyBuff,
+        },
+        {},
+      );
+
+      const itemsToSpawn = newBagItems.filter((item) => !item.matchesIdealMeal).slice(0, 3);
+      const spawnedIds: string[] = [];
+      const spawnCenter = {
+        x: droppedAsset.position?.x ?? 0,
+        y: droppedAsset.position?.y ?? 0,
+      };
+      for (const item of itemsToSpawn) {
+        try {
+          await dropFoodItem({
+            credentials,
+            position: spawnCenter,
+            itemId: item.itemId,
+            rarity: item.rarity,
+            minOffset: worldData.spawnRadiusMin,
+            offsetRange: worldData.spawnRadiusMax || 2000,
+            mystery: Math.random() < 0.15,
+            host: req.hostname,
+          });
+          spawnedIds.push(item.itemId);
+        } catch (err) {
+          console.warn("Failed to spawn item:", item.itemId, err);
+        }
+      }
+
+      // Update world data object
+      if (worldData.currentDate !== currentDate) {
+        // reset if new day
+        worldData.totalCompletionsToday = 0;
+        worldData.totalStartsToday = 1;
+        worldData.currentDate = currentDate;
+      } else {
+        worldData.totalStartsToday = (worldData.totalStartsToday || 0) + 1;
+      }
+      await world.updateDataObject(worldData);
+
+      // Read current bag from inventory (re-fetch after mutations on new day)
+      brownBag = await getVisitorBag(visitor, idealMeal, credentials);
+    } else {
+      await visitor.updateDataObject(
+        {},
+        {
+          analytics: [{ analyticName: "joins", profileId, urlSlug, uniqueKey: profileId }],
         },
       );
-    } catch (error) {
-      errorHandler({
-        error,
-        functionName: "handleGetGameState",
-        message: "Error posting player stats to Leaderboard",
-      });
     }
 
-    await world.fireToast({ title: "Nice Work!", text: "You've successfully completed the task!" }).catch((error) =>
-      errorHandler({
-        error,
-        functionName: "handleGetGameState",
-        message: "Error firing toast in world",
-      }),
-    );
+    // Enrich ideal meal items with images (for meals stored before image field existed)
+    if (idealMeal?.length && !idealMeal[0].image) {
+      const foodItemsById = await getFoodItemsById(credentials);
+      for (const item of idealMeal) {
+        const def = foodItemsById.get(item.itemId);
+        if (def?.image) item.image = def.image;
+      }
+    }
 
-    return res.json({ droppedAsset, isAdmin, success: true });
+    // Calculate display streak
+    let displayStreak = visitorData.currentStreak;
+    if (visitorData.lastCompletionDate) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toLocaleDateString("en-CA", { timeZone: "America/Denver" });
+      if (visitorData.lastCompletionDate < yesterdayStr) {
+        displayStreak = 0; // Show 0 but don't write to user data
+      }
+    } else {
+      displayStreak = 0;
+    }
+
+    return res.json({
+      success: true,
+      isNewDay: !dayStartTimestamp,
+      brownBag,
+      idealMeal,
+      completedToday,
+      nutritionScore,
+      superCombosFound,
+      xp,
+      level,
+      currentStreak: displayStreak,
+      longestStreak,
+      hotStreakActive,
+      isAdmin,
+      hasRewardToken,
+      dailyBuff,
+      spawnRadiusMin: worldData.spawnRadiusMin,
+      spawnRadiusMax: worldData.spawnRadiusMax,
+      proximityRadius: worldData.proximityRadius,
+      badges,
+      visitorInventory: getVisitorBadges(visitor.inventoryItems || []),
+      leaderboard,
+    });
   } catch (error) {
     return errorHandler({
       error,
-      functionName: "getDroppedAssetDetails",
-      message: "Error getting dropped asset instance and data object",
+      functionName: "handleGetGameState",
+      message: "Error getting game state",
       req,
       res,
     });

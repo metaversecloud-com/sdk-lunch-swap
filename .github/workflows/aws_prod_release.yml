@@ -1,0 +1,118 @@
+name: AWS-Build-Push-Prod
+on:
+  release:
+    types: [published]
+
+env:
+  REPOSITORY: 'sdk-prod'
+  ECS_Cluster: "topia-prod-sdk-apps"
+  ENV: "prod"
+  reponame: "${{ github.event.repository.name }}"
+
+concurrency:
+  group: ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+                  
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read  # This is required for actions/checkout
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    outputs:
+      service: ${{ steps.sername.outputs.service }}
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+                
+      - name: get servicename
+        id: sername
+        run: |
+          service_value=$(jq -c ".\"$reponame\"" <<< '${{ vars.repo_service_map }}')
+          echo "$(echo $service_value | jq -c)"
+          if [[ $service_value == null ]]; then
+            echo "Service value from map is missing. Using repository name instead."
+            echo "service=[\""$reponame"\"]" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$service_value" && $(echo "$service_value" | jq 'length == 0') == "true" ]]; then
+              echo "The app has no service deployed"
+              echo "service=[]" >> "$GITHUB_OUTPUT"
+          else
+            echo "service=$service_value" >> "$GITHUB_OUTPUT"
+            echo "Service value: $(echo $service_value | jq -c )"
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.10
+          cache: 'npm'
+      - run: git config --global user.email devops@topia.io
+      - run: git config --global user.name Devops
+      - run: npm version --no-git-tag-version --workspaces --include-workspace-root true ${{ github.event.release.tag_name }}
+      - run: npm i
+      - run: CI=false npm run build
+                  
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3.0.0
+        with:
+          platforms: arm64,amd64
+                    
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::368076259134:role/github-actions-role
+          aws-region: us-east-1
+                    
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
+          driver-opts: image=moby/buildkit:latest
+
+      - name: Image Metadata
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}
+          tags: |
+            type=raw,value=${{ github.event.repository.name }}-${{ github.event.release.tag_name }}
+            type=raw,value=${{ github.event.repository.name }}-latest
+
+      - name: Build and push multi-platform images to ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          build-args: |
+            REF=${{ github.ref }}
+            COMMIT_HASH=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+                
+  deploy_matrix:
+    runs-on: ubuntu-latest
+    needs: Build
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.Build.outputs.service) }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::471112828260:role/github-actions-role
+          aws-region: us-east-1
+
+      - name: deploy
+        run: |
+          aws ecs update-service --cluster ${{ env.ECS_Cluster }} --service topia-${{ env.ENV }}-${{ matrix.service }}0 --force-new-deployment  
+                

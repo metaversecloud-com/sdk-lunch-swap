@@ -1,8 +1,21 @@
 import express from "express";
-import { handleGetGameState } from "./controllers/index.js";
-import { getVersion } from "./utils/getVersion.js";
-import { requireDevMode } from "./middleware/requireDevMode.js";
-import devRouter from "./routes.dev.js";
+import {
+  handleGetGameState,
+  handleGetItemDetails,
+  handleGetNearbyItems,
+  handlePickupItem,
+  handleDropItem,
+  handleDropAllNonMatches,
+  handleSwapItem,
+  handleSubmitMeal,
+  handleSpinWheel,
+  handleStart,
+  handleAdminRemoveAllItems,
+  handleAdminSpawnItems,
+  handleAdminGetStats,
+  handleUpdateSettings,
+} from "./controllers/index.js";
+import { getVersion } from "@utils/getVersion.js";
 
 const router = express.Router();
 const SERVER_START_DATE = new Date();
@@ -26,11 +39,20 @@ router.get("/system/health", (req, res) => {
 });
 
 router.get("/game-state", handleGetGameState);
+router.get("/item-details", handleGetItemDetails);
+router.post("/start", handleStart);
+router.post("/spin-wheel", handleSpinWheel);
+router.get("/nearby-items", handleGetNearbyItems);
+router.post("/pickup-item", handlePickupItem);
+router.post("/drop-item", handleDropItem);
+router.post("/drop-all-non-matches", handleDropAllNonMatches);
+router.post("/swap-item", handleSwapItem);
+router.post("/submit-meal", handleSubmitMeal);
 
-// Dev routes — only available in development with API_KEY configured
-if (process.env.NODE_ENV === "development" && process.env.API_KEY) {
-  router.use("/dev", requireDevMode, devRouter);
-  console.log("🔧 Dev routes available at /api/dev/*");
-}
+// Admin routes
+router.post("/admin/remove-all-items", handleAdminRemoveAllItems);
+router.post("/admin/spawn-items", handleAdminSpawnItems);
+router.get("/admin/stats", handleAdminGetStats);
+router.post("/admin/update-settings", handleUpdateSettings);
 
 export default router;

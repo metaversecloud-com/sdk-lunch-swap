@@ -1,26 +1,42 @@
 import { useContext, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 // components
-import { PageContainer } from "@/components";
+import {
+  PageContainer,
+  BadgesView,
+  BonusWheel,
+  CompletionSummary,
+  Leaderboard,
+  MainGameView,
+  NewDayWelcome,
+} from "@/components";
 
 // context
 import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";
-import { ErrorType } from "@/context/types";
+import { ErrorType, SET_BROWN_BAG, SET_DAILY_BUFF } from "@/context/types";
 
 // utils
 import { backendAPI, setErrorMessage, setGameState } from "@/utils";
 
+type NewDayStep = "welcome" | "wheel-spin" | "done";
+type ActiveTab = "game" | "badges" | "leaderboard";
+
 export const Home = () => {
   const dispatch = useContext(GlobalDispatchContext);
-  const { droppedAsset, hasInteractiveParams } = useContext(GlobalStateContext);
-  const imgSrc = droppedAsset?.topLayerURL || droppedAsset?.bottomLayerURL;
+  const { hasInteractiveParams, isNewDay, completedToday } = useContext(GlobalStateContext);
+  const [searchParams] = useSearchParams();
 
+  const [step, setStep] = useState<NewDayStep>("welcome");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("game");
   const [isLoading, setIsLoading] = useState(true);
+
+  const forceRefreshInventory = searchParams.get("forceRefreshInventory") === "true";
 
   useEffect(() => {
     if (hasInteractiveParams) {
       backendAPI
-        .get("/game-state")
+        .get("/game-state", { params: { forceRefreshInventory } })
         .then((response) => {
           setGameState(dispatch, response.data);
         })
@@ -29,16 +45,57 @@ export const Home = () => {
     }
   }, [hasInteractiveParams]);
 
+  const getMainContent = () => {
+    if (isNewDay && step !== "done") {
+      if (step === "welcome") {
+        return <NewDayWelcome setStep={setStep} />;
+      } else if (step === "wheel-spin") {
+        return (
+          <BonusWheel
+            onSkip={() => setStep("done")}
+            onResult={({ buff, brownBag }) => {
+              dispatch!({ type: SET_DAILY_BUFF, payload: { dailyBuff: buff.id } });
+              if (brownBag) {
+                dispatch!({ type: SET_BROWN_BAG, payload: { brownBag } });
+              }
+              setStep("done");
+            }}
+          />
+        );
+      }
+    } else if (completedToday) {
+      return <CompletionSummary />;
+    }
+    return <MainGameView />;
+  };
+
   return (
-    <PageContainer isLoading={isLoading} headerText="Server side example using interactive parameters">
-      {droppedAsset?.id && (
-        <div className="flex flex-col w-full items-start">
-          <p className="mt-4 mb-2">
-            You have successfully retrieved the dropped asset details for {droppedAsset.assetName}!
-          </p>
-          {imgSrc && <img className="w-96 h-96 object-cover rounded-2xl my-4" alt="preview" src={imgSrc} />}
-        </div>
-      )}
+    <PageContainer isLoading={isLoading}>
+      <div className="tab-text-container mb-4 items-center justify-center">
+        <button
+          className={`btn btn-text ${activeTab === "game" && "active"}`}
+          style={{ width: "auto" }}
+          onClick={() => setActiveTab("game")}
+        >
+          Game
+        </button>
+        <button
+          className={`btn btn-text ${activeTab === "badges" && "active"}`}
+          style={{ width: "auto" }}
+          onClick={() => setActiveTab("badges")}
+        >
+          Badges
+        </button>
+        <button
+          className={`btn btn-text ${activeTab === "leaderboard" && "active"}`}
+          style={{ width: "auto" }}
+          onClick={() => setActiveTab("leaderboard")}
+        >
+          Leaderboard
+        </button>
+      </div>
+
+      {activeTab === "game" ? getMainContent() : activeTab === "badges" ? <BadgesView /> : <Leaderboard />}
     </PageContainer>
   );
 };

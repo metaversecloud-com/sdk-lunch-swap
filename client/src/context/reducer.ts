@@ -1,6 +1,17 @@
-import { ActionType, InitialState, SET_ERROR, SET_GAME_STATE, SET_HAS_INTERACTIVE_PARAMS } from "./types";
+import {
+  ActionType,
+  InitialState,
+  SET_ERROR,
+  SET_GAME_STATE,
+  SET_HAS_INTERACTIVE_PARAMS,
+  SET_BROWN_BAG,
+  SET_IDEAL_MEAL,
+  SET_NEARBY_ITEMS,
+  SET_COMPLETED,
+  SET_DAILY_BUFF,
+} from "./types";
 
-const globalReducer = (state: InitialState, action: ActionType) => {
+const globalReducer = (state: InitialState, action: ActionType): InitialState => {
   const { type, payload } = action;
   switch (type) {
     case SET_HAS_INTERACTIVE_PARAMS:
@@ -12,8 +23,71 @@ const globalReducer = (state: InitialState, action: ActionType) => {
       return {
         ...state,
         isAdmin: payload.isAdmin,
-        visitorData: payload.visitorData,
-        droppedAsset: payload.droppedAsset,
+        isNewDay: payload.isNewDay,
+        brownBag: payload.brownBag,
+        idealMeal: payload.idealMeal,
+        completedToday: payload.completedToday,
+        nutritionScore: payload.nutritionScore,
+        superCombosFound: payload.superCombosFound,
+        xp: payload.xp,
+        level: payload.level,
+        currentStreak: payload.currentStreak,
+        longestStreak: payload.longestStreak,
+        hasRewardToken: payload.hasRewardToken,
+        dailyBuff: payload.dailyBuff,
+        hotStreakActive: payload.hotStreakActive,
+        idealPickupStreak: payload.idealPickupStreak,
+        badges: payload.badges ?? state.badges,
+        visitorInventory: payload.visitorInventory ?? state.visitorInventory,
+        leaderboard: payload.leaderboard ?? state.leaderboard,
+        spawnRadiusMin: payload.spawnRadiusMin,
+        spawnRadiusMax: payload.spawnRadiusMax,
+        proximityRadius: payload.proximityRadius,
+        error: "",
+      };
+    case SET_BROWN_BAG:
+      return {
+        ...state,
+        brownBag: payload.brownBag,
+        ...(payload.xp !== undefined && { xp: payload.xp }),
+        ...(payload.level !== undefined && { level: payload.level }),
+        hotStreakActive: payload.hotStreakActive,
+        idealPickupStreak: payload.idealPickupStreak,
+        ...(payload.visitorInventory && { visitorInventory: payload.visitorInventory }),
+        error: "",
+      };
+    case SET_IDEAL_MEAL:
+      return {
+        ...state,
+        idealMeal: payload.idealMeal,
+        error: "",
+      };
+    case SET_NEARBY_ITEMS:
+      return {
+        ...state,
+        nearbyItems: payload.nearbyItems,
+        error: "",
+      };
+    case SET_COMPLETED:
+      return {
+        ...state,
+        completedToday: true,
+        nutritionScore: payload.nutritionScore,
+        nutritionBreakdown: payload.nutritionBreakdown,
+        superCombosFound: payload.superCombosFound,
+        xp: payload.xp,
+        level: payload.level,
+        currentStreak: payload.currentStreak,
+        longestStreak: payload.longestStreak,
+        ...(payload.visitorInventory && { visitorInventory: payload.visitorInventory }),
+        ...(payload.leaderboard && { leaderboard: payload.leaderboard }),
+        error: "",
+      };
+    case SET_DAILY_BUFF:
+      return {
+        ...state,
+        dailyBuff: payload.dailyBuff,
+        hasRewardToken: false,
         error: "",
       };
     case SET_ERROR:
@@ -21,7 +95,6 @@ const globalReducer = (state: InitialState, action: ActionType) => {
         ...state,
         error: payload.error,
       };
-
     default: {
       throw new Error(`Unhandled action type: ${type}`);
     }
