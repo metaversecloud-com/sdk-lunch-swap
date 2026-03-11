@@ -277,9 +277,14 @@ export const Item = () => {
             </>
           )}
         </div>
-        <Divider />
 
-        <IdealMealTracker isPreview={false} />
+        {!hasCompletedToday && (
+          <>
+            <Divider />
+
+            <IdealMealTracker isPreview={false} />
+          </>
+        )}
 
         {showSwapModal && (
           <BagFullSwapModal

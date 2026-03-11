@@ -24,7 +24,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
     const { profileId, urlSlug } = credentials;
-    const forceRefreshInventory = true; //req.query.forceRefreshInventory === "true";
+    const forceRefreshInventory = req.query.forceRefreshInventory === "true";
 
     // Fetch key asset, visitor (with data + inventory), and world in parallel
     const [
