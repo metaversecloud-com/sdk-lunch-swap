@@ -11,6 +11,7 @@ export const SET_IDEAL_MEAL = "SET_IDEAL_MEAL";
 export const SET_NEARBY_ITEMS = "SET_NEARBY_ITEMS";
 export const SET_COMPLETED = "SET_COMPLETED";
 export const SET_DAILY_BUFF = "SET_DAILY_BUFF";
+export const SET_FOOD_ITEMS_IN_WORLD = "SET_FOOD_ITEMS_IN_WORLD";
 
 export type BadgeType = {
   id: string;
@@ -76,7 +77,17 @@ export interface InitialState {
   spawnRadiusMin?: number;
   spawnRadiusMax?: number;
   proximityRadius?: number;
+  // Admin food items in world
+  foodItemsInWorld?: FoodItemInWorld[];
 }
+
+export type FoodItemInWorld = {
+  itemId: string;
+  name: string;
+  foodGroup: string;
+  rarity: string;
+  countInWorld: number;
+};
 
 export type ActionType = {
   type: string;

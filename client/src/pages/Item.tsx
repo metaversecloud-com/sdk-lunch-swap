@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 // components
-import { Confetti, IdealMealTracker, PageContainer } from "@/components";
+import { Confetti, Divider, IdealMealTracker, PageContainer } from "@/components";
 import { NutritionPreview } from "@/components/NutritionPreview";
 import { BagFullSwapModal } from "@/components/BagFullSwapModal";
 
@@ -164,7 +164,7 @@ export const Item = () => {
     const { foodDef, matchesIdealMeal, bagFull, isMystery } = itemDetails!;
     const { name, image, foodGroup, rarity, nutrition, funFact } = foodDef;
     return (
-      <>
+      <div className="grid gap-6">
         <div className="flex flex-col gap-4">
           {isMystery ? (
             mystery()
@@ -277,6 +277,9 @@ export const Item = () => {
             </>
           )}
         </div>
+        <Divider />
+
+        <IdealMealTracker isPreview={false} />
 
         {showSwapModal && (
           <BagFullSwapModal
@@ -285,7 +288,7 @@ export const Item = () => {
             onClose={() => setShowSwapModal(false)}
           />
         )}
-      </>
+      </div>
     );
   };
 

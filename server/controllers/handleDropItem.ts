@@ -41,7 +41,6 @@ export const handleDropItem = async (req: Request, res: Response) => {
         y: visitor.moveTo?.y ?? 0,
       },
       itemId: droppedItem.itemId,
-      rarity: droppedItem.rarity,
       shouldTriggerParticle: true,
       host: req.hostname,
     });

@@ -9,6 +9,7 @@ import {
   SET_NEARBY_ITEMS,
   SET_COMPLETED,
   SET_DAILY_BUFF,
+  SET_FOOD_ITEMS_IN_WORLD,
 } from "./types";
 
 const globalReducer = (state: InitialState, action: ActionType): InitialState => {
@@ -43,6 +44,7 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         spawnRadiusMin: payload.spawnRadiusMin,
         spawnRadiusMax: payload.spawnRadiusMax,
         proximityRadius: payload.proximityRadius,
+        foodItemsInWorld: payload.foodItemsInWorld ?? state.foodItemsInWorld,
         error: "",
       };
     case SET_BROWN_BAG:
@@ -88,6 +90,12 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         ...state,
         dailyBuff: payload.dailyBuff,
         hasRewardToken: false,
+        error: "",
+      };
+    case SET_FOOD_ITEMS_IN_WORLD:
+      return {
+        ...state,
+        foodItemsInWorld: payload.foodItemsInWorld,
         error: "",
       };
     case SET_ERROR:

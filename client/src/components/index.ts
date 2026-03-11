@@ -11,6 +11,7 @@ export * from "./BrownBag.js";
 export * from "./CompletionSummary.js";
 export * from "./Confetti.js";
 export * from "./ConfirmationModal.js";
+export * from "./Divider.js";
 export * from "./HotStreakIndicator.js";
 export * from "./IdealMealTracker.js";
 export * from "./Leaderboard.js";

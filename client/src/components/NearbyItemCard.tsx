@@ -90,13 +90,6 @@ export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: N
             </span>
             <span className="p3">{formatDistance(item.distance)}</span>
           </div>
-
-          {item.lastDroppedByName && !item.isMystery && (
-            <div className="tooltip truncate mt-1">
-              <span className="tooltip-content p3">Dropped by {item.lastDroppedByName}</span>
-              <p className="p3 text-gray-400">Dropped by {item.lastDroppedByName}</p>
-            </div>
-          )}
         </div>
 
         <button

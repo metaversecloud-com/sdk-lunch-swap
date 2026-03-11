@@ -1,8 +1,16 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, getKeyAsset, Visitor, World, dropFoodItem } from "@utils/index.js";
+import {
+  errorHandler,
+  getCredentials,
+  getKeyAsset,
+  Visitor,
+  World,
+  dropFoodItem,
+  getFoodItemsInWorld,
+} from "@utils/index.js";
 import { getFoodItemsById } from "@utils/foodItemLookup.js";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
-import { VisitorInterface } from "@rtsdk/topia";
+import { VisitorInterface, WorldInterface } from "@rtsdk/topia";
 
 export const handleAdminSpawnItems = async (req: Request, res: Response) => {
   try {
@@ -14,7 +22,8 @@ export const handleAdminSpawnItems = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: "Admin access required" });
     }
 
-    const count = Math.min(req.body.count || 10, 50); // Cap at 50
+    const itemIds: string[] | undefined = req.body.itemIds;
+    const count = Math.min(req.body.count || 10, 60); // Cap at 60
 
     // Get key asset position as spawn center
     const droppedAsset = await getKeyAsset(credentials);
@@ -22,60 +31,70 @@ export const handleAdminSpawnItems = async (req: Request, res: Response) => {
     const centerY = droppedAsset.position?.y ?? 0;
 
     // Get world data for spawn radius
-    const world = World.create(urlSlug, { credentials });
+    const world: WorldInterface = World.create(urlSlug, { credentials });
+    await world.fetchDetails();
+    const { width, height } = world;
     await world.fetchDataObject();
     const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
     const radius = worldData.spawnRadiusMax || 2000;
 
-    // Spawn items weighted by rarity: 50% common, 30% rare, 20% epic
     const foodItemsById = await getFoodItemsById(credentials);
-    const allItems = Array.from(foodItemsById.values());
-    const itemsByRarity: Record<string, typeof allItems> = {};
-    for (const item of allItems) {
-      (itemsByRarity[item.rarity] ??= []).push(item);
-    }
 
-    const rarityWeights = [
-      { rarity: "common", weight: 0.5 },
-      { rarity: "rare", weight: 0.3 },
-      { rarity: "epic", weight: 0.2 },
-    ];
+    let spawnList: { itemId: string; name: string; rarity: string }[];
 
-    // Build a unique spawn list: pick items by rarity weight, no duplicates
-    const spawnList: typeof allItems = [];
-    const usedIds = new Set<string>();
+    if (itemIds && itemIds.length > 0) {
+      // Spawn specific items selected by admin
+      spawnList = itemIds
+        .map((id) => foodItemsById.get(id))
+        .filter(Boolean)
+        .map((def) => ({ itemId: def!.itemId, name: def!.name, rarity: def!.rarity }));
+    } else {
+      // Spawn random items weighted by rarity: 50% common, 30% rare, 20% epic
+      const allItems = Array.from(foodItemsById.values());
+      const itemsByRarity: Record<string, typeof allItems> = {};
+      for (const item of allItems) {
+        (itemsByRarity[item.rarity] ??= []).push(item);
+      }
 
-    // Determine how many from each rarity bucket
-    const targetCounts = rarityWeights.map(({ rarity, weight }) => ({
-      rarity,
-      target: Math.round(count * weight),
-      pool: [...(itemsByRarity[rarity] || [])].sort(() => Math.random() - 0.5),
-    }));
+      const rarityWeights = [
+        { rarity: "common", weight: 0.5 },
+        { rarity: "rare", weight: 0.3 },
+        { rarity: "epic", weight: 0.2 },
+      ];
 
-    for (const { target, pool } of targetCounts) {
-      let picked = 0;
-      for (const item of pool) {
-        if (picked >= target || spawnList.length >= count) break;
-        if (!usedIds.has(item.itemId)) {
-          usedIds.add(item.itemId);
-          spawnList.push(item);
-          picked++;
+      const tempList: typeof allItems = [];
+      const usedIds = new Set<string>();
+
+      const targetCounts = rarityWeights.map(({ rarity, weight }) => ({
+        rarity,
+        target: Math.round(count * weight),
+        pool: [...(itemsByRarity[rarity] || [])].sort(() => Math.random() - 0.5),
+      }));
+
+      for (const { target, pool } of targetCounts) {
+        let picked = 0;
+        for (const item of pool) {
+          if (picked >= target || tempList.length >= count) break;
+          if (!usedIds.has(item.itemId)) {
+            usedIds.add(item.itemId);
+            tempList.push(item);
+            picked++;
+          }
         }
       }
-    }
 
-    // If we still need more (e.g. not enough items in weighted buckets), fill from remaining
-    if (spawnList.length < count) {
-      const remaining = allItems.filter((i) => !usedIds.has(i.itemId)).sort(() => Math.random() - 0.5);
-      for (const item of remaining) {
-        if (spawnList.length >= count) break;
-        usedIds.add(item.itemId);
-        spawnList.push(item);
+      if (tempList.length < count) {
+        const remaining = allItems.filter((i) => !usedIds.has(i.itemId)).sort(() => Math.random() - 0.5);
+        for (const item of remaining) {
+          if (tempList.length >= count) break;
+          usedIds.add(item.itemId);
+          tempList.push(item);
+        }
       }
-    }
 
-    // Shuffle final list
-    spawnList.sort(() => Math.random() - 0.5);
+      tempList.sort(() => Math.random() - 0.5);
+      spawnList = tempList;
+    }
 
     // Spawn in batches of 30
     const BATCH_SIZE = 30;
@@ -88,11 +107,11 @@ export const handleAdminSpawnItems = async (req: Request, res: Response) => {
             credentials,
             position: { x: centerX, y: centerY },
             itemId: foodDef.itemId,
-            rarity: foodDef.rarity,
             offsetRange: radius,
             minOffset: worldData.spawnRadiusMin,
             mystery: Math.random() < 0.05,
             host: req.hostname,
+            worldSize: width && height ? { width, height } : undefined,
           }).then(() => ({ itemId: foodDef.itemId, name: foodDef.name, rarity: foodDef.rarity })),
         ),
       );
@@ -107,10 +126,13 @@ export const handleAdminSpawnItems = async (req: Request, res: Response) => {
       if (r.status === "rejected") console.warn("Failed to spawn item:", r.reason);
     }
 
+    const foodItemsInWorld = await getFoodItemsInWorld(world, credentials);
+
     return res.json({
       success: true,
       spawnedCount: spawnedItems.length,
       spawnedItems,
+      foodItemsInWorld,
     });
   } catch (error) {
     return errorHandler({

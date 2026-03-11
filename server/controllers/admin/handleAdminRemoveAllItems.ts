@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, Visitor, World } from "@utils/index.js";
+import { errorHandler, getCredentials, Visitor, World, getFoodItemsInWorld } from "@utils/index.js";
 import { VisitorInterface } from "@rtsdk/topia";
 
 export const handleAdminRemoveAllItems = async (req: Request, res: Response) => {
@@ -31,10 +31,13 @@ export const handleAdminRemoveAllItems = async (req: Request, res: Response) => 
       }
     }
 
+    const foodItemsInWorld = await getFoodItemsInWorld(world, credentials);
+
     return res.json({
       success: true,
       removedCount,
       totalFound: foodAssets.length,
+      foodItemsInWorld,
     });
   } catch (error) {
     return errorHandler({

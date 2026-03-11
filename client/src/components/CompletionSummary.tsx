@@ -1,6 +1,6 @@
 import { useContext } from "react";
 import { GlobalStateContext } from "@/context/GlobalContext";
-import { Confetti, NutritionScoreDisplay, XpBreakdown, StreakCounter } from "@/components";
+import { Confetti, NutritionScoreDisplay, XpBreakdown, StreakCounter, Divider } from "@/components";
 
 export const CompletionSummary = () => {
   const {
@@ -35,15 +35,15 @@ export const CompletionSummary = () => {
 
       <NutritionScoreDisplay score={score} breakdown={nutritionBreakdown} superCombos={combos} />
 
-      <div className="w-full border-t border-gray-300" aria-hidden="true" />
+      <Divider />
 
       <XpBreakdown totalXp={totalXp} nutritionScore={score} superCombosCount={combos.length} currentStreak={streak} />
 
-      <div className="w-full border-t border-gray-300" aria-hidden="true" />
+      <Divider />
 
       <StreakCounter currentStreak={streak} longestStreak={best} />
 
-      <div className="w-full border-t border-gray-300" aria-hidden="true" />
+      <Divider />
 
       <p className="p2">
         Done for today! <br />

@@ -13,16 +13,18 @@ import {
   removeFoodFromVisitor,
   getBadges,
   getVisitorBadges,
+  getFoodItemsInWorld,
+  DroppedAsset,
 } from "@utils/index.js";
 import { generateIdealMeal, generateBrownBag, getCurrentDateMT } from "@utils/gameLogic/index.js";
-import { VisitorInterface } from "@rtsdk/topia";
+import { VisitorInterface, WorldInterface } from "@rtsdk/topia";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 
 export const handleGetGameState = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
     const { profileId, urlSlug } = credentials;
-    const forceRefreshInventory = req.query.forceRefreshInventory === "true";
+    const forceRefreshInventory = true; //req.query.forceRefreshInventory === "true";
 
     // Fetch key asset, visitor (with data + inventory), and world in parallel
     const [
@@ -62,18 +64,16 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     if (newDay) {
       // Auto-drop yesterday's bag items into world at key asset position
       if (currentBag.length > 0) {
-        const center = {
-          x: droppedAsset.position?.x ?? 0,
-          y: droppedAsset.position?.y ?? 0,
-        };
         for (const bagItem of currentBag) {
           try {
             await removeFoodFromVisitor(visitor, credentials, bagItem.itemId);
             await dropFoodItem({
               credentials,
-              position: center,
+              position: {
+                x: visitor.moveTo?.x ?? 0,
+                y: visitor.moveTo?.y ?? 0,
+              },
               itemId: bagItem.itemId,
-              rarity: bagItem.rarity,
               offsetRange: 200,
               host: req.hostname,
             });
@@ -120,27 +120,100 @@ export const handleGetGameState = async (req: Request, res: Response) => {
         {},
       );
 
-      const itemsToSpawn = newBagItems.filter((item) => !item.matchesIdealMeal).slice(0, 3);
-      const spawnedIds: string[] = [];
-      const spawnCenter = {
-        x: droppedAsset.position?.x ?? 0,
-        y: droppedAsset.position?.y ?? 0,
-      };
-      for (const item of itemsToSpawn) {
-        try {
-          await dropFoodItem({
-            credentials,
-            position: spawnCenter,
-            itemId: item.itemId,
-            rarity: item.rarity,
-            minOffset: worldData.spawnRadiusMin,
-            offsetRange: worldData.spawnRadiusMax || 2000,
-            mystery: Math.random() < 0.15,
-            host: req.hostname,
-          });
-          spawnedIds.push(item.itemId);
-        } catch (err) {
-          console.warn("Failed to spawn item:", item.itemId, err);
+      // Pick up to 3 items to spawn into the world, maximizing ecosystem diversity.
+      // - Don't spawn bag items (already in visitor's inventory)
+      // - Prioritize items not currently in world (countInWorld === 0)
+      // - Include ideal meal items if they're missing from the world
+      // - For duplicates already in world, delete one existing copy and spawn the new item
+      const inWorldData = await getFoodItemsInWorld(world, credentials);
+      const inWorldMap = new Map(inWorldData.map((item) => [item.itemId, item]));
+      const bagItemIds = new Set(newBagItems.map((i) => i.itemId));
+
+      // Build spawn candidates from ecosystem items NOT in visitor's bag
+      const notInWorld = inWorldData
+        .filter((item) => item.countInWorld === 0 && !bagItemIds.has(item.itemId))
+        .sort(() => Math.random() - 0.5);
+
+      // Also check if any ideal meal items are missing from the world
+      const idealMissing = (idealMeal || [])
+        .filter((m) => !bagItemIds.has(m.itemId) && !inWorldMap.get(m.itemId)?.countInWorld)
+        .map((m) => inWorldData.find((i) => i.itemId === m.itemId))
+        .filter(Boolean);
+
+      // Priority: ideal meal items missing from world, then other missing items
+      const spawnIds = new Set<string>();
+      const itemsToSpawn: { itemId: string; name: string; foodGroup: string; rarity: string }[] = [];
+
+      for (const item of idealMissing) {
+        if (itemsToSpawn.length >= 3) break;
+        if (!spawnIds.has(item!.itemId)) {
+          itemsToSpawn.push(item!);
+          spawnIds.add(item!.itemId);
+        }
+      }
+      for (const item of notInWorld) {
+        if (itemsToSpawn.length >= 3) break;
+        if (!spawnIds.has(item.itemId)) {
+          itemsToSpawn.push(item);
+          spawnIds.add(item.itemId);
+        }
+      }
+
+      // If still not enough, pick duplicate items and remove one existing copy from world
+      if (itemsToSpawn.length < 3) {
+        const duplicatesInWorld = inWorldData
+          .filter((item) => item.countInWorld > 1 && !bagItemIds.has(item.itemId) && !spawnIds.has(item.itemId))
+          .sort((a, b) => b.countInWorld - a.countInWorld) // most duplicated first
+          .sort(() => Math.random() - 0.3);
+
+        for (const dup of duplicatesInWorld) {
+          if (itemsToSpawn.length >= 3) break;
+          // Try to delete one existing copy of this duplicate
+          const assetIdToRemove = dup.droppedAssetIds[0];
+          if (assetIdToRemove) {
+            try {
+              const dupAsset = DroppedAsset.create(assetIdToRemove, urlSlug, { credentials });
+              await dupAsset.deleteDroppedAsset();
+            } catch {
+              // Asset may already be deleted — continue anyway
+            }
+          }
+          // Find a replacement item not in world (and not yet in our spawn list)
+          const replacement = inWorldData.find(
+            (item) => item.countInWorld === 0 && !bagItemIds.has(item.itemId) && !spawnIds.has(item.itemId),
+          );
+          if (replacement) {
+            itemsToSpawn.push(replacement);
+            spawnIds.add(replacement.itemId);
+          }
+        }
+      }
+
+      if (itemsToSpawn.length > 0) {
+        await world.fetchDetails();
+        const { width, height } = world as WorldInterface;
+
+        const spawnedIds: string[] = [];
+        const spawnCenter = {
+          x: droppedAsset.position?.x ?? 0,
+          y: droppedAsset.position?.y ?? 0,
+        };
+        for (const item of itemsToSpawn) {
+          try {
+            await dropFoodItem({
+              credentials,
+              position: spawnCenter,
+              itemId: item.itemId,
+              minOffset: worldData.spawnRadiusMin,
+              offsetRange: worldData.spawnRadiusMax || 2000,
+              mystery: Math.random() < 0.15,
+              host: req.hostname,
+              worldSize: width && height ? { width, height } : undefined,
+            });
+            spawnedIds.push(item.itemId);
+          } catch (err) {
+            console.warn("Failed to spawn item:", item.itemId, err);
+          }
         }
       }
 
@@ -188,6 +261,8 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       displayStreak = 0;
     }
 
+    const foodItemsInWorld = isAdmin ? await getFoodItemsInWorld(world, credentials) : [];
+
     return res.json({
       success: true,
       isNewDay: !dayStartTimestamp,
@@ -210,6 +285,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       badges,
       visitorInventory: getVisitorBadges(visitor.inventoryItems || []),
       leaderboard,
+      foodItemsInWorld,
     });
   } catch (error) {
     return errorHandler({

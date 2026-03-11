@@ -155,7 +155,6 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
             credentials,
             position: center,
             itemId: item.itemId,
-            rarity: item.rarity,
             offsetRange: 150,
             host: req.hostname,
           });

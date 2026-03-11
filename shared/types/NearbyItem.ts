@@ -8,7 +8,6 @@ export interface NearbyItem {
   rarity: Rarity;
   distance: number;
   matchesIdealMeal: boolean;
-  lastDroppedByName: string;
   isMystery?: boolean;
   isComboMatch?: boolean;
   comboMatchPartner?: string;

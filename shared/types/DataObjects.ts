@@ -124,7 +124,6 @@ export interface FoodItemAssetData {
   firstDroppedByName: string;
   firstDroppedDateTime: string;
   lastDroppedBy: string;
-  lastDroppedByName: string;
   lastDroppedDateTime: string;
   spawnedBySystem: boolean;
   pickupCount: number;
@@ -140,7 +139,6 @@ export const FOOD_ITEM_ASSET_DATA_DEFAULTS: FoodItemAssetData = {
   firstDroppedByName: "",
   firstDroppedDateTime: "",
   lastDroppedBy: "",
-  lastDroppedByName: "",
   lastDroppedDateTime: "",
   spawnedBySystem: false,
   pickupCount: 0,

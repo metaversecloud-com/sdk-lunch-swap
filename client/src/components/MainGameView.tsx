@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 
 // components
-import { BrownBag, HotStreakIndicator, IdealMealTracker, NearbyItems, PageFooter } from "@/components";
+import { BrownBag, Divider, HotStreakIndicator, IdealMealTracker, NearbyItems, PageFooter } from "@/components";
 
 // context
 import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";
@@ -189,12 +189,12 @@ export const MainGameView = () => {
       {/* Ideal meal tracker */}
       <IdealMealTracker isPreview={false} />
 
-      <hr />
+      <Divider />
 
       {/* Brown bag */}
       <BrownBag onDrop={handleDrop} onDropAllNonMatches={handleDropAllNonMatches} />
 
-      <hr />
+      <Divider />
 
       {/* Nearby items */}
       <NearbyItems onPickup={handlePickup} afterSwap={handleAfterPickup} bagFull={bagFull} />
