@@ -47,12 +47,12 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
 
     // Apply immediate-effect buffs
 
-    if (buff.id === "epic-drop" || buff.id === "ideal-item") {
+    if (buff.id === "epic-drop" || buff.id === "target-item") {
       const allFood = await getAllFoodItems(credentials);
-      const bag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
+      const bag = await getVisitorBag(visitor, visitorData.targetMeal, credentials);
       const bagItemIds = new Set(bag.map((b) => b.itemId));
-      const nonIdealBag = bag.filter((b) => !b.matchesIdealMeal && b.rarity === "common");
-      const victim = nonIdealBag[Math.floor(Math.random() * nonIdealBag.length)];
+      const nonTargetBag = bag.filter((b) => !b.matchesTargetMeal && b.rarity === "common");
+      const victim = nonTargetBag[Math.floor(Math.random() * nonTargetBag.length)];
 
       let newItem;
 
@@ -64,14 +64,14 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
         }
       }
 
-      if (buff.id === "ideal-item") {
-        // Upgrade one non-ideal bag item to a missing ideal meal item
-        const missingIdeal = (visitorData.idealMeal || []).filter((i: any) => !bagItemIds.has(i.itemId));
+      if (buff.id === "target-item") {
+        // Upgrade one non-target bag item to a missing target meal item
+        const missingTarget = (visitorData.targetMeal || []).filter((i: any) => !bagItemIds.has(i.itemId));
 
-        if (missingIdeal.length > 0 && nonIdealBag.length > 0) {
-          const target = missingIdeal[Math.floor(Math.random() * missingIdeal.length)];
+        if (missingTarget.length > 0 && nonTargetBag.length > 0) {
+          const target = missingTarget[Math.floor(Math.random() * missingTarget.length)];
 
-          // Look up full definition for the ideal item
+          // Look up full definition for the target item
           newItem = allFood.find((f) => f.itemId === target.itemId);
         }
       }
@@ -83,7 +83,7 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
           name: newItem.name,
           foodGroup: newItem.foodGroup,
           rarity: newItem.rarity,
-          matchesIdealMeal: false,
+          matchesTargetMeal: false,
           nutrition: newItem.nutrition,
           funFact: newItem.funFact,
         });
@@ -93,7 +93,7 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
             ? `You received a random epic item: ${newItem.name}!`
             : `Your ${victim.name} was upgraded to ${newItem.name}!`;
 
-        updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
+        updatedBag = await getVisitorBag(visitor, visitorData.targetMeal, credentials);
       }
     }
 

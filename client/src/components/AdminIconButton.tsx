@@ -7,7 +7,7 @@ export const AdminIconButton = ({
 }) => {
   return (
     <button
-      className="icon-with-rounded-border mb-4"
+      className="mb-4"
       onClick={() => setShowSettings(showSettings)}
       aria-label={showSettings ? "Back to game" : "Open admin settings"}
     >

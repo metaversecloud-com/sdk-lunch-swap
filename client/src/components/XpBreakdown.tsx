@@ -18,9 +18,9 @@ export const XpBreakdown = ({ totalXp, nutritionScore, superCombosCount, current
   const lineItems = useMemo<LineItem[]>(() => {
     const items: LineItem[] = [{ label: "Base completion", value: XP_ACTIONS.SUBMIT_MEAL }];
 
-    if (nutritionScore !== undefined && nutritionScore >= 80) {
-      items.push({ label: "Nutrition bonus", value: XP_ACTIONS.BALANCED_MEAL_BONUS, highlight: true });
-    }
+    // if (nutritionScore !== undefined && nutritionScore >= 80) {
+    //   items.push({ label: "Nutrition bonus", value: XP_ACTIONS.BALANCED_MEAL_BONUS, highlight: true });
+    // }
 
     if (superCombosCount !== undefined && superCombosCount > 0) {
       items.push({
@@ -31,8 +31,8 @@ export const XpBreakdown = ({ totalXp, nutritionScore, superCombosCount, current
     }
 
     if (currentStreak !== undefined && currentStreak > 0) {
-      const streakXp = Math.min(currentStreak * XP_ACTIONS.STREAK_PER_DAY, XP_ACTIONS.STREAK_CAP);
-      items.push({ label: `Streak bonus (${currentStreak}d)`, value: streakXp });
+      const streakXp = Math.min(currentStreak * XP_ACTIONS.STREAK_PER_WEEK, XP_ACTIONS.STREAK_CAP);
+      items.push({ label: `Streak bonus (${currentStreak}w)`, value: streakXp });
     }
 
     return items;

@@ -1,5 +1,5 @@
 import { Credentials } from "../types/index.js";
-import { BagItem, FoodItemDefinition, IdealMealItem } from "@shared/types/FoodItem.js";
+import { BagItem, FoodItemDefinition, TargetMealItem } from "@shared/types/FoodItem.js";
 import { getCachedInventoryItems, InventoryItemType } from "./inventoryCache.js";
 import { getFoodItemsById } from "./foodItemLookup.js";
 import { InventoryItemInterface, VisitorInterface } from "@rtsdk/topia";
@@ -10,10 +10,10 @@ import { InventoryItemInterface, VisitorInterface } from "@rtsdk/topia";
  */
 export const buildBagFromItems = (
   allItems: InventoryItemType[],
-  idealMeal: IdealMealItem[],
+  targetMeal: TargetMealItem[],
   foodItemsById: Map<string, FoodItemDefinition>,
 ): BagItem[] => {
-  const idealItemIds = new Set(idealMeal.map((i) => i.itemId));
+  const targetItemIds = new Set(targetMeal.map((i) => i.itemId));
 
   return allItems
     .filter(
@@ -32,7 +32,7 @@ export const buildBagFromItems = (
         name: foodDef?.name ?? item.metadata?.name ?? item.name,
         foodGroup: foodDef?.foodGroup ?? item.metadata?.foodGroup ?? "snack",
         rarity: foodDef?.rarity ?? item.metadata?.rarity ?? "common",
-        matchesIdealMeal: idealItemIds.has(itemId),
+        matchesTargetMeal: targetItemIds.has(itemId),
         nutrition: foodDef?.nutrition,
         funFact: foodDef?.funFact,
         image: foodDef?.image,
@@ -46,38 +46,38 @@ export const buildBagFromItems = (
  */
 export const getVisitorBag = async (
   visitor: VisitorInterface,
-  idealMeal: IdealMealItem[],
+  targetMeal: TargetMealItem[],
   credentials: Credentials,
 ): Promise<BagItem[]> => {
   await visitor.fetchInventoryItems();
   const allItems: InventoryItemInterface[] = visitor.inventoryItems || [];
   const foodItemsById = await getFoodItemsById(credentials);
 
-  return buildBagFromItems(allItems as InventoryItemType[], idealMeal, foodItemsById);
+  return buildBagFromItems(allItems as InventoryItemType[], targetMeal, foodItemsById);
 };
 
 /**
- * Build a BagItem from a food definition and check if it matches the ideal meal.
+ * Build a BagItem from a food definition and check if it matches the target meal.
  */
 export const buildBagItemFromDef = (
   foodDef: FoodItemDefinition,
-  idealMeal: IdealMealItem[],
-): { bagItem: BagItem; matchesIdealMeal: boolean } => {
-  const idealItemIds = new Set(idealMeal?.map((i) => i.itemId) || []);
-  const matchesIdealMeal = idealItemIds.has(foodDef.itemId);
+  targetMeal: TargetMealItem[],
+): { bagItem: BagItem; matchesTargetMeal: boolean } => {
+  const targetItemIds = new Set(targetMeal?.map((i) => i.itemId) || []);
+  const matchesTargetMeal = targetItemIds.has(foodDef.itemId);
 
   const bagItem: BagItem = {
     itemId: foodDef.itemId,
     name: foodDef.name,
     foodGroup: foodDef.foodGroup,
     rarity: foodDef.rarity,
-    matchesIdealMeal,
+    matchesTargetMeal,
     nutrition: foodDef.nutrition,
     funFact: foodDef.funFact,
     image: foodDef.image,
   };
 
-  return { bagItem, matchesIdealMeal };
+  return { bagItem, matchesTargetMeal };
 };
 
 /**

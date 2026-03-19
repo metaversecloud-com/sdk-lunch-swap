@@ -3,7 +3,6 @@ import { InitialState } from "./types";
 export const initialState: InitialState = {
   error: "",
   hasInteractiveParams: false,
-  isNewDay: false,
   brownBag: [],
   idealMeal: [],
   completedToday: false,
@@ -17,5 +16,5 @@ export const initialState: InitialState = {
   hasRewardToken: false,
   dailyBuff: null,
   hotStreakActive: false,
-  idealPickupStreak: 0,
+  pickupStreak: 0,
 };

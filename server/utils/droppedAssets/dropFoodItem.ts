@@ -80,7 +80,7 @@ export async function dropFoodItem({
     isInteractive: true,
     interactivePublicKey,
     sceneDropId,
-    layer1: inventoryItem.image_path || "",
+    layer1: mystery ? "https://sdk-lunch-swap.s3.us-east-1.amazonaws.com/mysteryItem.png" : inventoryItem.image_path,
     assetScale: 0.4,
   });
 

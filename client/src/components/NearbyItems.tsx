@@ -13,12 +13,12 @@ interface NearbyItemsProps {
   afterSwap?: (data: {
     brownBag: BagItem[];
     pickedUpItem: BagItem | null;
-    matchesIdealMeal: boolean;
+    matchesTargetMeal: boolean;
     xpEarned: number;
     xp: number;
     level: number;
     hotStreakActive: boolean;
-    idealPickupStreak: number;
+    pickupStreak: number;
     funFact: string | null;
     isMystery: boolean;
   }) => void;

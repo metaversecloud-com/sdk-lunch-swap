@@ -5,7 +5,7 @@ import {
   SET_GAME_STATE,
   SET_HAS_INTERACTIVE_PARAMS,
   SET_BROWN_BAG,
-  SET_IDEAL_MEAL,
+  SET_TARGET_MEAL,
   SET_NEARBY_ITEMS,
   SET_COMPLETED,
   SET_DAILY_BUFF,
@@ -24,9 +24,8 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
       return {
         ...state,
         isAdmin: payload.isAdmin,
-        isNewDay: payload.isNewDay,
         brownBag: payload.brownBag,
-        idealMeal: payload.idealMeal,
+        targetMeal: payload.targetMeal,
         completedToday: payload.completedToday,
         nutritionScore: payload.nutritionScore,
         superCombosFound: payload.superCombosFound,
@@ -37,7 +36,7 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         hasRewardToken: payload.hasRewardToken,
         dailyBuff: payload.dailyBuff,
         hotStreakActive: payload.hotStreakActive,
-        idealPickupStreak: payload.idealPickupStreak,
+        pickupStreak: payload.pickupStreak,
         badges: payload.badges ?? state.badges,
         visitorInventory: payload.visitorInventory ?? state.visitorInventory,
         leaderboard: payload.leaderboard ?? state.leaderboard,
@@ -54,14 +53,14 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         ...(payload.xp !== undefined && { xp: payload.xp }),
         ...(payload.level !== undefined && { level: payload.level }),
         hotStreakActive: payload.hotStreakActive,
-        idealPickupStreak: payload.idealPickupStreak,
+        pickupStreak: payload.pickupStreak,
         ...(payload.visitorInventory && { visitorInventory: payload.visitorInventory }),
         error: "",
       };
-    case SET_IDEAL_MEAL:
+    case SET_TARGET_MEAL:
       return {
         ...state,
-        idealMeal: payload.idealMeal,
+        targetMeal: payload.targetMeal,
         error: "",
       };
     case SET_NEARBY_ITEMS:

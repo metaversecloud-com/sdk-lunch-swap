@@ -154,7 +154,7 @@ function setupPickupMocks(
       idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
       completedToday: false,
       pickupsToday: 0,
-      idealPickupStreak: 0,
+      pickupStreak: 0,
       hotStreakActive: false,
     },
     foodAssetExists = true,
@@ -232,7 +232,7 @@ function setupDropMocks(
       completedToday: false,
       pickupsToday: 0,
       dropsToday: 0,
-      idealPickupStreak: 2,
+      pickupStreak: 2,
       hotStreakActive: false,
     },
   } = opts;
@@ -270,13 +270,13 @@ describe("Hot Streaks", () => {
   beforeEach(() => jest.clearAllMocks());
 
   describe("POST /api/pickup-item — streak logic", () => {
-    test("picking up ideal-meal-matching item increments idealPickupStreak", async () => {
+    test("picking up ideal-meal-matching item increments pickupStreak", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
           idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 1,
+          pickupStreak: 1,
           hotStreakActive: false,
         },
       });
@@ -285,26 +285,26 @@ describe("Hot Streaks", () => {
       const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      expect(res.body.idealPickupStreak).toBe(2);
+      expect(res.body.pickupStreak).toBe(2);
       expect(res.body.hotStreakActive).toBe(false);
       expect(res.body.xpMultiplier).toBe(1);
 
       // Verify visitor data update includes streak increment
       expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
         expect.objectContaining({
-          idealPickupStreak: 2,
+          pickupStreak: 2,
           hotStreakActive: false,
         }),
       );
     });
 
-    test("picking up non-matching item resets idealPickupStreak to 0", async () => {
+    test("picking up non-matching item resets pickupStreak to 0", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
           idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 2,
+          pickupStreak: 2,
           hotStreakActive: false,
         },
       });
@@ -313,23 +313,23 @@ describe("Hot Streaks", () => {
       const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      expect(res.body.idealPickupStreak).toBe(0);
+      expect(res.body.pickupStreak).toBe(0);
       expect(res.body.xpMultiplier).toBe(1);
 
       expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
         expect.objectContaining({
-          idealPickupStreak: 0,
+          pickupStreak: 0,
         }),
       );
     });
 
-    test("when idealPickupStreak reaches 3, hotStreakActive is set to true", async () => {
+    test("when pickupStreak reaches 3, hotStreakActive is set to true", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
           idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 2,
+          pickupStreak: 2,
           hotStreakActive: false,
         },
       });
@@ -338,13 +338,13 @@ describe("Hot Streaks", () => {
       const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      expect(res.body.idealPickupStreak).toBe(3);
+      expect(res.body.pickupStreak).toBe(3);
       expect(res.body.hotStreakActive).toBe(true);
       expect(res.body.xpMultiplier).toBe(1); // Not consumed yet
 
       expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
         expect.objectContaining({
-          idealPickupStreak: 3,
+          pickupStreak: 3,
           hotStreakActive: true,
         }),
       );
@@ -356,7 +356,7 @@ describe("Hot Streaks", () => {
           idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 3,
+          pickupStreak: 3,
           hotStreakActive: true,
         },
       });
@@ -370,12 +370,12 @@ describe("Hot Streaks", () => {
       expect(res.body.xpEarned).toBe(30);
       expect(res.body.xpMultiplier).toBe(3);
       expect(res.body.hotStreakActive).toBe(false);
-      expect(res.body.idealPickupStreak).toBe(0);
+      expect(res.body.pickupStreak).toBe(0);
 
       expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
         expect.objectContaining({
           hotStreakActive: false,
-          idealPickupStreak: 0,
+          pickupStreak: 0,
         }),
       );
     });
@@ -386,7 +386,7 @@ describe("Hot Streaks", () => {
           idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 3,
+          pickupStreak: 3,
           hotStreakActive: true,
         },
       });
@@ -407,7 +407,7 @@ describe("Hot Streaks", () => {
           idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 0,
+          pickupStreak: 0,
           hotStreakActive: false,
         },
       });
@@ -416,13 +416,13 @@ describe("Hot Streaks", () => {
       const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      expect(res.body.idealPickupStreak).toBe(1);
+      expect(res.body.pickupStreak).toBe(1);
       expect(res.body.hotStreakActive).toBe(false);
     });
   });
 
   describe("POST /api/drop-item — streak reset", () => {
-    test("dropping an item resets idealPickupStreak to 0", async () => {
+    test("dropping an item resets pickupStreak to 0", async () => {
       const { mockVisitor } = setupDropMocks({
         brownBag: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false }],
         visitorData: {
@@ -430,7 +430,7 @@ describe("Hot Streaks", () => {
           completedToday: false,
           pickupsToday: 0,
           dropsToday: 0,
-          idealPickupStreak: 2,
+          pickupStreak: 2,
           hotStreakActive: false,
         },
       });
@@ -443,7 +443,7 @@ describe("Hot Streaks", () => {
 
       expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
         expect.objectContaining({
-          idealPickupStreak: 0,
+          pickupStreak: 0,
         }),
       );
     });

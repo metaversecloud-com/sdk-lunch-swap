@@ -215,7 +215,7 @@ function resetState() {
     totalPickups: 0,
     totalDrops: 0,
     totalSuperCombos: 0,
-    idealPickupStreak: 0,
+    pickupStreak: 0,
     hotStreakActive: false,
     completedToday: false,
     pickupsToday: 0,

@@ -188,7 +188,7 @@ function setupPickupMocks(
       idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
       completedToday: false,
       pickupsToday: 0,
-      idealPickupStreak: 0,
+      pickupStreak: 0,
       hotStreakActive: false,
     },
     foodAssetExists = true,

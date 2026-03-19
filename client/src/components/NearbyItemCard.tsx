@@ -45,17 +45,17 @@ export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: N
     <>
       <div
         className={`relative flex items-center gap-3 p-3 rounded-xl border-2 bg-white transition-all duration-200
-          ${item.matchesIdealMeal && !item.isMystery ? "shadow-md ring-2 ring-yellow-400" : ""}
+          ${item.matchesTargetMeal && !item.isMystery ? "shadow-md ring-2 ring-yellow-400" : ""}
           ${item.isComboMatch && !item.isMystery ? "shadow-md ring-2 ring-purple-400" : ""}
-          ${!item.matchesIdealMeal && !item.isComboMatch ? "shadow-sm" : ""}
+          ${!item.matchesTargetMeal && !item.isComboMatch ? "shadow-sm" : ""}
           hover:shadow-md`}
         style={{ borderColor: item.isMystery ? "#6B7280" : borderColor }}
-        aria-label={`${displayName}${item.matchesIdealMeal && !item.isMystery ? ", matches your ideal meal" : ""}${item.isComboMatch && !item.isMystery ? ", super combo pair" : ""}`}
+        aria-label={`${displayName}${item.matchesTargetMeal && !item.isMystery ? ", matches your target meal" : ""}${item.isComboMatch && !item.isMystery ? ", super combo pair" : ""}`}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
-            {item.matchesIdealMeal && !item.isMystery && (
-              <span className="text-green-500 text-sm" aria-label="Matches ideal meal" role="img">
+            {item.matchesTargetMeal && !item.isMystery && (
+              <span className="text-green-500 text-sm" aria-label="Matches target meal" role="img">
                 &#9733;
               </span>
             )}

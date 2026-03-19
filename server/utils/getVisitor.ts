@@ -76,7 +76,7 @@ export const getVisitor = async (
 
     // Build brown bag from inventory items, enriched with ecosystem data
     const foodItemsById = await getFoodItemsById(credentials);
-    const brownBag = buildBagFromItems(allItems, visitorData.idealMeal || [], foodItemsById);
+    const brownBag = buildBagFromItems(allItems, visitorData.targetMeal || [], foodItemsById);
 
     // Read XP and Reward Tokens from inventory
     const xp = getVisitorXp(allItems);

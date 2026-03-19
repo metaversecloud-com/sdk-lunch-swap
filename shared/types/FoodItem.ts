@@ -26,13 +26,13 @@ export interface BagItem {
   name: string;
   foodGroup: FoodGroup;
   rarity: Rarity;
-  matchesIdealMeal: boolean;
+  matchesTargetMeal: boolean;
   nutrition?: NutritionInfo;
   funFact?: string;
   image?: string;
 }
 
-export interface IdealMealItem {
+export interface TargetMealItem {
   itemId: string;
   name: string;
   foodGroup: FoodGroup;

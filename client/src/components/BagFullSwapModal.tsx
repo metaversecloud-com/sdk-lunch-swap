@@ -141,7 +141,7 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
                 style={{ borderColor: isSelected ? "grey" : borderColor }}
                 onClick={() => handleSelectItem(item)}
                 aria-pressed={isSelected}
-                aria-label={`${item.name} - ${item.foodGroup}, ${rarityConfig.label}${item.matchesIdealMeal ? ", matches ideal meal" : ""}${isSelected ? " - selected for swap" : ""}`}
+                aria-label={`${item.name} - ${item.foodGroup}, ${rarityConfig.label}${item.matchesTargetMeal ? ", matches target meal" : ""}${isSelected ? " - selected for swap" : ""}`}
               >
                 <div className="flex items-center gap-1.5 w-full">
                   {/* Food group indicator */}
@@ -155,7 +155,7 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
                     <span className="tooltip-content p3">{item.name}</span>
                     <span>{item.name}</span>
                   </div>
-                  {item.matchesIdealMeal && (
+                  {item.matchesTargetMeal && (
                     <div
                       className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center"
                       aria-hidden="true"
@@ -209,8 +209,8 @@ export const BagFullSwapModal = ({ pickupDroppedAssetId, onComplete, onClose }: 
             <p className="text-warning">
               Swap out <strong>{selectedItem.name}</strong>?
             </p>
-            {selectedItem.matchesIdealMeal && (
-              <p className="text-warning">Warning: This item is part of your ideal meal!</p>
+            {selectedItem.matchesTargetMeal && (
+              <p className="text-warning">Warning: This item is part of your Perfect Lunch!</p>
             )}
           </div>
         )}

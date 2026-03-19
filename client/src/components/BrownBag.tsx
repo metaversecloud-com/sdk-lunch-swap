@@ -7,12 +7,11 @@ const BASE_BAG_SLOTS = 8;
 const BIG_BAG_BONUS = 2;
 
 interface BrownBagProps {
-  isPreview?: boolean;
   onDrop?: (itemId: string) => void;
   onDropAllNonMatches?: () => Promise<void>;
 }
 
-export const BrownBag = ({ isPreview, onDrop, onDropAllNonMatches }: BrownBagProps) => {
+export const BrownBag = ({ onDrop, onDropAllNonMatches }: BrownBagProps) => {
   const { brownBag, dailyBuff } = useContext(GlobalStateContext);
   const BAG_SLOTS = BASE_BAG_SLOTS + (dailyBuff === "big-bag" ? BIG_BAG_BONUS : 0);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
@@ -51,18 +50,16 @@ export const BrownBag = ({ isPreview, onDrop, onDropAllNonMatches }: BrownBagPro
         <h3>Your Bag</h3>
         <span className="grid p2 text-muted text-right">
           {filledCount}/{BAG_SLOTS} items
-          {!isPreview && (
-            <button
-              className="btn-text mt-1"
-              onClick={() => {
-                setExpandAll((prev) => !prev);
-                setExpandedIndex(null);
-              }}
-              aria-label={expandAll ? "Collapse all items" : "Expand all items"}
-            >
-              {expandAll ? "Collapse all" : "Expand all"}
-            </button>
-          )}
+          <button
+            className="btn-text mt-1"
+            onClick={() => {
+              setExpandAll((prev) => !prev);
+              setExpandedIndex(null);
+            }}
+            aria-label={expandAll ? "Collapse all items" : "Expand all items"}
+          >
+            {expandAll ? "Collapse all" : "Expand all"}
+          </button>
         </span>
       </div>
 
@@ -73,7 +70,6 @@ export const BrownBag = ({ isPreview, onDrop, onDropAllNonMatches }: BrownBagPro
             <BagItemCard
               key={item ? item.itemId : `empty-${index}`}
               item={item}
-              isPreview={isPreview}
               onDrop={(itemId) => {
                 setExpandedIndex(null);
                 onDrop?.(itemId);
@@ -86,7 +82,7 @@ export const BrownBag = ({ isPreview, onDrop, onDropAllNonMatches }: BrownBagPro
         })}
       </div>
 
-      {!isPreview && onDropAllNonMatches && items.some((item) => !item.matchesIdealMeal) && (
+      {onDropAllNonMatches && items.some((item) => !item.matchesTargetMeal) && (
         <button
           className="btn btn-danger w-full mt-3"
           onClick={async () => {

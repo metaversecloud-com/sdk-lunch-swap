@@ -30,7 +30,7 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
     });
 
     const foodItemsById = await getFoodItemsById(credentials);
-    const idealItemIds = new Set(visitorData.idealMeal?.map((i: any) => i.itemId) || []);
+    const targetItemIds = new Set(visitorData.targetMeal?.map((i: any) => i.itemId) || []);
 
     // combo-finder buff: map nearby item IDs to the bag item name they combo with
     let comboTargetMap: Map<string, string> | null = null;
@@ -82,7 +82,7 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
         foodGroup: foodDef.foodGroup, // Keep foodGroup as a hint even for mystery items
         rarity: isMystery ? "mystery" : foodDef.rarity,
         distance: Math.round(distance),
-        matchesIdealMeal: isMystery ? false : idealItemIds.has(itemId),
+        matchesTargetMeal: isMystery ? false : targetItemIds.has(itemId),
         isMystery,
         isComboMatch: !isMystery && comboTargetMap ? comboTargetMap.has(itemId) : false,
         comboMatchPartner: (!isMystery && comboTargetMap?.get(itemId)) || undefined,

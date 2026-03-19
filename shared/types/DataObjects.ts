@@ -1,9 +1,9 @@
-import { FoodGroup, IdealMealItem, Rarity } from "./FoodItem.js";
+import { FoodGroup, TargetMealItem, Rarity } from "./FoodItem.js";
 
 // --- Visitor Data Object ---
 export interface VisitorGameData {
   lastPlayedDate: string;
-  idealMeal: IdealMealItem[];
+  targetMeal: TargetMealItem[];
   completedToday: boolean;
   completionTimestamp: string | null;
   pickupsToday: number;
@@ -11,7 +11,7 @@ export interface VisitorGameData {
   itemsMatchedToday: number;
   nutritionScore: number | null;
   superCombosFound: string[];
-  idealPickupStreak: number;
+  pickupStreak: number;
   hotStreakActive: boolean;
   dailyBuff: string | null;
   totalXp: number;
@@ -24,18 +24,18 @@ export interface VisitorGameData {
   currentStreak: number;
   longestStreak: number;
   lastCompletionDate: string;
+  lastCompletionWeek: string;
   totalMysteryItemsRevealed: number;
   totalItemsCollectedByRarity: {
     common: number;
     rare: number;
     epic: number;
   };
-  dayStartTimestamp: string | null;
 }
 
 export const VISITOR_DATA_DEFAULTS: VisitorGameData = {
   lastPlayedDate: "",
-  idealMeal: [],
+  targetMeal: [],
   completedToday: false,
   completionTimestamp: null,
   pickupsToday: 0,
@@ -43,7 +43,7 @@ export const VISITOR_DATA_DEFAULTS: VisitorGameData = {
   itemsMatchedToday: 0,
   nutritionScore: null,
   superCombosFound: [],
-  idealPickupStreak: 0,
+  pickupStreak: 0,
   hotStreakActive: false,
   dailyBuff: null,
   totalXp: 0,
@@ -56,13 +56,13 @@ export const VISITOR_DATA_DEFAULTS: VisitorGameData = {
   currentStreak: 0,
   longestStreak: 0,
   lastCompletionDate: "",
+  lastCompletionWeek: "",
   totalMysteryItemsRevealed: 0,
   totalItemsCollectedByRarity: {
     common: 0,
     rare: 0,
     epic: 0,
   },
-  dayStartTimestamp: null,
 };
 
 // --- World Data Object ---

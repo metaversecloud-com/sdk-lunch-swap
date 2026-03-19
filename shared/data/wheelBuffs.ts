@@ -11,9 +11,9 @@ export const WHEEL_BUFFS: WheelBuff[] = [
   { id: "epic-drop", name: "Epic Drop", description: "A random epic item appears in your bag!", weight: 20 },
   { id: "double-xp", name: "Double XP", description: "All XP earned today is 2x!", weight: 10 },
   {
-    id: "ideal-item",
-    name: "Ideal Item",
-    description: "One bag item upgraded to match your ideal meal!",
+    id: "target-item",
+    name: "Matching Item",
+    description: "One bag item upgraded to match your target meal!",
     weight: 10,
   },
 ];

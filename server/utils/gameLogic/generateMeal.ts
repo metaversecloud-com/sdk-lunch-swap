@@ -1,4 +1,4 @@
-import { IdealMealItem, FoodGroup } from "@shared/types/FoodItem.js";
+import { TargetMealItem, FoodGroup } from "@shared/types/FoodItem.js";
 import { Credentials } from "../../types/index.js";
 import { getFoodItemsByGroup } from "../foodItemLookup.js";
 
@@ -7,7 +7,7 @@ function pickRandom<T>(arr: T[], count: number): T[] {
   return shuffled.slice(0, count);
 }
 
-export async function generateIdealMeal(credentials: Credentials): Promise<IdealMealItem[]> {
+export async function generateMeal(credentials: Credentials): Promise<TargetMealItem[]> {
   const foodItemsByGroup = await getFoodItemsByGroup(credentials);
 
   const drink = pickRandom(foodItemsByGroup.drink, 1)[0];
