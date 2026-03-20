@@ -166,14 +166,14 @@ export const MainGameView = () => {
   return (
     <div className="flex flex-col gap-4">
       {/* Status bar */}
-      <div className="flex items-center justify-between text-muted p2">
-        <div className="flex grid-cols-2">
-          <span className="flex items-center justify-center -mt-1 mr-2 rounded-full border border-gray-500 w-6 h-6">
+      <div className="flex items-center justify-between rounded-2xl bg-gradient-to-br from-green-200 to-lime-100 shadow-sm p-3">
+        <div className="flex grid-cols-2 items-center p2">
+          <span className="flex items-center justify-center  mr-2 rounded-full border border-gray-500 w-7 h-7">
             {level}
           </span>
           {getLevelTitle(level ?? 1)}
         </div>
-        <span>{xp ?? 0} XP</span>
+        <span className="p2">{xp ?? 0} XP</span>
       </div>
 
       {/* Daily buff / spin to win + Instructions */}
