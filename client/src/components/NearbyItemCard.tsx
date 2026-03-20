@@ -7,6 +7,7 @@ import { PostPickupResponseType } from "@/context/types";
 interface NearbyItemCardProps {
   item: NearbyItem;
   bagFull?: boolean;
+  alreadyInBag?: boolean;
   onPickup: (droppedAssetId: string) => void;
   afterSwap?: (data: PostPickupResponseType) => void;
 }
@@ -18,7 +19,13 @@ const formatDistance = (distance: number): string => {
   return "A bit far";
 };
 
-export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: NearbyItemCardProps) => {
+export const NearbyItemCard = ({
+  item,
+  onPickup,
+  afterSwap,
+  bagFull = false,
+  alreadyInBag = false,
+}: NearbyItemCardProps) => {
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [isGrabbing, setIsGrabbing] = useState(false);
 
@@ -93,15 +100,19 @@ export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: N
         </div>
 
         <button
-          className="btn btn-success flex-shrink-0 p3 transition-colors max-w-[44px]
+          className={`btn flex-shrink-0 p3 transition-colors max-w-[44px]
             focus:outline-none focus:ring-2 focus:ring-offset-2
-            bg-green-500 hover:bg-green-600 active:bg-green-700 focus:ring-green-400
-            disabled:opacity-50 disabled:cursor-not-allowed"
+            ${
+              alreadyInBag
+                ? "bg-gray-400 cursor-not-allowed focus:ring-gray-300"
+                : "btn-success bg-green-500 hover:bg-green-600 active:bg-green-700 focus:ring-green-400"
+            }
+            disabled:opacity-50 disabled:cursor-not-allowed`}
           onClick={handleClick}
-          disabled={isGrabbing}
-          aria-label={`Pick up ${displayName}`}
+          disabled={isGrabbing || alreadyInBag}
+          aria-label={alreadyInBag ? `${displayName} already in your bag` : `Pick up ${displayName}`}
         >
-          {item.isMystery ? "?" : "Grab it!"}
+          {alreadyInBag ? "Got it!" : item.isMystery ? "?" : "Grab it!"}
         </button>
       </div>
 

@@ -25,7 +25,7 @@ type ItemDetails = {
 
 export const Item = () => {
   const dispatch = useContext(GlobalDispatchContext);
-  const { hasInteractiveParams, targetMeal } = useContext(GlobalStateContext);
+  const { hasInteractiveParams, targetMeal, brownBag } = useContext(GlobalStateContext);
   const [searchParams] = useSearchParams();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -43,6 +43,7 @@ export const Item = () => {
 
   const droppedAssetId = searchParams.get("assetId") || "";
   const mealItems = targetMeal ?? [];
+  const bagItemIds = new Set((brownBag ?? []).map((b) => b.itemId));
 
   const checkMealComplete = (updatedBag: { itemId: string }[]) => {
     const bagIds = new Set(updatedBag.map((b) => b.itemId));
@@ -62,7 +63,7 @@ export const Item = () => {
         });
         dispatch!({ type: SET_TARGET_MEAL, payload: { targetMeal } });
         setItemDetails(data);
-        setIsNewDay(newDay);
+        setIsNewDay(newDay || !targetMeal?.length);
         setHasCompletedToday(completedToday);
         setKeyAssetId(keyAssetId);
       })
@@ -178,6 +179,7 @@ export const Item = () => {
   const available = () => {
     const { foodDef, matchesTargetMeal, bagFull, isMystery } = itemDetails!;
     const { name, image, foodGroup, rarity, nutrition, funFact } = foodDef;
+    const alreadyInBag = bagItemIds.has(foodDef.itemId);
     return (
       <div className="grid gap-6">
         <div className="flex flex-col gap-4">
@@ -265,35 +267,48 @@ export const Item = () => {
           ) : (
             <>
               <button
-                className={`btn btn-success flex-shrink-0 
+                className={`btn flex-shrink-0
             focus:outline-none focus:ring-2 focus:ring-offset-2
               ${
-                isPickingUp
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-500 hover:bg-green-600 active:bg-green-700 focus:ring-green-400"
+                alreadyInBag
+                  ? "bg-gray-400 cursor-not-allowed focus:ring-gray-300"
+                  : isPickingUp
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "btn-success bg-green-500 hover:bg-green-600 active:bg-green-700 focus:ring-green-400"
               }`}
                 onClick={handleButtonClick}
-                disabled={isPickingUp}
+                disabled={isPickingUp || alreadyInBag}
                 aria-label={
-                  isPickingUp ? "Picking up..." : isMystery ? "Reveal and pick up this mystery item" : `Pick up ${name}`
+                  alreadyInBag
+                    ? `${name} already in your bag`
+                    : isPickingUp
+                      ? "Picking up..."
+                      : isMystery
+                        ? "Reveal and pick up this mystery item"
+                        : `Pick up ${name}`
                 }
               >
-                {isPickingUp
-                  ? "Picking up..."
-                  : bagFull
-                    ? "Swap for this item"
-                    : isMystery
-                      ? "Reveal & Pick Up"
-                      : "Pick Up"}
+                {alreadyInBag
+                  ? "Got it!"
+                  : isPickingUp
+                    ? "Picking up..."
+                    : bagFull
+                      ? "Swap for this item"
+                      : isMystery
+                        ? "Reveal & Pick Up"
+                        : "Pick Up"}
               </button>
-              {bagFull && !isPickingUp && (
+              {alreadyInBag && (
+                <p className="p3 text-center text-muted">You already have this item in your bag.</p>
+              )}
+              {bagFull && !isPickingUp && !alreadyInBag && (
                 <p className="p3 text-center text-muted">Your bag is full. Picking up will let you swap an item out.</p>
               )}
             </>
           )}
         </div>
 
-        {!hasCompletedToday && (
+        {!isNewDay && !hasCompletedToday && (
           <>
             <Divider />
 

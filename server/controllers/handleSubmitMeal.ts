@@ -100,6 +100,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     } else {
       newStreak = 1; // Starting fresh
     }
+    const isNewStreakRecord = newStreak > (visitorData.longestStreak || 0);
 
     // Streak XP bonus (capped)
     const streakXp = Math.min(newStreak * XP_ACTIONS.STREAK_PER_WEEK, XP_ACTIONS.STREAK_CAP);
@@ -219,7 +220,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     visitor
       .fireToast({
         title: "Meal Complete!",
-        text: `Score: ${nutritionResult.score}/100 | +${totalXp} XP${superCombos.length > 0 ? ` | ${superCombos.length} combo(s)!` : ""}`,
+        text: `+${totalXp} XP${superCombos.length > 0 ? ` | ${superCombos.length} combo(s)!` : ""}`,
       })
       .catch(() => {});
 
@@ -236,6 +237,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
       completedToday: true,
       visitorInventory: updatedVisitorInventory,
       ...(leaderboard && { leaderboard }),
+      isNewStreakRecord,
     });
   } catch (error) {
     return errorHandler({

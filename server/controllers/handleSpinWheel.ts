@@ -5,7 +5,6 @@ import {
   getVisitor,
   grantRewardToken,
   grantFoodToVisitor,
-  removeFoodFromVisitor,
   getAllFoodItems,
   getVisitorBag,
 } from "@utils/index.js";
@@ -46,13 +45,10 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
     let updatedBag;
 
     // Apply immediate-effect buffs
-
     if (buff.id === "epic-drop" || buff.id === "target-item") {
       const allFood = await getAllFoodItems(credentials);
       const bag = await getVisitorBag(visitor, visitorData.targetMeal, credentials);
       const bagItemIds = new Set(bag.map((b) => b.itemId));
-      const nonTargetBag = bag.filter((b) => !b.matchesTargetMeal && b.rarity === "common");
-      const victim = nonTargetBag[Math.floor(Math.random() * nonTargetBag.length)];
 
       let newItem;
 
@@ -62,13 +58,11 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
         if (epicItems.length > 0) {
           newItem = epicItems[Math.floor(Math.random() * epicItems.length)];
         }
-      }
-
-      if (buff.id === "target-item") {
+      } else if (buff.id === "target-item") {
         // Upgrade one non-target bag item to a missing target meal item
         const missingTarget = (visitorData.targetMeal || []).filter((i: any) => !bagItemIds.has(i.itemId));
 
-        if (missingTarget.length > 0 && nonTargetBag.length > 0) {
+        if (missingTarget.length > 0) {
           const target = missingTarget[Math.floor(Math.random() * missingTarget.length)];
 
           // Look up full definition for the target item
@@ -77,13 +71,12 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
       }
 
       if (newItem) {
-        await removeFoodFromVisitor(visitor, credentials, victim.itemId);
         await grantFoodToVisitor(visitor, credentials, {
           itemId: newItem.itemId,
           name: newItem.name,
           foodGroup: newItem.foodGroup,
           rarity: newItem.rarity,
-          matchesTargetMeal: false,
+          matchesTargetMeal: buff.id === "target-item",
           nutrition: newItem.nutrition,
           funFact: newItem.funFact,
         });
@@ -91,7 +84,7 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
         buff.description =
           buff.id === "epic-drop"
             ? `You received a random epic item: ${newItem.name}!`
-            : `Your ${victim.name} was upgraded to ${newItem.name}!`;
+            : `You received a ${newItem.name}!`;
 
         updatedBag = await getVisitorBag(visitor, visitorData.targetMeal, credentials);
       }

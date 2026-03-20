@@ -140,6 +140,7 @@ export const MainGameView = () => {
         longestStreak,
         visitorInventory: updatedInventory,
         leaderboard,
+        isNewStreakRecord,
       } = response.data;
 
       dispatch!({
@@ -154,6 +155,7 @@ export const MainGameView = () => {
           longestStreak,
           visitorInventory: updatedInventory,
           leaderboard,
+          isNewStreakRecord,
         },
       });
     } catch (error) {
@@ -166,9 +168,9 @@ export const MainGameView = () => {
   return (
     <div className="flex flex-col gap-4">
       {/* Status bar */}
-      <div className="flex items-center justify-between rounded-2xl bg-gradient-to-br from-green-200 to-lime-100 shadow-sm p-3">
+      <div className="flex items-center justify-between rounded-2xl bg-gradient-to-br from-green-200 to-lime-100 border border-gray-300 shadow-sm p-3">
         <div className="flex grid-cols-2 items-center p2">
-          <span className="flex items-center justify-center  mr-2 rounded-full border border-gray-500 w-7 h-7">
+          <span className="flex items-center justify-center  mr-2 rounded-full border border-gray-900 w-7 h-7">
             {level}
           </span>
           {getLevelTitle(level ?? 1)}
@@ -202,7 +204,7 @@ export const MainGameView = () => {
             <circle cx="100" cy="100" r="12" fill="#fff" />
           </svg>
           {activeBuffName ? (
-            <span className="text-muted">{activeBuffName} active today!</span>
+            <span className="text-muted">{activeBuffName}</span>
           ) : (
             <button className="btn-text" onClick={() => setShowWheelModal(true)} aria-label="Open bonus wheel">
               Spin to win a bonus!
@@ -262,45 +264,17 @@ export const MainGameView = () => {
 
       {/* Bonus wheel modal */}
       {showWheelModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setShowWheelModal(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Bonus wheel"
-        >
-          <div
-            className="bg-white rounded-2xl p-6 mx-4 max-w-sm w-full shadow-xl max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {hasRewardToken ? (
-              <BonusWheel
-                onSkip={() => setShowWheelModal(false)}
-                onResult={({ buff, brownBag: updatedBag }) => {
-                  dispatch!({ type: SET_DAILY_BUFF, payload: { dailyBuff: buff.id } });
-                  if (updatedBag) {
-                    dispatch!({ type: SET_BROWN_BAG, payload: { brownBag: updatedBag } });
-                  }
-                  setShowWheelModal(false);
-                }}
-              />
-            ) : (
-              <div className="grid gap-4 text-center">
-                <h3>No Reward Tokens</h3>
-                <p className="p2 text-muted">
-                  You don't have any reward tokens yet. Keep playing and completing meals to earn more!
-                </p>
-                <button
-                  className="btn btn-outline"
-                  onClick={() => setShowWheelModal(false)}
-                  aria-label="Close bonus wheel"
-                >
-                  Got it
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <BonusWheel
+          hasRewardToken={!!hasRewardToken}
+          closeModal={() => setShowWheelModal(false)}
+          onResult={({ buff, brownBag: updatedBag }) => {
+            dispatch!({ type: SET_DAILY_BUFF, payload: { dailyBuff: buff.id } });
+            if (updatedBag) {
+              dispatch!({ type: SET_BROWN_BAG, payload: { brownBag: updatedBag } });
+            }
+            setShowWheelModal(false);
+          }}
+        />
       )}
 
       {/* Instructions modal */}

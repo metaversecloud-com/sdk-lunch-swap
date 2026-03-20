@@ -51,6 +51,14 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     // Fetch visitor with data and bag
     const { visitor, visitorData, visitorInventory, brownBag } = await getVisitor(credentials, true);
 
+    // Prevent picking up a duplicate item already in the bag
+    if (brownBag.some((item) => item.itemId === foodDef.itemId)) {
+      return res.status(400).json({
+        success: false,
+        message: `You already have ${foodDef.name} in your bag!`,
+      });
+    }
+
     // Check bag capacity (8 pre-completion, 3 post-completion; big-bag buff adds 2)
     const bigBagBonus = visitorData.dailyBuff === "big-bag" ? 2 : 0;
     const maxCapacity = (visitorData.completedToday ? BAG_CAPACITY_POST_COMPLETION : BAG_CAPACITY) + bigBagBonus;

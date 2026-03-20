@@ -82,6 +82,7 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         longestStreak: payload.longestStreak,
         ...(payload.visitorInventory && { visitorInventory: payload.visitorInventory }),
         ...(payload.leaderboard && { leaderboard: payload.leaderboard }),
+        isNewStreakRecord: payload.isNewStreakRecord,
         error: "",
       };
     case SET_DAILY_BUFF:

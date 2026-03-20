@@ -68,6 +68,7 @@ export interface InitialState {
   spawnRadiusMax?: number;
   proximityRadius?: number;
   foodItemsInWorld?: FoodItemInWorld[];
+  isNewStreakRecord?: boolean;
 }
 
 export type FoodItemInWorld = {

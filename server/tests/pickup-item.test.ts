@@ -356,6 +356,20 @@ describe("POST /api/pickup-item", () => {
     expect(res.body.message).toBe("Bag is full (3/3)");
   });
 
+  test("duplicate item already in bag: returns 400", async () => {
+    setupMocks({
+      brownBag: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesTargetMeal: true }],
+    });
+
+    const app = makeApp();
+    const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.message).toBe("You already have Apple in your bag!");
+    expect(mockUtils.grantFoodToVisitor).not.toHaveBeenCalled();
+  });
+
   test("item already gone (null asset): returns 409", async () => {
     setupMocks({ foodAssetExists: false });
 

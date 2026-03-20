@@ -13,7 +13,7 @@ export const WHEEL_BUFFS: WheelBuff[] = [
   {
     id: "target-item",
     name: "Matching Item",
-    description: "One bag item upgraded to match your target meal!",
+    description: "One bag item upgraded to match your Perfect Lunch!",
     weight: 10,
   },
 ];

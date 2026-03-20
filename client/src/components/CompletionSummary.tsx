@@ -3,7 +3,7 @@ import { GlobalStateContext } from "@/context/GlobalContext";
 import { Confetti, XpBreakdown, StreakCounter, Divider, MealTracker } from "@/components";
 
 export const CompletionSummary = () => {
-  const { completedToday, nutritionScore, superCombosFound, xp, currentStreak, longestStreak } =
+  const { completedToday, nutritionScore, superCombosFound, xp, currentStreak, longestStreak, isNewStreakRecord } =
     useContext(GlobalStateContext);
 
   if (!completedToday) return null;
@@ -51,7 +51,7 @@ export const CompletionSummary = () => {
 
         <Divider />
 
-        <StreakCounter currentStreak={streak} longestStreak={best} />
+        <StreakCounter currentStreak={streak} longestStreak={best} isNewStreakRecord={isNewStreakRecord} />
 
         <Divider />
 
