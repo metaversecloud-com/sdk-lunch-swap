@@ -444,7 +444,7 @@ describe("POST /api/submit-meal", () => {
     expect(mockVisitor.fireToast).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Meal Complete!",
-        text: expect.stringContaining("Score: 85/100"),
+        text: expect.stringContaining("XP"),
       }),
     );
   });

@@ -295,12 +295,10 @@ export const Item = () => {
                     : bagFull
                       ? "Swap for this item"
                       : isMystery
-                        ? "Reveal & Pick Up"
+                        ? "Pick Up & Reveal"
                         : "Pick Up"}
               </button>
-              {alreadyInBag && (
-                <p className="p3 text-center text-muted">You already have this item in your bag.</p>
-              )}
+              {alreadyInBag && <p className="p3 text-center text-muted">You already have this item in your bag.</p>}
               {bagFull && !isPickingUp && !alreadyInBag && (
                 <p className="p3 text-center text-muted">Your bag is full. Picking up will let you swap an item out.</p>
               )}

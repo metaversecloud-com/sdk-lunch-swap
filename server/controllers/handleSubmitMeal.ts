@@ -9,7 +9,6 @@ import {
   dropFoodItem,
   getFoodItemsById,
   getVisitor,
-  removeFoodFromVisitor,
   grantXp,
   grantRewardToken,
   checkSubmitMealBadges,
@@ -120,15 +119,6 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
     // Separate meal items from remaining bag items
     const targetMealItemIds = new Set(mealItemIds);
     const remainingBag = brownBag.filter((i) => !targetMealItemIds.has(i.itemId));
-
-    // Remove all items from inventory
-    for (const item of brownBag) {
-      try {
-        await removeFoodFromVisitor(visitor, credentials, item.itemId);
-      } catch (err) {
-        console.warn("Failed to remove bag item from inventory:", item.itemId, err);
-      }
-    }
 
     // Update visitor data
     await visitor.updateDataObject(

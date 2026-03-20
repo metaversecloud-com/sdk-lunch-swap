@@ -50,7 +50,7 @@ export const XpBreakdown = ({ totalXp, nutritionScore, superCombosCount, current
             key={item.label}
             role="listitem"
             className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm
-              ${item.highlight ? "bg-yellow-50 border border-yellow-200" : "bg-gray-50 border border-gray-100"}`}
+              ${item.highlight ? "bg-yellow-50 border border-yellow-200" : "bg-white border border-gray-100"}`}
           >
             <span className={`${item.highlight ? "text-yellow-800" : "text-gray-600"}`}>{item.label}</span>
             <span className={`${item.highlight ? "text-yellow-700" : "text-gray-800"}`}>+{item.value}</span>

@@ -2,13 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 // components
-import {
-  PageContainer,
-  BadgesView,
-  CompletionSummary,
-  Leaderboard,
-  MainGameView,
-} from "@/components";
+import { PageContainer, BadgesView, CompletionSummary, Leaderboard, MainGameView } from "@/components";
 
 // context
 import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";

@@ -17,32 +17,33 @@ export const CompletionSummary = () => {
   return (
     <>
       <section
-        className="grid items-center text-center gap-6 p-5 rounded-2xl bg-gradient-to-b from-green-50 to-white border border-green-200 shadow-sm relative"
+        className="grid items-center text-center gap-6 p-5 rounded-2xl bg-gradient-to-b from-green-50 to-lime-50 border border-green-200 shadow-sm relative"
         aria-label="Meal completion summary"
       >
         <Confetti />
 
         <MealTracker />
 
-        <Divider />
-
         {/* Super combo callouts */}
         {combos && combos.length > 0 && (
-          <div role="list" aria-label="Super combos found">
-            <p className="uppercase pb-2 text-center">Super Combos</p>
-            <div className="flex flex-wrap justify-center gap-1.5">
-              {combos.map((combo) => (
-                <span
-                  key={combo}
-                  role="listitem"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 text-xs border border-purple-200"
-                >
-                  <span aria-hidden="true">&#9889;</span>
-                  {combo}
-                </span>
-              ))}
+          <>
+            <Divider />
+            <div role="list" aria-label="Super combos found">
+              <p className="uppercase pb-2 text-center">Super Combos</p>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {combos.map((combo) => (
+                  <span
+                    key={combo}
+                    role="listitem"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 text-xs border border-purple-200"
+                  >
+                    <span aria-hidden="true">&#9889;</span>
+                    {combo}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         <Divider />
