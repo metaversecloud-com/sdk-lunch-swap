@@ -5,7 +5,7 @@ import router from "../routes.js";
 /**
  * Integration test: exercises the full game flow in sequence.
  *
- * 1. GET  /api/game-state  (new day)   -> generates ideal meal + brown bag
+ * 1. GET  /api/game-state  (new day)   -> generates target meal, bag starts empty
  * 2. POST /api/pickup-item             -> adds item to bag
  * 3. POST /api/drop-item               -> removes item from bag
  * 4. POST /api/submit-meal             -> completes the meal
@@ -27,8 +27,8 @@ const baseCreds = {
   profileId: "profile-1",
 };
 
-// --- Ideal meal (5 items from 5 food groups) ---
-const idealMeal = [
+// --- Target meal (5 items from 5 food groups) ---
+const targetMeal = [
   { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" },
   { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
   { itemId: "chicken_breast", name: "Chicken Breast", foodGroup: "main", rarity: "common" },
@@ -36,38 +36,18 @@ const idealMeal = [
   { itemId: "trail_mix", name: "Trail Mix", foodGroup: "snack", rarity: "common" },
 ];
 
-// --- Brown bag: 8 items = all 5 ideal + 3 extras ---
-const brownBag = [
-  { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: true },
-  { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", matchesIdealMeal: true },
-  { itemId: "chicken_breast", name: "Chicken Breast", foodGroup: "main", rarity: "common", matchesIdealMeal: true },
-  { itemId: "carrot_sticks", name: "Carrot Sticks", foodGroup: "veggie", rarity: "common", matchesIdealMeal: true },
-  { itemId: "trail_mix", name: "Trail Mix", foodGroup: "snack", rarity: "common", matchesIdealMeal: true },
-  { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
-  { itemId: "popcorn", name: "Popcorn", foodGroup: "snack", rarity: "common", matchesIdealMeal: false },
-  { itemId: "orange_juice", name: "Orange Juice", foodGroup: "drink", rarity: "common", matchesIdealMeal: false },
-];
-
 // --- Mock game logic ---
 jest.mock("@utils/gameLogic/index.js", () => ({
-  generateIdealMeal: jest.fn().mockResolvedValue([
+  generateMeal: jest.fn().mockResolvedValue([
     { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" },
     { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" },
     { itemId: "chicken_breast", name: "Chicken Breast", foodGroup: "main", rarity: "common" },
     { itemId: "carrot_sticks", name: "Carrot Sticks", foodGroup: "veggie", rarity: "common" },
     { itemId: "trail_mix", name: "Trail Mix", foodGroup: "snack", rarity: "common" },
   ]),
-  generateBrownBag: jest.fn().mockResolvedValue([
-    { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: true },
-    { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", matchesIdealMeal: true },
-    { itemId: "chicken_breast", name: "Chicken Breast", foodGroup: "main", rarity: "common", matchesIdealMeal: true },
-    { itemId: "carrot_sticks", name: "Carrot Sticks", foodGroup: "veggie", rarity: "common", matchesIdealMeal: true },
-    { itemId: "trail_mix", name: "Trail Mix", foodGroup: "snack", rarity: "common", matchesIdealMeal: true },
-    { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
-    { itemId: "popcorn", name: "Popcorn", foodGroup: "snack", rarity: "common", matchesIdealMeal: false },
-    { itemId: "orange_juice", name: "Orange Juice", foodGroup: "drink", rarity: "common", matchesIdealMeal: false },
-  ]),
   getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
+  getCurrentWeekMT: jest.fn().mockReturnValue("2026-W06"),
+  getPreviousWeekMT: jest.fn().mockReturnValue("2026-W05"),
   isNewDay: jest.fn().mockReturnValue(true),
   calculateNutritionScore: jest.fn().mockResolvedValue({
     score: 88,
@@ -183,13 +163,31 @@ jest.mock("@utils/index.js", () => ({
   getKeyAsset: jest.fn(),
   getVisitor: jest.fn(),
   getVisitorBag: jest.fn(),
+  getFoodItemsById: jest.fn().mockResolvedValue(new Map()),
+  getAllFoodItems: jest.fn().mockResolvedValue([]),
+  getFoodItemDefinition: jest.fn(),
   grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
   removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
   dropFoodItem: jest.fn().mockResolvedValue({ id: "new-dropped" }),
+  resolveFoodAsset: jest.fn(),
+  pickupFoodAsset: jest.fn().mockResolvedValue({ pickedUp: true }),
+  buildBagItemFromDef: jest.fn(),
+  calculatePickupXp: jest.fn().mockReturnValue(10),
+  grantXp: jest.fn().mockResolvedValue(10),
+  grantRewardToken: jest.fn().mockResolvedValue(undefined),
+  updateWorldStats: jest.fn().mockResolvedValue(undefined),
+  parseLeaderboard: jest.fn().mockReturnValue([]),
+  updateLeaderboard: jest.fn().mockResolvedValue(undefined),
+  checkSubmitMealBadges: jest.fn().mockResolvedValue(undefined),
+  checkLevelBadges: jest.fn().mockResolvedValue(undefined),
+  checkPickupBadges: jest.fn().mockResolvedValue(undefined),
+  getVisitorBadges: jest.fn().mockReturnValue([]),
+  getBadges: jest.fn().mockResolvedValue([]),
+  getFoodItemsInWorld: jest.fn().mockResolvedValue([]),
   Visitor: { get: jest.fn(), create: jest.fn() },
   World: { create: jest.fn(), deleteDroppedAssets: jest.fn() },
   User: { create: jest.fn() },
-  DroppedAsset: { get: jest.fn(), drop: jest.fn() },
+  DroppedAsset: { get: jest.fn(), drop: jest.fn(), create: jest.fn() },
   Asset: { create: jest.fn() },
 }));
 
@@ -235,12 +233,15 @@ function setupIntegrationMocks() {
   mockUtils.getKeyAsset.mockResolvedValue({
     id: "key-asset-1",
     position: { x: 0, y: 0 },
+    fetchDataObject: jest.fn().mockResolvedValue(undefined),
+    dataObject: {},
   });
 
   // Visitor mock -------------------------------------------------------
   const makeVisitor = () => ({
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
+    fireToast: jest.fn().mockResolvedValue(undefined),
     fetchDataObject: jest.fn().mockImplementation(function (this: any) {
       this.dataObject = { ...visitorData };
       return Promise.resolve();
@@ -262,13 +263,18 @@ function setupIntegrationMocks() {
     dataObject: visitorData,
   });
 
-  // getVisitor returns visitor + visitorData + brownBag from shared state
+  // getVisitor returns visitor + visitorData + brownBag + extra fields from shared state
   mockUtils.getVisitor.mockImplementation(() => {
     const visitor = makeVisitor();
     return Promise.resolve({
       visitor,
       visitorData: { ...visitorData },
       brownBag: [...currentBag],
+      visitorInventory: [],
+      xp: visitorData.totalXp || 0,
+      level: visitorData.level || 1,
+      newDay: mockGameLogic.isNewDay(),
+      hasRewardToken: visitorData.hasRewardToken || false,
     });
   });
 
@@ -293,12 +299,62 @@ function setupIntegrationMocks() {
   // dropFoodItem
   mockUtils.dropFoodItem.mockResolvedValue({ id: "new-dropped" });
 
+  // resolveFoodAsset mock
+  mockUtils.resolveFoodAsset.mockResolvedValue({
+    success: true,
+    foodAsset: {
+      id: "food-asset-pickup",
+      updateDataObject: jest.fn().mockResolvedValue(undefined),
+      deleteDroppedAsset: jest.fn().mockResolvedValue(undefined),
+    },
+    foodDef: {
+      itemId: "apple",
+      name: "Apple",
+      foodGroup: "fruit",
+      rarity: "common",
+      funFact: "Apple fact",
+      nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] },
+    },
+    isMystery: false,
+  });
+
+  // buildBagItemFromDef mock
+  mockUtils.buildBagItemFromDef.mockImplementation((foodDef: any, tMeal: any) => {
+    const matches = (tMeal || []).some((m: any) => m.itemId === foodDef.itemId);
+    return {
+      bagItem: {
+        itemId: foodDef.itemId,
+        name: foodDef.name,
+        foodGroup: foodDef.foodGroup,
+        rarity: foodDef.rarity,
+        matchesTargetMeal: matches,
+      },
+      matchesTargetMeal: matches,
+    };
+  });
+
+  // pickupFoodAsset mock
+  mockUtils.pickupFoodAsset.mockResolvedValue({ pickedUp: true });
+
+  // calculatePickupXp mock
+  mockUtils.calculatePickupXp.mockReturnValue(10);
+
+  // grantXp mock
+  mockUtils.grantXp.mockImplementation((_visitor: any, _creds: any, xpAmount: number) => {
+    visitorData.totalXp = (visitorData.totalXp || 0) + xpAmount;
+    return Promise.resolve(visitorData.totalXp);
+  });
+
+  // grantRewardToken mock
+  mockUtils.grantRewardToken.mockResolvedValue(undefined);
+
   // World mock ---------------------------------------------------------
   const makeWorld = () => ({
     fetchDataObject: jest.fn().mockImplementation(function (this: any) {
       this.dataObject = { ...worldData };
       return Promise.resolve();
     }),
+    fetchDetails: jest.fn().mockResolvedValue(undefined),
     updateDataObject: jest.fn().mockImplementation((data: any) => {
       worldData = { ...worldData, ...data };
       return Promise.resolve();
@@ -332,20 +388,20 @@ describe("Integration: Full Game Flow", () => {
     app = makeApp();
   });
 
-  test("Step 1: GET /api/game-state (new day) returns generated bag and meal", async () => {
+  test("Step 1: GET /api/game-state (new day) returns empty bag and target meal", async () => {
     const res = await request(app).get("/api/game-state").query(baseCreds);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.isNewDay).toBe(true);
 
-    // Brown bag should have 8 items
+    // Brown bag should be empty on new day (no brown bag generation)
     expect(res.body.brownBag).toBeInstanceOf(Array);
-    expect(res.body.brownBag).toHaveLength(8);
+    expect(res.body.brownBag).toHaveLength(0);
 
-    // Ideal meal should have 5 items
-    expect(res.body.idealMeal).toBeInstanceOf(Array);
-    expect(res.body.idealMeal).toHaveLength(5);
+    // Target meal should have 5 items
+    expect(res.body.targetMeal).toBeInstanceOf(Array);
+    expect(res.body.targetMeal).toHaveLength(5);
 
     // Not completed yet
     expect(res.body.completedToday).toBe(false);
@@ -353,31 +409,21 @@ describe("Integration: Full Game Flow", () => {
     // XP and level are numbers
     expect(typeof res.body.xp).toBe("number");
     expect(typeof res.body.level).toBe("number");
+
+    // Additional response fields
+    expect(res.body).toHaveProperty("badges");
+    expect(res.body).toHaveProperty("visitorInventory");
+    expect(res.body).toHaveProperty("leaderboard");
+    expect(res.body).toHaveProperty("foodItemsInWorld");
   });
 
   test("Step 2: POST /api/pickup-item adds item to bag", async () => {
     // First, initialize the game state (new day)
     await request(app).get("/api/game-state").query(baseCreds);
 
-    // Trim bag to 4 items to make space for pickup
-    currentBag.splice(4);
-
-    // Set up a food asset that exists in the world
-    const foodAssetUniqueName = `LunchSwap_foodItem|apple|common|${Date.now()}|0`;
-    const mockFoodAsset = {
-      id: "food-asset-pickup",
-      uniqueName: foodAssetUniqueName,
-      position: { x: 110, y: 210 },
-      fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-        this.dataObject = { itemId: "apple", rarity: "common" };
-        return Promise.resolve();
-      }),
-      deleteDroppedAsset: jest.fn().mockResolvedValue(undefined),
-      dataObject: {},
-    };
-    mockUtils.DroppedAsset.get.mockResolvedValue(mockFoodAsset);
-
+    // Set up a resolve food asset mock for pickup
     visitorData.pickupsToday = 0;
+    visitorData.targetMeal = targetMeal;
 
     const res = await request(app)
       .post("/api/pickup-item")
@@ -387,28 +433,31 @@ describe("Integration: Full Game Flow", () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
 
-    // Bag should have grown by 1 (from 4 to 5)
-    expect(res.body.brownBag).toHaveLength(5);
+    // Bag should have 1 item (started empty, picked up 1)
+    expect(res.body.brownBag).toHaveLength(1);
 
     // XP earned > 0
     expect(res.body.xpEarned).toBeGreaterThan(0);
 
-    // matchesIdealMeal boolean is present
-    expect(typeof res.body.matchesIdealMeal).toBe("boolean");
-
-    // The food asset should have been deleted from the world
-    expect(mockFoodAsset.deleteDroppedAsset).toHaveBeenCalled();
+    // matchesTargetMeal boolean is present
+    expect(typeof res.body.matchesTargetMeal).toBe("boolean");
   });
 
   test("Step 3: POST /api/drop-item removes item from bag", async () => {
     // Initialize game state
     await request(app).get("/api/game-state").query(baseCreds);
 
+    // Add some items to the bag for the drop test
+    currentBag.push(
+      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesTargetMeal: true },
+      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesTargetMeal: false },
+    );
+
     // Ensure dropsToday is set
     visitorData.dropsToday = 0;
     const bagSizeBefore = currentBag.length;
 
-    // Drop an extra item (banana) that is in the bag
+    // Drop banana from the bag
     const res = await request(app).post("/api/drop-item").query(baseCreds).send({ itemId: "banana" });
 
     expect(res.status).toBe(200);
@@ -423,10 +472,15 @@ describe("Integration: Full Game Flow", () => {
   });
 
   test("Step 4: POST /api/submit-meal completes the meal", async () => {
-    // Initialize game state (new day, bag has all 5 ideal + 3 extras)
+    // Initialize game state (new day)
     await request(app).get("/api/game-state").query(baseCreds);
 
-    // The bag already contains all 5 ideal meal items, so submission should succeed.
+    // Pre-populate bag with all target meal items (since bag starts empty on new day)
+    for (const item of targetMeal) {
+      currentBag.push({ ...item, matchesTargetMeal: true });
+    }
+    visitorData.targetMeal = targetMeal;
+
     const res = await request(app).post("/api/submit-meal").query(baseCreds).send({});
 
     expect(res.status).toBe(200);
@@ -445,31 +499,13 @@ describe("Integration: Full Game Flow", () => {
     const stateRes = await request(app).get("/api/game-state").query(baseCreds);
     expect(stateRes.status).toBe(200);
     expect(stateRes.body.isNewDay).toBe(true);
-    expect(stateRes.body.brownBag).toHaveLength(8);
-    expect(stateRes.body.idealMeal).toHaveLength(5);
+    expect(stateRes.body.brownBag).toHaveLength(0);
+    expect(stateRes.body.targetMeal).toHaveLength(5);
     expect(stateRes.body.completedToday).toBe(false);
 
-    // ---- STEP 2: Drop an extra item to make room ----
-    visitorData.dropsToday = 0;
-    const dropRes = await request(app).post("/api/drop-item").query(baseCreds).send({ itemId: "popcorn" });
-    expect(dropRes.status).toBe(200);
-    expect(dropRes.body.success).toBe(true);
-    expect(dropRes.body.brownBag).toHaveLength(7);
-    expect(dropRes.body.droppedItem.itemId).toBe("popcorn");
-
-    // ---- STEP 3: Pick up a new food item ----
-    const foodAssetUniqueName = `LunchSwap_foodItem|apple|common|${Date.now()}|0`;
-    mockUtils.DroppedAsset.get.mockResolvedValue({
-      id: "food-asset-seq",
-      uniqueName: foodAssetUniqueName,
-      position: { x: 110, y: 210 },
-      fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-        this.dataObject = { itemId: "apple", rarity: "common" };
-        return Promise.resolve();
-      }),
-      deleteDroppedAsset: jest.fn().mockResolvedValue(undefined),
-      dataObject: {},
-    });
+    // ---- STEP 2: Pick up a food item ----
+    visitorData.targetMeal = targetMeal;
+    visitorData.pickupsToday = 0;
 
     const pickupRes = await request(app)
       .post("/api/pickup-item")
@@ -477,11 +513,24 @@ describe("Integration: Full Game Flow", () => {
       .send({ droppedAssetId: "food-asset-seq" });
     expect(pickupRes.status).toBe(200);
     expect(pickupRes.body.success).toBe(true);
-    expect(pickupRes.body.brownBag).toHaveLength(8);
+    expect(pickupRes.body.brownBag).toHaveLength(1);
     expect(pickupRes.body.xpEarned).toBeGreaterThan(0);
-    expect(typeof pickupRes.body.matchesIdealMeal).toBe("boolean");
+    expect(typeof pickupRes.body.matchesTargetMeal).toBe("boolean");
 
-    // ---- STEP 4: Submit meal ----
+    // ---- STEP 3: Drop the item ----
+    visitorData.dropsToday = 0;
+    const dropRes = await request(app).post("/api/drop-item").query(baseCreds).send({ itemId: "apple" });
+    expect(dropRes.status).toBe(200);
+    expect(dropRes.body.success).toBe(true);
+    expect(dropRes.body.brownBag).toHaveLength(0);
+    expect(dropRes.body.droppedItem.itemId).toBe("apple");
+
+    // ---- STEP 4: Submit meal (pre-populate bag with all target items) ----
+    for (const item of targetMeal) {
+      currentBag.push({ ...item, matchesTargetMeal: true });
+    }
+    visitorData.targetMeal = targetMeal;
+
     const submitRes = await request(app).post("/api/submit-meal").query(baseCreds).send({});
     expect(submitRes.status).toBe(200);
     expect(submitRes.body.success).toBe(true);

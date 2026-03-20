@@ -20,9 +20,10 @@ const baseCreds = {
 
 // Mock game logic (required because routes.ts imports controllers that use it)
 jest.mock("@utils/gameLogic/index.js", () => ({
-  generateIdealMeal: jest.fn().mockResolvedValue([]),
-  generateBrownBag: jest.fn().mockResolvedValue([]),
+  generateMeal: jest.fn().mockResolvedValue([]),
   getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
+  getCurrentWeekMT: jest.fn().mockReturnValue("2026-W06"),
+  getPreviousWeekMT: jest.fn().mockReturnValue("2026-W05"),
   isNewDay: jest.fn().mockReturnValue(false),
   calculateNutritionScore: jest.fn().mockResolvedValue({
     score: 0,
@@ -58,7 +59,12 @@ jest.mock("@utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn().mockResolvedValue([]),
+  grantRewardToken: jest.fn().mockResolvedValue(undefined),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  getAllFoodItems: jest.fn().mockResolvedValue([]),
   Visitor: { get: jest.fn() },
   World: { create: jest.fn() },
   User: { create: jest.fn() },
@@ -74,7 +80,7 @@ function setupMocks(opts: { visitorData?: any } = {}) {
       dailyBuff: null,
       hasRewardToken: true,
       brownBag: [],
-      idealMeal: [],
+      targetMeal: [],
       completedToday: false,
     },
   } = opts;
@@ -84,16 +90,28 @@ function setupMocks(opts: { visitorData?: any } = {}) {
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
+    fireToast: jest.fn().mockResolvedValue(undefined),
     fetchDataObject: jest.fn().mockImplementation(function (this: any) {
       this.dataObject = visitorData;
       return Promise.resolve();
     }),
+    fetchInventoryItems: jest.fn().mockResolvedValue(undefined),
+    inventoryItems: [],
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
     dataObject: visitorData,
   };
 
-  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
+  mockUtils.getVisitor.mockResolvedValue({
+    visitor: mockVisitor,
+    visitorData,
+    brownBag: [],
+    visitorInventory: [],
+    xp: 0,
+    level: 1,
+    newDay: false,
+    hasRewardToken: visitorData.hasRewardToken ?? true,
+  });
 
   return { mockVisitor };
 }
@@ -117,12 +135,19 @@ describe("POST /api/spin-wheel", () => {
     expect(res.body.buff.name).toBeDefined();
     expect(res.body.buff.description).toBeDefined();
 
-    // Verify updateDataObject was called with a dailyBuff value and hasRewardToken: false
+    // Verify updateDataObject was called with a dailyBuff value
     expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
       expect.objectContaining({
         dailyBuff: expect.any(String),
-        hasRewardToken: false,
       }),
+      expect.anything(),
+    );
+
+    // Verify grantRewardToken was called to consume the token
+    expect(mockUtils.grantRewardToken).toHaveBeenCalledWith(
+      mockVisitor,
+      expect.anything(),
+      -1,
     );
   });
 
@@ -132,7 +157,7 @@ describe("POST /api/spin-wheel", () => {
         dailyBuff: "double-xp",
         hasRewardToken: true,
         brownBag: [],
-        idealMeal: [],
+        targetMeal: [],
         completedToday: false,
       },
     });
@@ -154,7 +179,7 @@ describe("POST /api/spin-wheel", () => {
         dailyBuff: null,
         hasRewardToken: false,
         brownBag: [],
-        idealMeal: [],
+        targetMeal: [],
         completedToday: false,
       },
     });
@@ -170,7 +195,7 @@ describe("POST /api/spin-wheel", () => {
     expect(res.body.message).toBe("No Reward Tokens available");
   });
 
-  test("buff consumed: verifies updateDataObject called with hasRewardToken: false", async () => {
+  test("buff consumed: verifies grantRewardToken called to consume token", async () => {
     const { mockVisitor } = setupMocks();
 
     const app = makeApp();
@@ -181,10 +206,10 @@ describe("POST /api/spin-wheel", () => {
 
     expect(res.status).toBe(200);
     expect(mockVisitor.updateDataObject).toHaveBeenCalledTimes(1);
-    expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
-      expect.objectContaining({
-        hasRewardToken: false,
-      }),
+    expect(mockUtils.grantRewardToken).toHaveBeenCalledWith(
+      mockVisitor,
+      expect.anything(),
+      -1,
     );
   });
 

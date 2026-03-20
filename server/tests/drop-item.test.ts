@@ -20,9 +20,10 @@ const baseCreds = {
 
 // Mock game logic (required by handleGetGameState which shares the route file)
 jest.mock("@utils/gameLogic/index.js", () => ({
-  generateIdealMeal: jest.fn().mockResolvedValue([]),
-  generateBrownBag: jest.fn().mockResolvedValue([]),
+  generateMeal: jest.fn().mockResolvedValue([]),
   getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
+  getCurrentWeekMT: jest.fn().mockReturnValue("2026-W06"),
+  getPreviousWeekMT: jest.fn().mockReturnValue("2026-W05"),
   isNewDay: jest.fn().mockReturnValue(false),
 }));
 
@@ -130,6 +131,9 @@ jest.mock("@utils/index.js", () => ({
   grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
   removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
   dropFoodItem: jest.fn().mockResolvedValue({ id: "new-dropped-asset" }),
+  grantXp: jest.fn().mockResolvedValue(0),
+  updateWorldStats: jest.fn().mockResolvedValue(undefined),
+  getVisitorBadges: jest.fn().mockReturnValue({ badges: {} }),
   World: { create: jest.fn() },
   User: { create: jest.fn() },
   DroppedAsset: { get: jest.fn(), drop: jest.fn() },
@@ -147,11 +151,11 @@ function setupMocks(
 ) {
   const {
     brownBag = [
-      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
-      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: true },
+      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesTargetMeal: false },
+      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesTargetMeal: true },
     ],
     visitorData = {
-      idealMeal: [],
+      targetMeal: [],
       completedToday: false,
       pickupsToday: 0,
       dropsToday: 0,
@@ -168,6 +172,7 @@ function setupMocks(
     moveTo: { x: 100, y: 200 },
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
+    fireToast: jest.fn().mockReturnValue(Promise.resolve()),
     dataObject: visitorData,
   };
 
@@ -214,6 +219,7 @@ describe("POST /api/drop-item", () => {
         dropsToday: 1,
         totalDrops: 1,
       }),
+      expect.anything(),
     );
   });
 
@@ -238,12 +244,12 @@ describe("POST /api/drop-item", () => {
   });
 
   test("updates world totalDrops", async () => {
-    const { mockWorld } = setupMocks();
+    setupMocks();
 
     const app = makeApp();
     await request(app).post("/api/drop-item").query(baseCreds).send({ itemId: "apple" });
 
-    expect(mockWorld.updateDataObject).toHaveBeenCalledWith(expect.objectContaining({ totalDrops: 1 }));
+    expect(mockUtils.updateWorldStats).toHaveBeenCalledWith(baseCreds.urlSlug, baseCreds, { drops: 1 });
   });
 
   test("dropped asset created via dropFoodItem with correct position and item data", async () => {
@@ -257,7 +263,6 @@ describe("POST /api/drop-item", () => {
         credentials: baseCreds,
         position: { x: 100, y: 200 },
         itemId: "apple",
-        rarity: "common",
       }),
     );
   });
