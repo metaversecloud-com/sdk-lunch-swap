@@ -10,7 +10,6 @@ import {
   getFoodItemsById,
   getVisitor,
   grantXp,
-  grantRewardToken,
   checkSubmitMealBadges,
   checkLevelBadges,
   getVisitorBadges,
@@ -164,9 +163,6 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
         }
       }
     }
-
-    // Grant 1 Reward Token for completing the meal
-    await grantRewardToken(visitor, credentials, 1);
 
     // Update world stats
     if (world.incrementDataObjectValue) {

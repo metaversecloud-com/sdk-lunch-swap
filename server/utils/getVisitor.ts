@@ -4,7 +4,6 @@ import { VISITOR_DATA_DEFAULTS, VisitorGameData } from "@shared/types/DataObject
 import {
   buildBagFromItems,
   getVisitorXp,
-  getVisitorRewardTokens,
   getCurrentDateMT,
   getFoodItemsById,
   isNewDay,
@@ -23,9 +22,9 @@ export const getVisitor = async (
   visitorInventory: { [key: string]: { id: string; icon: string; name: string } };
   brownBag: BagItem[];
   newDay: boolean;
+  isFirstPlay: boolean;
   xp: number;
   level: number;
-  hasRewardToken: boolean;
 }> => {
   try {
     const { urlSlug, visitorId } = credentials;
@@ -39,7 +38,8 @@ export const getVisitor = async (
     const dataObject = (await visitor.fetchDataObject()) as VisitorGameData;
 
     const currentDate = getCurrentDateMT();
-    const newDay = !dataObject.lastPlayedDate || isNewDay(dataObject.lastPlayedDate, currentDate);
+    const isFirstPlay = !dataObject.lastPlayedDate;
+    const newDay = isFirstPlay || isNewDay(dataObject.lastPlayedDate, currentDate);
 
     if (!dataObject.lastPlayedDate) {
       await visitor.setDataObject(
@@ -78,12 +78,11 @@ export const getVisitor = async (
     const foodItemsById = await getFoodItemsById(credentials);
     const brownBag = buildBagFromItems(allItems, visitorData.targetMeal || [], foodItemsById);
 
-    // Read XP and Reward Tokens from inventory
+    // Read XP from inventory
     const xp = getVisitorXp(allItems);
     const level = getLevelForXp(xp);
-    const hasRewardToken = getVisitorRewardTokens(allItems) > 0;
 
-    return { visitor, visitorData, visitorInventory, brownBag, newDay, xp, level, hasRewardToken };
+    return { visitor, visitorData, visitorInventory, brownBag, newDay, isFirstPlay, xp, level };
   } catch (error) {
     throw standardizeError(error);
   }

@@ -41,6 +41,7 @@ export interface InitialState {
   isAdmin?: boolean;
   error?: string;
   hasInteractiveParams?: boolean;
+  isFirstPlay?: boolean;
   brownBag?: BagItem[];
   targetMeal?: TargetMealItem[];
   completedToday?: boolean;
@@ -57,7 +58,6 @@ export interface InitialState {
   currentStreak?: number;
   longestStreak?: number;
   nearbyItems?: NearbyItem[];
-  hasRewardToken?: boolean;
   dailyBuff?: string | null;
   hotStreakActive?: boolean;
   pickupStreak?: number;

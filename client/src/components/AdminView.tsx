@@ -194,7 +194,10 @@ export const AdminView = () => {
                               tabIndex={-1}
                               aria-hidden="true"
                             />
-                            <span className="p2 truncate">{item.name}</span>
+                            <div className="tooltip truncate">
+                              <span className="tooltip-content p3">{item.name}</span>
+                              <span className="p2">{item.name}</span>
+                            </div>
                             {/* <span
                               className="p3 uppercase px-1.5 py-0.5 rounded-full text-white flex-shrink-0"
                               style={{ backgroundColor: groupColor || "#6B7280", fontSize: "0.6rem" }}

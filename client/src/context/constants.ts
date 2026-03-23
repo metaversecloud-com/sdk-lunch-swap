@@ -13,7 +13,6 @@ export const initialState: InitialState = {
   currentStreak: 0,
   longestStreak: 0,
   nearbyItems: [],
-  hasRewardToken: false,
   dailyBuff: null,
   hotStreakActive: false,
   pickupStreak: 0,

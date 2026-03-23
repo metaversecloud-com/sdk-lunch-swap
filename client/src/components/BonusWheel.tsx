@@ -9,7 +9,6 @@ interface SpinResult {
 }
 
 interface BonusWheelProps {
-  hasRewardToken: boolean;
   closeModal: () => void;
   onResult: (result: SpinResult) => void;
 }
@@ -18,7 +17,7 @@ const SEGMENT_COLORS = ["#FF6B6B", "#ffa94d", "#45B7D1", "#4ECDC4", "#cf8df7"];
 const SPIN_DURATION_MS = 2500;
 const SEGMENT_ANGLE = 360 / WHEEL_BUFFS.length;
 
-export const BonusWheel = ({ hasRewardToken, closeModal, onResult }: BonusWheelProps) => {
+export const BonusWheel = ({ closeModal, onResult }: BonusWheelProps) => {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [wonBuff, setWonBuff] = useState<{
@@ -133,20 +132,17 @@ export const BonusWheel = ({ hasRewardToken, closeModal, onResult }: BonusWheelP
             onClick={closeModal}
           />
         </div>
-        {hasRewardToken ? (
-          <div className="grid gap-4" role="region" aria-label="Bonus wheel spinner">
+        <div className="grid gap-4" role="region" aria-label="Bonus wheel spinner">
             <div
               className="grid gap-2 p-3 rounded-2xl text-center"
               style={{ backgroundColor: "#FFF8E1", border: "3px solid #FFD700" }}
-              role="dialog"
-              aria-modal="true"
               aria-labelledby="bonus-wheel-title"
               aria-describedby="bonus-wheel-description"
             >
-              <h4 id="bonus-wheel-title">You have a Reward Token!</h4>
+              <h4 id="bonus-wheel-title">Daily Bonus Spin</h4>
 
               <p id="bonus-wheel-description" className="p2">
-                Spin the wheel for today&apos;s bonus?
+                Spin the wheel for today&apos;s bonus!
               </p>
             </div>
 
@@ -269,17 +265,6 @@ export const BonusWheel = ({ hasRewardToken, closeModal, onResult }: BonusWheelP
         }
       `}</style>
           </div>
-        ) : (
-          <div className="grid gap-4 text-center">
-            <h3>No Reward Tokens</h3>
-            <p className="p2 text-muted">
-              You don't have any reward tokens yet. Keep playing and completing meals to earn more!
-            </p>
-            <button className="btn btn-outline" onClick={closeModal} aria-label="Close bonus wheel">
-              Got it
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

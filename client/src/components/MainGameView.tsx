@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 // components
 import { BonusWheel, BrownBag, Divider, HotStreakIndicator, MealTracker, NearbyItems, PageFooter } from "@/components";
@@ -18,12 +18,17 @@ const BIG_BAG_BONUS = 2;
 
 export const MainGameView = () => {
   const dispatch = useContext(GlobalDispatchContext);
-  const { brownBag, targetMeal, hotStreakActive, pickupStreak, xp, level, dailyBuff, hasRewardToken } =
+  const { brownBag, targetMeal, hotStreakActive, pickupStreak, xp, level, dailyBuff, isFirstPlay } =
     useContext(GlobalStateContext);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [showWheelModal, setShowWheelModal] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+
+  // Auto-open instructions on first play
+  useEffect(() => {
+    if (isFirstPlay) setShowInstructions(true);
+  }, [isFirstPlay]);
 
   const activeBuffName = dailyBuff ? WHEEL_BUFFS.find((b) => b.id === dailyBuff)?.name ?? dailyBuff : null;
 
@@ -265,7 +270,6 @@ export const MainGameView = () => {
       {/* Bonus wheel modal */}
       {showWheelModal && (
         <BonusWheel
-          hasRewardToken={!!hasRewardToken}
           closeModal={() => setShowWheelModal(false)}
           onResult={({ buff, brownBag: updatedBag }) => {
             dispatch!({ type: SET_DAILY_BUFF, payload: { dailyBuff: buff.id } });

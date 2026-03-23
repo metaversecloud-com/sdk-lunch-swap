@@ -3,7 +3,6 @@ import {
   errorHandler,
   getCredentials,
   getVisitor,
-  grantRewardToken,
   grantFoodToVisitor,
   getAllFoodItems,
   getVisitorBag,
@@ -14,24 +13,15 @@ export const handleSpinWheel = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
 
-    // Fetch visitor data (includes hasRewardToken from inventory)
-    const { visitor, visitorData, hasRewardToken } = await getVisitor(credentials, true);
+    const { visitor, visitorData } = await getVisitor(credentials, true);
 
-    // Check if already spun today
+    // One spin per day — dailyBuff is reset on new day
     if (visitorData.dailyBuff) {
       return res.status(400).json({ success: false, message: "Already spun today" });
     }
 
-    // Check for Reward Token in inventory
-    if (!hasRewardToken) {
-      return res.status(400).json({ success: false, message: "No Reward Tokens available" });
-    }
-
     // Spin the wheel
     const buff = spinWheel();
-
-    // Consume 1 Reward Token from inventory
-    await grantRewardToken(visitor, credentials, -1);
 
     // Update visitor data with buff
     await visitor.updateDataObject(

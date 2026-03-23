@@ -50,7 +50,7 @@ export const MealTracker = () => {
             <div
               key={item.itemId}
               role="listitem"
-              className={`relative grid gap-1 rounded-xl border-2 p-2 text-center transition-all duration-300 ${
+              className={`relative grid gap-1 rounded-xl border-2 p-2 text-center transition-all duration-300 overflow-hidden ${
                 isCollected(item.itemId) ? "bg-white shadow-md" : "bg-gray-100 opacity-60"
               } ${allCollected ? "motion-safe:shadow-[0_0_12px_rgba(34,197,94,0.5)]" : ""}`}
               style={{ borderColor: isCollected(item.itemId) ? borderColor : `${borderColor}80` }}
@@ -60,9 +60,9 @@ export const MealTracker = () => {
               <img src={item.image} alt={item.name} className="h-10 mx-auto object-contain" />
 
               {/* Item name */}
-              <div className="tooltip truncate">
+              <div className="tooltip min-w-0">
                 <span className="tooltip-content p3">{item.name}</span>
-                <p className="p2">{item.name}</p>
+                <p className="p2 truncate">{item.name}</p>
               </div>
 
               {/* Rarity label */}

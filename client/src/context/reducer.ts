@@ -24,6 +24,7 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
       return {
         ...state,
         isAdmin: payload.isAdmin,
+        isFirstPlay: payload.isFirstPlay,
         brownBag: payload.brownBag,
         targetMeal: payload.targetMeal,
         completedToday: payload.completedToday,
@@ -33,7 +34,6 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         level: payload.level,
         currentStreak: payload.currentStreak,
         longestStreak: payload.longestStreak,
-        hasRewardToken: payload.hasRewardToken,
         dailyBuff: payload.dailyBuff,
         hotStreakActive: payload.hotStreakActive,
         pickupStreak: payload.pickupStreak,
@@ -89,7 +89,6 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
       return {
         ...state,
         dailyBuff: payload.dailyBuff,
-        hasRewardToken: false,
         error: "",
       };
     case SET_FOOD_ITEMS_IN_WORLD:

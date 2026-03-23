@@ -58,16 +58,6 @@ export const BagItemCard = ({ item, onDrop, expanded, onToggle, comboPartnerName
             </svg>
           </div>
         )}
-        {comboPartnerName && (
-          <div className="tooltip">
-            <span className="tooltip-content p3 min-w-[100px]" style={{ marginLeft: "-30px" }}>
-              Combo match with {comboPartnerName}
-            </span>
-            <span className="p2 text-muted" aria-label={`Combo match with ${comboPartnerName}`} role="img">
-              &#9733;
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Food group label */}
@@ -79,6 +69,17 @@ export const BagItemCard = ({ item, onDrop, expanded, onToggle, comboPartnerName
       <div className="chip text-white" style={{ backgroundColor: rarityConfig.color, fontSize: "0.625rem" }}>
         {rarityConfig.label}
       </div>
+
+      {comboPartnerName && (
+        <div className="tooltip">
+          <span className="tooltip-content p3 min-w-[100px]" style={{ marginLeft: "-30px" }}>
+            Combo match with {comboPartnerName}
+          </span>
+          <span className=" text-muted" aria-label={`Combo match with ${comboPartnerName}`} role="img">
+            &#9733;
+          </span>
+        </div>
+      )}
 
       {expanded && (
         <div className="flex flex-col gap-3 pt-3">
