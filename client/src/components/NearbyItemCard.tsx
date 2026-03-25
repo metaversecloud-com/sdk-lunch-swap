@@ -7,6 +7,7 @@ import { PostPickupResponseType } from "@/context/types";
 interface NearbyItemCardProps {
   item: NearbyItem;
   bagFull?: boolean;
+  alreadyInBag?: boolean;
   onPickup: (droppedAssetId: string) => void;
   afterSwap?: (data: PostPickupResponseType) => void;
 }
@@ -18,7 +19,13 @@ const formatDistance = (distance: number): string => {
   return "A bit far";
 };
 
-export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: NearbyItemCardProps) => {
+export const NearbyItemCard = ({
+  item,
+  onPickup,
+  afterSwap,
+  bagFull = false,
+  alreadyInBag = false,
+}: NearbyItemCardProps) => {
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [isGrabbing, setIsGrabbing] = useState(false);
 
@@ -45,17 +52,17 @@ export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: N
     <>
       <div
         className={`relative flex items-center gap-3 p-3 rounded-xl border-2 bg-white transition-all duration-200
-          ${item.matchesIdealMeal && !item.isMystery ? "shadow-md ring-2 ring-yellow-400" : ""}
+          ${item.matchesTargetMeal && !item.isMystery ? "shadow-md ring-2 ring-yellow-400" : ""}
           ${item.isComboMatch && !item.isMystery ? "shadow-md ring-2 ring-purple-400" : ""}
-          ${!item.matchesIdealMeal && !item.isComboMatch ? "shadow-sm" : ""}
+          ${!item.matchesTargetMeal && !item.isComboMatch ? "shadow-sm" : ""}
           hover:shadow-md`}
         style={{ borderColor: item.isMystery ? "#6B7280" : borderColor }}
-        aria-label={`${displayName}${item.matchesIdealMeal && !item.isMystery ? ", matches your ideal meal" : ""}${item.isComboMatch && !item.isMystery ? ", super combo pair" : ""}`}
+        aria-label={`${displayName}${item.matchesTargetMeal && !item.isMystery ? ", matches your target meal" : ""}${item.isComboMatch && !item.isMystery ? ", super combo pair" : ""}`}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 mb-1">
-            {item.matchesIdealMeal && !item.isMystery && (
-              <span className="text-green-500 text-sm" aria-label="Matches ideal meal" role="img">
+            {item.matchesTargetMeal && !item.isMystery && (
+              <span className="text-green-500 text-sm" aria-label="Matches target meal" role="img">
                 &#9733;
               </span>
             )}
@@ -90,25 +97,22 @@ export const NearbyItemCard = ({ item, onPickup, afterSwap, bagFull = false }: N
             </span>
             <span className="p3">{formatDistance(item.distance)}</span>
           </div>
-
-          {item.lastDroppedByName && !item.isMystery && (
-            <div className="tooltip truncate mt-1">
-              <span className="tooltip-content p3">Dropped by {item.lastDroppedByName}</span>
-              <p className="p3 text-gray-400">Dropped by {item.lastDroppedByName}</p>
-            </div>
-          )}
         </div>
 
         <button
-          className="btn btn-success flex-shrink-0 p3 transition-colors max-w-[44px]
+          className={`btn flex-shrink-0 p3 transition-colors max-w-[44px]
             focus:outline-none focus:ring-2 focus:ring-offset-2
-            bg-green-500 hover:bg-green-600 active:bg-green-700 focus:ring-green-400
-            disabled:opacity-50 disabled:cursor-not-allowed"
+            ${
+              alreadyInBag
+                ? "bg-gray-400 cursor-not-allowed focus:ring-gray-300"
+                : "btn-success bg-green-500 hover:bg-green-600 active:bg-green-700 focus:ring-green-400"
+            }
+            disabled:opacity-50 disabled:cursor-not-allowed`}
           onClick={handleClick}
-          disabled={isGrabbing}
-          aria-label={`Pick up ${displayName}`}
+          disabled={isGrabbing || alreadyInBag}
+          aria-label={alreadyInBag ? `${displayName} already in your bag` : `Pick up ${displayName}`}
         >
-          {item.isMystery ? "?" : "Grab it!"}
+          {alreadyInBag ? "Got it!" : item.isMystery ? "?" : "Grab it!"}
         </button>
       </div>
 

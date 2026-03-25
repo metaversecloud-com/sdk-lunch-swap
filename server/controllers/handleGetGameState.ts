@@ -9,14 +9,16 @@ import {
   dropFoodItem,
   getVisitor,
   getVisitorBag,
-  grantFoodToVisitor,
   removeFoodFromVisitor,
   getBadges,
   getVisitorBadges,
+  getFoodItemsInWorld,
+  DroppedAsset,
 } from "@utils/index.js";
-import { generateIdealMeal, generateBrownBag, getCurrentDateMT } from "@utils/gameLogic/index.js";
-import { VisitorInterface } from "@rtsdk/topia";
+import { generateMeal, getCurrentDateMT, getCurrentWeekMT, getPreviousWeekMT } from "@utils/gameLogic/index.js";
+import { VisitorInterface, WorldInterface } from "@rtsdk/topia";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
+import { Credentials } from "../types/Credentials.js";
 
 export const handleGetGameState = async (req: Request, res: Response) => {
   try {
@@ -27,7 +29,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     // Fetch key asset, visitor (with data + inventory), and world in parallel
     const [
       droppedAsset,
-      { visitor, visitorData, brownBag: currentBag, newDay, xp, level, hasRewardToken },
+      { visitor, visitorData, brownBag: currentBag, newDay, isFirstPlay, xp, level },
       world,
       badges,
     ] = await Promise.all([
@@ -47,57 +49,23 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     // Check for new day
     const currentDate = getCurrentDateMT();
 
-    let {
-      dayStartTimestamp,
-      idealMeal,
-      completedToday,
-      nutritionScore,
-      superCombosFound,
-      longestStreak,
-      hotStreakActive,
-      dailyBuff,
-    } = visitorData;
+    let { targetMeal, completedToday, nutritionScore, superCombosFound, longestStreak, hotStreakActive, dailyBuff } =
+      visitorData;
     let brownBag = currentBag;
 
-    if (newDay) {
-      // Auto-drop yesterday's bag items into world at key asset position
+    // If new day or no target meal, reset progress and generate new meal
+    if (newDay || !targetMeal || targetMeal.length === 0) {
       if (currentBag.length > 0) {
-        const center = {
-          x: droppedAsset.position?.x ?? 0,
-          y: droppedAsset.position?.y ?? 0,
-        };
+        // Clear bag items from inventory
         for (const bagItem of currentBag) {
-          try {
-            await removeFoodFromVisitor(visitor, credentials, bagItem.itemId);
-            await dropFoodItem({
-              credentials,
-              position: center,
-              itemId: bagItem.itemId,
-              rarity: bagItem.rarity,
-              offsetRange: 200,
-              host: req.hostname,
-            });
-          } catch (err) {
-            console.warn("Failed to auto-drop bag item:", bagItem.itemId, err);
-          }
+          await removeFoodFromVisitor(visitor, credentials, bagItem.itemId);
         }
       }
 
-      // Generate new ideal meal and brown bag
-      idealMeal = await generateIdealMeal(credentials);
-      const newBagItems = await generateBrownBag(credentials, idealMeal);
-
-      // Grant new bag items to visitor inventory
-      for (const bagItem of newBagItems) {
-        try {
-          await grantFoodToVisitor(visitor, credentials, bagItem);
-        } catch (err) {
-          console.warn("Failed to grant bag item:", bagItem.itemId, err);
-        }
-      }
+      // Generate new target meal and brown bag
+      targetMeal = await generateMeal(credentials);
 
       completedToday = false;
-      dayStartTimestamp = null;
       dailyBuff = null;
       nutritionScore = null;
       superCombosFound = [];
@@ -105,9 +73,8 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       // Update visitor data for new day
       await visitor.updateDataObject(
         {
-          dayStartTimestamp,
           lastPlayedDate: currentDate,
-          idealMeal,
+          targetMeal,
           completedToday: false,
           completionTimestamp: null,
           pickupsToday: 0,
@@ -117,32 +84,10 @@ export const handleGetGameState = async (req: Request, res: Response) => {
           superCombosFound,
           dailyBuff,
         },
-        {},
+        {
+          analytics: [{ analyticName: "starts", profileId, urlSlug, uniqueKey: profileId }],
+        },
       );
-
-      const itemsToSpawn = newBagItems.filter((item) => !item.matchesIdealMeal).slice(0, 3);
-      const spawnedIds: string[] = [];
-      const spawnCenter = {
-        x: droppedAsset.position?.x ?? 0,
-        y: droppedAsset.position?.y ?? 0,
-      };
-      for (const item of itemsToSpawn) {
-        try {
-          await dropFoodItem({
-            credentials,
-            position: spawnCenter,
-            itemId: item.itemId,
-            rarity: item.rarity,
-            minOffset: worldData.spawnRadiusMin,
-            offsetRange: worldData.spawnRadiusMax || 2000,
-            mystery: Math.random() < 0.15,
-            host: req.hostname,
-          });
-          spawnedIds.push(item.itemId);
-        } catch (err) {
-          console.warn("Failed to spawn item:", item.itemId, err);
-        }
-      }
 
       // Update world data object
       if (worldData.currentDate !== currentDate) {
@@ -156,7 +101,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       await world.updateDataObject(worldData);
 
       // Read current bag from inventory (re-fetch after mutations on new day)
-      brownBag = await getVisitorBag(visitor, idealMeal, credentials);
+      brownBag = await getVisitorBag(visitor, targetMeal, credentials);
     } else {
       await visitor.updateDataObject(
         {},
@@ -166,33 +111,36 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       );
     }
 
-    // Enrich ideal meal items with images (for meals stored before image field existed)
-    if (idealMeal?.length && !idealMeal[0].image) {
+    // Enrich target meal items with images (for meals stored before image field existed)
+    if (targetMeal?.length && !targetMeal[0].image) {
       const foodItemsById = await getFoodItemsById(credentials);
-      for (const item of idealMeal) {
+      for (const item of targetMeal) {
         const def = foodItemsById.get(item.itemId);
         if (def?.image) item.image = def.image;
       }
     }
 
-    // Calculate display streak
+    // Calculate display streak — weekly: streak is active if last completion was this week or last week
     let displayStreak = visitorData.currentStreak;
-    if (visitorData.lastCompletionDate) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toLocaleDateString("en-CA", { timeZone: "America/Denver" });
-      if (visitorData.lastCompletionDate < yesterdayStr) {
+    const lastCompletionWeek = visitorData.lastCompletionWeek || "";
+    if (lastCompletionWeek) {
+      const currentWeek = getCurrentWeekMT();
+      const previousWeek = getPreviousWeekMT();
+      if (lastCompletionWeek !== currentWeek && lastCompletionWeek !== previousWeek) {
         displayStreak = 0; // Show 0 but don't write to user data
       }
     } else {
       displayStreak = 0;
     }
 
-    return res.json({
+    const foodItemsInWorld = isAdmin ? await getFoodItemsInWorld(world, credentials) : [];
+
+    res.json({
       success: true,
-      isNewDay: !dayStartTimestamp,
+      isNewDay: newDay,
+      isFirstPlay,
       brownBag,
-      idealMeal,
+      targetMeal,
       completedToday,
       nutritionScore,
       superCombosFound,
@@ -202,7 +150,6 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       longestStreak,
       hotStreakActive,
       isAdmin,
-      hasRewardToken,
       dailyBuff,
       spawnRadiusMin: worldData.spawnRadiusMin,
       spawnRadiusMax: worldData.spawnRadiusMax,
@@ -210,7 +157,15 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       badges,
       visitorInventory: getVisitorBadges(visitor.inventoryItems || []),
       leaderboard,
+      foodItemsInWorld,
     });
+
+    // Fire-and-forget: deduplicate items and spawn missing ones in the background
+    if (newDay || !visitorData.targetMeal || visitorData.targetMeal.length === 0) {
+      ensureOneOfEverything(world, credentials, urlSlug, worldData, droppedAsset, req.hostname).catch((err) =>
+        console.warn("Background item cleanup failed:", err),
+      );
+    }
   } catch (error) {
     return errorHandler({
       error,
@@ -221,3 +176,58 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * Background task: ensure exactly one of every food item exists in the world.
+ * Deletes duplicates and spawns missing items.
+ */
+async function ensureOneOfEverything(
+  world: WorldInterface,
+  credentials: Credentials,
+  urlSlug: string,
+  worldData: { spawnRadiusMin?: number; spawnRadiusMax?: number },
+  droppedAsset: { position?: { x: number; y: number } },
+  hostname: string,
+) {
+  const inWorldData = await getFoodItemsInWorld(world, credentials);
+
+  // Delete duplicates — for items with countInWorld > 1, remove extras
+  const deletePromises: Promise<unknown>[] = [];
+  for (const item of inWorldData) {
+    if (item.countInWorld > 1) {
+      for (const assetId of item.droppedAssetIds.slice(1)) {
+        deletePromises.push(
+          DroppedAsset.create(assetId, urlSlug, { credentials })
+            .deleteDroppedAsset()
+            .catch(() => {}),
+        );
+      }
+    }
+  }
+  await Promise.allSettled(deletePromises);
+
+  // Spawn missing items — items with countInWorld === 0
+  const missingItems = inWorldData.filter((item) => item.countInWorld === 0);
+  if (missingItems.length === 0) return;
+
+  await world.fetchDetails();
+  const { width, height } = world as WorldInterface;
+  const spawnCenter = {
+    x: droppedAsset.position?.x ?? 0,
+    y: droppedAsset.position?.y ?? 0,
+  };
+
+  const spawnPromises = missingItems.map((item) =>
+    dropFoodItem({
+      credentials,
+      position: spawnCenter,
+      itemId: item.itemId,
+      minOffset: worldData.spawnRadiusMin,
+      offsetRange: worldData.spawnRadiusMax || 2000,
+      mystery: Math.random() < 0.15,
+      host: hostname,
+      worldSize: width && height ? { width, height } : undefined,
+    }).catch((err) => console.warn("Failed to spawn item:", item.itemId, err)),
+  );
+  await Promise.allSettled(spawnPromises);
+}

@@ -2,13 +2,13 @@ import { useContext, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 // components
-import { Confetti, IdealMealTracker, PageContainer } from "@/components";
+import { Confetti, Divider, MealTracker, PageContainer } from "@/components";
 import { NutritionPreview } from "@/components/NutritionPreview";
 import { BagFullSwapModal } from "@/components/BagFullSwapModal";
 
 // context
 import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";
-import { ErrorType, PostPickupResponseType, SET_BROWN_BAG, SET_IDEAL_MEAL } from "@/context/types";
+import { ErrorType, PostPickupResponseType, SET_BROWN_BAG, SET_TARGET_MEAL } from "@/context/types";
 
 // utils
 import { backendAPI, setErrorMessage } from "@/utils";
@@ -19,13 +19,13 @@ import { FoodItemDefinition, FOOD_GROUP_COLORS, RARITY_CONFIG } from "@shared/ty
 type ItemDetails = {
   foodDef: FoodItemDefinition;
   isMystery: boolean;
-  matchesIdealMeal: boolean;
+  matchesTargetMeal: boolean;
   bagFull: boolean;
 };
 
 export const Item = () => {
   const dispatch = useContext(GlobalDispatchContext);
-  const { hasInteractiveParams, idealMeal } = useContext(GlobalStateContext);
+  const { hasInteractiveParams, targetMeal, brownBag } = useContext(GlobalStateContext);
   const [searchParams] = useSearchParams();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -38,9 +38,12 @@ export const Item = () => {
   const [isGone, setIsGone] = useState(false);
   const [isNewDay, setIsNewDay] = useState(false);
   const [hasCompletedToday, setHasCompletedToday] = useState(false);
+  const [isTeleporting, setIsTeleporting] = useState(false);
+  const [keyAssetId, setKeyAssetId] = useState<string | null>(null);
 
   const droppedAssetId = searchParams.get("assetId") || "";
-  const mealItems = idealMeal ?? [];
+  const mealItems = targetMeal ?? [];
+  const bagItemIds = new Set((brownBag ?? []).map((b) => b.itemId));
 
   const checkMealComplete = (updatedBag: { itemId: string }[]) => {
     const bagIds = new Set(updatedBag.map((b) => b.itemId));
@@ -53,15 +56,16 @@ export const Item = () => {
     backendAPI
       .get("/item-details", { params: { droppedAssetId } })
       .then(({ data }) => {
-        const { brownBag, idealMeal, newDay, completedToday } = data;
+        const { brownBag, targetMeal, newDay, completedToday, keyAssetId } = data;
         dispatch!({
           type: SET_BROWN_BAG,
           payload: { brownBag },
         });
-        dispatch!({ type: SET_IDEAL_MEAL, payload: { idealMeal } });
+        dispatch!({ type: SET_TARGET_MEAL, payload: { targetMeal } });
         setItemDetails(data);
-        setIsNewDay(newDay);
+        setIsNewDay(newDay || !targetMeal?.length);
         setHasCompletedToday(completedToday);
+        setKeyAssetId(keyAssetId);
       })
       .catch(() => {
         setIsGone(true);
@@ -75,11 +79,11 @@ export const Item = () => {
 
     try {
       const { data } = await backendAPI.post("/pickup-item", { droppedAssetId });
-      const { brownBag, xp, level, hotStreakActive, idealPickupStreak, visitorInventory, xpEarned } = data;
+      const { brownBag, xp, level, hotStreakActive, pickupStreak, visitorInventory, xpEarned } = data;
 
       dispatch!({
         type: SET_BROWN_BAG,
-        payload: { brownBag, xp, level, hotStreakActive, idealPickupStreak, visitorInventory },
+        payload: { brownBag, xp, level, hotStreakActive, pickupStreak, visitorInventory },
       });
 
       setPickupXp(xpEarned || 0);
@@ -93,6 +97,18 @@ export const Item = () => {
     }
   };
 
+  const handleTeleportToFoodTruck = async () => {
+    if (isTeleporting) return;
+    setIsTeleporting(true);
+    try {
+      await backendAPI.post("/teleport-player", { keyAssetId });
+    } catch (error) {
+      setErrorMessage(dispatch, error as ErrorType);
+    } finally {
+      setIsTeleporting(false);
+    }
+  };
+
   const handleButtonClick = () => {
     if (itemDetails?.bagFull) {
       setShowSwapModal(true);
@@ -103,10 +119,10 @@ export const Item = () => {
 
   const handleSwapComplete = (data: PostPickupResponseType) => {
     setShowSwapModal(false);
-    const { brownBag, xp, level, hotStreakActive, idealPickupStreak, visitorInventory, xpEarned } = data;
+    const { brownBag, xp, level, hotStreakActive, pickupStreak, visitorInventory, xpEarned } = data;
     dispatch!({
       type: SET_BROWN_BAG,
-      payload: { brownBag, xp, level, hotStreakActive, idealPickupStreak, visitorInventory },
+      payload: { brownBag, xp, level, hotStreakActive, pickupStreak, visitorInventory },
     });
     setPickupXp(xpEarned || 0);
     setMealComplete(checkMealComplete(brownBag));
@@ -137,13 +153,13 @@ export const Item = () => {
         {mealComplete ? (
           <div className="px-4 py-3 rounded-xl bg-green-50 border border-green-200">
             <p className="p2 font-semibold text-green-700">
-              Your ideal meal is complete! Head back to the food truck to submit it.
+              Your meal is complete! Head back to the food truck to submit it.
             </p>
           </div>
         ) : (
           <>
-            <p className="p2 text-muted pb-4">Keep searching for your ideal meal!</p>
-            <IdealMealTracker isPreview={false} />
+            <p className="p2 text-muted pb-4">Keep searching for your items to complete your meal!</p>
+            <MealTracker />
           </>
         )}
       </div>
@@ -161,10 +177,11 @@ export const Item = () => {
   };
 
   const available = () => {
-    const { foodDef, matchesIdealMeal, bagFull, isMystery } = itemDetails!;
+    const { foodDef, matchesTargetMeal, bagFull, isMystery } = itemDetails!;
     const { name, image, foodGroup, rarity, nutrition, funFact } = foodDef;
+    const alreadyInBag = bagItemIds.has(foodDef.itemId);
     return (
-      <>
+      <div className="grid gap-6">
         <div className="flex flex-col gap-4">
           {isMystery ? (
             mystery()
@@ -202,11 +219,11 @@ export const Item = () => {
                 </span>
               </div>
 
-              {/* Ideal meal match */}
-              {matchesIdealMeal && (
+              {/* Target meal match */}
+              {matchesTargetMeal && (
                 <div className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-green-50 border border-green-200">
                   <span className="text-green-500">&#9733;</span>
-                  <span className="p2 font-semibold text-green-700">Matches your ideal meal!</span>
+                  <span className="p2 font-semibold text-green-700">Matches your meal!</span>
                 </div>
               )}
 
@@ -250,33 +267,52 @@ export const Item = () => {
           ) : (
             <>
               <button
-                className={`btn btn-success flex-shrink-0 
+                className={`btn flex-shrink-0
             focus:outline-none focus:ring-2 focus:ring-offset-2
               ${
-                isPickingUp
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-500 hover:bg-green-600 active:bg-green-700 focus:ring-green-400"
+                alreadyInBag
+                  ? "bg-gray-400 cursor-not-allowed focus:ring-gray-300"
+                  : isPickingUp
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "btn-success bg-green-500 hover:bg-green-600 active:bg-green-700 focus:ring-green-400"
               }`}
                 onClick={handleButtonClick}
-                disabled={isPickingUp}
+                disabled={isPickingUp || alreadyInBag}
                 aria-label={
-                  isPickingUp ? "Picking up..." : isMystery ? "Reveal and pick up this mystery item" : `Pick up ${name}`
+                  alreadyInBag
+                    ? `${name} already in your bag`
+                    : isPickingUp
+                      ? "Picking up..."
+                      : isMystery
+                        ? "Reveal and pick up this mystery item"
+                        : `Pick up ${name}`
                 }
               >
-                {isPickingUp
-                  ? "Picking up..."
-                  : bagFull
-                    ? "Swap for this item"
-                    : isMystery
-                      ? "Reveal & Pick Up"
-                      : "Pick Up"}
+                {alreadyInBag
+                  ? "Got it!"
+                  : isPickingUp
+                    ? "Picking up..."
+                    : bagFull
+                      ? "Swap for this item"
+                      : isMystery
+                        ? "Pick Up & Reveal"
+                        : "Pick Up"}
               </button>
-              {bagFull && !isPickingUp && (
+              {alreadyInBag && <p className="p3 text-center text-muted">You already have this item in your bag.</p>}
+              {bagFull && !isPickingUp && !alreadyInBag && (
                 <p className="p3 text-center text-muted">Your bag is full. Picking up will let you swap an item out.</p>
               )}
             </>
           )}
         </div>
+
+        {!isNewDay && !hasCompletedToday && (
+          <>
+            <Divider />
+
+            <MealTracker />
+          </>
+        )}
 
         {showSwapModal && (
           <BagFullSwapModal
@@ -285,13 +321,22 @@ export const Item = () => {
             onClose={() => setShowSwapModal(false)}
           />
         )}
-      </>
+      </div>
     );
   };
 
   return (
     <PageContainer isLoading={isLoading}>
       {!itemDetails || isGone ? gone() : isPickedUp ? pickedUp() : available()}
+      <button
+        className="btn btn-outline"
+        onClick={handleTeleportToFoodTruck}
+        disabled={isTeleporting}
+        aria-label="Return to Food Truck"
+        style={{ marginTop: "1rem", width: "100%" }}
+      >
+        {isTeleporting ? "Returning..." : "Return to Food Truck"}
+      </button>
     </PageContainer>
   );
 };

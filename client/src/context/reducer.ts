@@ -5,10 +5,11 @@ import {
   SET_GAME_STATE,
   SET_HAS_INTERACTIVE_PARAMS,
   SET_BROWN_BAG,
-  SET_IDEAL_MEAL,
+  SET_TARGET_MEAL,
   SET_NEARBY_ITEMS,
   SET_COMPLETED,
   SET_DAILY_BUFF,
+  SET_FOOD_ITEMS_IN_WORLD,
 } from "./types";
 
 const globalReducer = (state: InitialState, action: ActionType): InitialState => {
@@ -23,9 +24,9 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
       return {
         ...state,
         isAdmin: payload.isAdmin,
-        isNewDay: payload.isNewDay,
+        isFirstPlay: payload.isFirstPlay,
         brownBag: payload.brownBag,
-        idealMeal: payload.idealMeal,
+        targetMeal: payload.targetMeal,
         completedToday: payload.completedToday,
         nutritionScore: payload.nutritionScore,
         superCombosFound: payload.superCombosFound,
@@ -33,16 +34,16 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         level: payload.level,
         currentStreak: payload.currentStreak,
         longestStreak: payload.longestStreak,
-        hasRewardToken: payload.hasRewardToken,
         dailyBuff: payload.dailyBuff,
         hotStreakActive: payload.hotStreakActive,
-        idealPickupStreak: payload.idealPickupStreak,
+        pickupStreak: payload.pickupStreak,
         badges: payload.badges ?? state.badges,
         visitorInventory: payload.visitorInventory ?? state.visitorInventory,
         leaderboard: payload.leaderboard ?? state.leaderboard,
         spawnRadiusMin: payload.spawnRadiusMin,
         spawnRadiusMax: payload.spawnRadiusMax,
         proximityRadius: payload.proximityRadius,
+        foodItemsInWorld: payload.foodItemsInWorld ?? state.foodItemsInWorld,
         error: "",
       };
     case SET_BROWN_BAG:
@@ -52,14 +53,14 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         ...(payload.xp !== undefined && { xp: payload.xp }),
         ...(payload.level !== undefined && { level: payload.level }),
         hotStreakActive: payload.hotStreakActive,
-        idealPickupStreak: payload.idealPickupStreak,
+        pickupStreak: payload.pickupStreak,
         ...(payload.visitorInventory && { visitorInventory: payload.visitorInventory }),
         error: "",
       };
-    case SET_IDEAL_MEAL:
+    case SET_TARGET_MEAL:
       return {
         ...state,
-        idealMeal: payload.idealMeal,
+        targetMeal: payload.targetMeal,
         error: "",
       };
     case SET_NEARBY_ITEMS:
@@ -81,13 +82,19 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         longestStreak: payload.longestStreak,
         ...(payload.visitorInventory && { visitorInventory: payload.visitorInventory }),
         ...(payload.leaderboard && { leaderboard: payload.leaderboard }),
+        isNewStreakRecord: payload.isNewStreakRecord,
         error: "",
       };
     case SET_DAILY_BUFF:
       return {
         ...state,
         dailyBuff: payload.dailyBuff,
-        hasRewardToken: false,
+        error: "",
+      };
+    case SET_FOOD_ITEMS_IN_WORLD:
+      return {
+        ...state,
+        foodItemsInWorld: payload.foodItemsInWorld,
         error: "",
       };
     case SET_ERROR:

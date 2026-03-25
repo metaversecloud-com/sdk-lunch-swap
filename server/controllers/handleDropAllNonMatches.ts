@@ -18,8 +18,8 @@ export const handleDropAllNonMatches = async (req: Request, res: Response) => {
 
     const { visitor, visitorData, brownBag } = await getVisitor(credentials, true);
 
-    // Find items that don't match the ideal meal
-    const nonMatchItems = brownBag.filter((item) => !item.matchesIdealMeal);
+    // Find items that don't match the target meal
+    const nonMatchItems = brownBag.filter((item) => !item.matchesTargetMeal);
 
     if (nonMatchItems.length === 0) {
       return res.json({ success: true, brownBag, droppedCount: 0, xpEarned: 0 });
@@ -37,8 +37,7 @@ export const handleDropAllNonMatches = async (req: Request, res: Response) => {
         credentials,
         position: visitorPos,
         itemId: item.itemId,
-        rarity: item.rarity,
-        offsetRange: 200,
+        offsetRange: 400,
         host: req.hostname,
       });
     }
@@ -51,7 +50,7 @@ export const handleDropAllNonMatches = async (req: Request, res: Response) => {
     // Update visitor data
     await visitor.updateDataObject(
       {
-        idealPickupStreak: 0,
+        pickupStreak: 0,
         dropsToday: visitorData.dropsToday + droppedCount,
         totalDrops: visitorData.totalDrops + droppedCount,
       },
@@ -70,7 +69,7 @@ export const handleDropAllNonMatches = async (req: Request, res: Response) => {
     await updateWorldStats(urlSlug, credentials, { drops: droppedCount });
 
     // Re-fetch updated bag
-    const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
+    const updatedBag = await getVisitorBag(visitor, visitorData.targetMeal, credentials);
 
     return res.json({
       success: true,

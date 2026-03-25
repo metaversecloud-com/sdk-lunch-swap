@@ -2,9 +2,9 @@ import { useContext } from "react";
 import { GlobalStateContext } from "@/context/GlobalContext";
 import { FOOD_GROUP_COLORS, RARITY_CONFIG } from "@shared/types/FoodItem";
 
-export const IdealMealTracker = ({ isPreview }: { isPreview: boolean }) => {
-  const { idealMeal, brownBag } = useContext(GlobalStateContext);
-  const items = idealMeal ?? [];
+export const MealTracker = () => {
+  const { targetMeal, brownBag } = useContext(GlobalStateContext);
+  const items = targetMeal ?? [];
   const bagItemIds = new Set((brownBag ?? []).map((b) => b.itemId));
   const isCollected = (itemId: string) => bagItemIds.has(itemId);
   const collectedCount = items.filter((item) => isCollected(item.itemId)).length;
@@ -13,38 +13,34 @@ export const IdealMealTracker = ({ isPreview }: { isPreview: boolean }) => {
   const progressPercent = totalCount > 0 ? Math.round((collectedCount / totalCount) * 100) : 0;
 
   return (
-    <section aria-label="Ideal meal tracker">
+    <section aria-label="Meal tracker">
       <div className="flex items-center justify-between mb-2">
-        <h3>Today's Ideal Meal</h3>
-        {!isPreview && (
-          <span className="p2 text-muted">
-            {collectedCount}/{totalCount}
-          </span>
-        )}
+        <h3>Today's Perfect Lunch</h3>
+        <span className="p2 text-muted">
+          {collectedCount}/{totalCount}
+        </span>
       </div>
 
       {/* Progress bar */}
-      {!isPreview && (
+      <div
+        className="w-full h-3 rounded-full bg-gray-200 overflow-hidden mb-3"
+        role="progressbar"
+        aria-valuenow={collectedCount}
+        aria-valuemin={0}
+        aria-valuemax={totalCount}
+        aria-label={`Target meal progress: ${collectedCount} of ${totalCount} items collected`}
+      >
         <div
-          className="w-full h-3 rounded-full bg-gray-200 overflow-hidden mb-3"
-          role="progressbar"
-          aria-valuenow={collectedCount}
-          aria-valuemin={0}
-          aria-valuemax={totalCount}
-          aria-label={`Ideal meal progress: ${collectedCount} of ${totalCount} items collected`}
-        >
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${allCollected ? "bg-green-500" : "bg-blue-500"}`}
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-      )}
+          className={`h-full rounded-full transition-all duration-500 ${allCollected ? "bg-green-500" : "bg-blue-500"}`}
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
 
       {/* 6-slot display */}
       <div
         className={`grid grid-cols-3 gap-2 ${allCollected ? "motion-safe:animate-pulse" : ""}`}
         role="list"
-        aria-label="Ideal meal items"
+        aria-label="Target meal items"
       >
         {items.map((item) => {
           const borderColor = FOOD_GROUP_COLORS[item.foodGroup];
@@ -54,8 +50,8 @@ export const IdealMealTracker = ({ isPreview }: { isPreview: boolean }) => {
             <div
               key={item.itemId}
               role="listitem"
-              className={`relative grid gap-1 rounded-xl border-2 p-2 text-center transition-all duration-300 ${
-                isCollected(item.itemId) || isPreview ? "bg-white shadow-md" : "bg-gray-100 opacity-60"
+              className={`relative grid gap-1 rounded-xl border-2 p-2 text-center transition-all duration-300 overflow-hidden ${
+                isCollected(item.itemId) ? "bg-white shadow-md" : "bg-gray-100 opacity-60"
               } ${allCollected ? "motion-safe:shadow-[0_0_12px_rgba(34,197,94,0.5)]" : ""}`}
               style={{ borderColor: isCollected(item.itemId) ? borderColor : `${borderColor}80` }}
               aria-label={`${item.name} - ${item.foodGroup}, ${rarityConfig.label}${isCollected(item.itemId) ? ", collected" : ", not yet collected"}`}
@@ -64,9 +60,9 @@ export const IdealMealTracker = ({ isPreview }: { isPreview: boolean }) => {
               <img src={item.image} alt={item.name} className="h-10 mx-auto object-contain" />
 
               {/* Item name */}
-              <div className="tooltip truncate">
+              <div className="tooltip min-w-0">
                 <span className="tooltip-content p3">{item.name}</span>
-                <p className="p2">{item.name}</p>
+                <p className="p2 truncate">{item.name}</p>
               </div>
 
               {/* Rarity label */}

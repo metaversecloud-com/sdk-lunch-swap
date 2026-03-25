@@ -20,9 +20,10 @@ const baseCreds = {
 
 // Mock game logic (required by handleGetGameState which shares the route file)
 jest.mock("@utils/gameLogic/index.js", () => ({
-  generateIdealMeal: jest.fn().mockResolvedValue([]),
-  generateBrownBag: jest.fn().mockResolvedValue([]),
+  generateMeal: jest.fn().mockResolvedValue([]),
   getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
+  getCurrentWeekMT: jest.fn().mockReturnValue("2026-W06"),
+  getPreviousWeekMT: jest.fn().mockReturnValue("2026-W05"),
   isNewDay: jest.fn().mockReturnValue(false),
 }));
 
@@ -127,9 +128,20 @@ jest.mock("@utils/index.js", () => ({
   getKeyAsset: jest.fn(),
   getVisitor: jest.fn(),
   getVisitorBag: jest.fn(),
+  getFoodItemsById: jest.fn(),
+  getFoodItemDefinition: jest.fn(),
   grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
   removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
   dropFoodItem: jest.fn().mockResolvedValue({ id: "new-dropped" }),
+  resolveFoodAsset: jest.fn(),
+  pickupFoodAsset: jest.fn().mockResolvedValue({ pickedUp: true }),
+  buildBagItemFromDef: jest.fn(),
+  calculatePickupXp: jest.fn().mockReturnValue(10),
+  grantXp: jest.fn().mockResolvedValue(0),
+  updateWorldStats: jest.fn().mockResolvedValue(undefined),
+  checkPickupBadges: jest.fn().mockResolvedValue(undefined),
+  checkLevelBadges: jest.fn().mockResolvedValue(undefined),
+  getVisitorBadges: jest.fn().mockReturnValue({ badges: {} }),
   Visitor: { get: jest.fn(), create: jest.fn() },
   World: { create: jest.fn(), deleteDroppedAssets: jest.fn() },
   User: { create: jest.fn() },
@@ -140,6 +152,34 @@ jest.mock("@utils/index.js", () => ({
 const mockUtils = jest.mocked(require("@utils/index.js"));
 
 // --- Helpers for nearby-items tests ---
+
+// Food item lookup map used by getFoodItemDefinition
+const foodItemsMap = new Map([
+  [
+    "apple",
+    {
+      itemId: "apple",
+      name: "Apple",
+      foodGroup: "fruit",
+      rarity: "common",
+      nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] },
+      funFact: "Apple fact",
+      superComboPairs: [],
+    },
+  ],
+  [
+    "banana",
+    {
+      itemId: "banana",
+      name: "Banana",
+      foodGroup: "fruit",
+      rarity: "common",
+      nutrition: { calories: 105, protein: 1, carbs: 27, fiber: 3, vitamins: ["B6", "C"] },
+      funFact: "Banana fact",
+      superComboPairs: [],
+    },
+  ],
+]);
 
 function setupNearbyMocks(opts: { foodAssets?: any[]; visitorData?: any; worldData?: any } = {}) {
   const { foodAssets = [], visitorData = {}, worldData = {} } = opts;
@@ -153,6 +193,8 @@ function setupNearbyMocks(opts: { foodAssets?: any[]; visitorData?: any; worldDa
       this.dataObject = visitorData;
       return Promise.resolve();
     }),
+    fetchInventoryItems: jest.fn().mockResolvedValue(undefined),
+    inventoryItems: [],
     dataObject: visitorData,
   };
 
@@ -164,6 +206,19 @@ function setupNearbyMocks(opts: { foodAssets?: any[]; visitorData?: any; worldDa
     fetchDroppedAssetsWithUniqueName: jest.fn().mockResolvedValue(foodAssets),
     dataObject: worldData,
   };
+
+  // Mock getFoodItemsById (used by controller for nearby items)
+  mockUtils.getFoodItemsById.mockResolvedValue(foodItemsMap);
+
+  // Mock getFoodItemDefinition for each food asset based on uniqueName
+  mockUtils.getFoodItemDefinition.mockImplementation(async (uniqueName: string) => {
+    // Parse pipe-delimited uniqueName: LunchSwap_foodItem|itemId|rarity|timestamp|mysteryFlag
+    const parts = (uniqueName || "").split("|");
+    const itemId = parts.length >= 2 ? parts[1] : "";
+    const isMystery = parts.length >= 5 ? parts[4] === "1" : false;
+    const foodDef = foodItemsMap.get(itemId);
+    return { itemId, foodDef, isMystery };
+  });
 
   mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
   mockUtils.World.create.mockReturnValue(mockWorld);
@@ -179,49 +234,74 @@ function setupPickupMocks(
     visitorData?: any;
     foodAssetExists?: boolean;
     foodAssetUniqueName?: string;
-    deleteThrows?: boolean;
   } = {},
 ) {
   const {
     brownBag = [],
     visitorData = {
-      idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
+      targetMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
       completedToday: false,
       pickupsToday: 0,
-      idealPickupStreak: 0,
+      pickupStreak: 0,
       hotStreakActive: false,
     },
     foodAssetExists = true,
     foodAssetUniqueName = `LunchSwap_foodItem|apple|common|${Date.now()}|1`,
-    deleteThrows = false,
   } = opts;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
   mockUtils.getKeyAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
+
+  const foodDef = {
+    itemId: "apple",
+    name: "Apple",
+    foodGroup: "fruit",
+    rarity: "common",
+    nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] },
+    funFact: "Apple fact",
+    superComboPairs: [],
+  };
+
+  const isMystery = foodAssetUniqueName.split("|")[4] === "1";
 
   const mockFoodAsset = foodAssetExists
     ? {
         id: "food-asset-1",
         uniqueName: foodAssetUniqueName,
         position: { x: 110, y: 210 },
-        fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-          this.dataObject = { itemId: "apple", rarity: "common" };
-          return Promise.resolve();
-        }),
-        deleteDroppedAsset: deleteThrows
-          ? jest.fn().mockRejectedValue(new Error("Already deleted"))
-          : jest.fn().mockResolvedValue(undefined),
+        updateDataObject: jest.fn().mockResolvedValue(undefined),
         dataObject: {},
       }
     : null;
 
-  mockUtils.DroppedAsset.get.mockResolvedValue(mockFoodAsset);
+  mockUtils.resolveFoodAsset.mockResolvedValue(
+    foodAssetExists
+      ? { success: true, foodAsset: mockFoodAsset, foodDef, isMystery }
+      : { success: false, status: 404, message: "Food asset not found" },
+  );
+
+  const matchesTarget = visitorData.targetMeal?.some((i: any) => i.itemId === "apple") ?? false;
+  const bagItem = {
+    itemId: "apple",
+    name: "Apple",
+    foodGroup: "fruit",
+    rarity: "common",
+    matchesTargetMeal: matchesTarget,
+  };
+
+  mockUtils.buildBagItemFromDef.mockReturnValue({ bagItem, matchesTargetMeal: matchesTarget });
+  mockUtils.calculatePickupXp.mockReturnValue(10);
+  mockUtils.pickupFoodAsset.mockResolvedValue({ pickedUp: true });
+  mockUtils.grantXp.mockResolvedValue(0);
 
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
+    fireToast: jest.fn().mockReturnValue(Promise.resolve()),
+    fetchInventoryItems: jest.fn().mockResolvedValue(undefined),
+    inventoryItems: [],
     dataObject: visitorData,
   };
 
@@ -232,17 +312,9 @@ function setupPickupMocks(
     dataObject: {},
   };
 
-  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
+  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, visitorInventory: [], brownBag });
 
-  const matchesIdeal = visitorData.idealMeal?.some((i: any) => i.itemId === "apple") ?? false;
-  const pickedUpItem = {
-    itemId: "apple",
-    name: "Apple",
-    foodGroup: "fruit",
-    rarity: "common",
-    matchesIdealMeal: matchesIdeal,
-  };
-  mockUtils.getVisitorBag.mockResolvedValue([...brownBag, pickedUpItem]);
+  mockUtils.getVisitorBag.mockResolvedValue([...brownBag, bagItem]);
 
   mockUtils.World.create.mockReturnValue(mockWorld);
 
@@ -264,7 +336,7 @@ describe("Mystery Items", () => {
             deleteDroppedAsset: jest.fn(),
           },
         ],
-        visitorData: { idealMeal: [{ itemId: "apple" }] },
+        visitorData: { targetMeal: [{ itemId: "apple" }] },
         worldData: { proximityRadius: 500 },
       });
 
@@ -290,7 +362,7 @@ describe("Mystery Items", () => {
             deleteDroppedAsset: jest.fn(),
           },
         ],
-        visitorData: { idealMeal: [] },
+        visitorData: { targetMeal: [] },
         worldData: { proximityRadius: 500 },
       });
 
@@ -311,7 +383,7 @@ describe("Mystery Items", () => {
             deleteDroppedAsset: jest.fn(),
           },
         ],
-        visitorData: { idealMeal: [] },
+        visitorData: { targetMeal: [] },
         worldData: { proximityRadius: 500 },
       });
 
@@ -336,7 +408,7 @@ describe("Mystery Items", () => {
             deleteDroppedAsset: jest.fn(),
           },
         ],
-        visitorData: { idealMeal: [] },
+        visitorData: { targetMeal: [] },
         worldData: { proximityRadius: 500 },
       });
 
@@ -347,7 +419,7 @@ describe("Mystery Items", () => {
       expect(res.body.nearbyItems[0].isMystery).toBe(false);
     });
 
-    test("mystery items show matchesIdealMeal as false (hidden)", async () => {
+    test("mystery items show matchesTargetMeal as false (hidden)", async () => {
       const now = Date.now();
       setupNearbyMocks({
         foodAssets: [
@@ -358,15 +430,15 @@ describe("Mystery Items", () => {
             deleteDroppedAsset: jest.fn(),
           },
         ],
-        visitorData: { idealMeal: [{ itemId: "apple" }] },
+        visitorData: { targetMeal: [{ itemId: "apple" }] },
         worldData: { proximityRadius: 500 },
       });
 
       const app = makeApp();
       const res = await request(app).get("/api/nearby-items").query(baseCreds);
 
-      // Even though apple matches ideal meal, mystery hides this
-      expect(res.body.nearbyItems[0].matchesIdealMeal).toBe(false);
+      // Even though apple matches target meal, mystery hides this
+      expect(res.body.nearbyItems[0].matchesTargetMeal).toBe(false);
     });
   });
 

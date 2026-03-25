@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getFoodItemsById, errorHandler, getCredentials, Visitor, World } from "@utils/index.js";
+import { getFoodItemsById, errorHandler, getCredentials, Visitor, World, getFoodItemDefinition } from "@utils/index.js";
 import { VISITOR_DATA_DEFAULTS, WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { NearbyItem } from "@shared/types/NearbyItem.js";
 import { SUPER_COMBOS } from "@shared/data/superCombos.js";
@@ -23,17 +23,14 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
     const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
     const proximityRadius = worldData.proximityRadius || 300;
 
-    // Fetch all food items with isPartial to avoid loading data objects
+    // Fetch all food items dropped in the world
     const allFoodAssets: DroppedAssetInterface[] = await world.fetchDroppedAssetsWithUniqueName({
       uniqueName: "LunchSwap_foodItem",
       isPartial: true,
     });
 
     const foodItemsById = await getFoodItemsById(credentials);
-
-    const now = Date.now();
-    const TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-    const idealItemIds = new Set(visitorData.idealMeal?.map((i: any) => i.itemId) || []);
+    const targetItemIds = new Set(visitorData.targetMeal?.map((i: any) => i.itemId) || []);
 
     // combo-finder buff: map nearby item IDs to the bag item name they combo with
     let comboTargetMap: Map<string, string> | null = null;
@@ -65,22 +62,7 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
     const nearbyItems: NearbyItem[] = [];
 
     for (const asset of allFoodAssets) {
-      // Parse uniqueName: `LunchSwap_foodItem_${itemId}_${mysteryFlag}`
-      const parts = (asset.uniqueName || "").split("_");
-
-      let itemId = "";
-      const dataObj = asset.dataObject as Record<string, any> | null | undefined;
-
-      if (parts.length >= 3) {
-        itemId = parts[2];
-      } else if (dataObj?.itemId) {
-        itemId = dataObj.itemId;
-      }
-
-      const isMystery = parts.length >= 4 ? parts[3] === "1" : false;
-
-      // Look up item details from inventory cache
-      const foodDef = foodItemsById.get(itemId);
+      const { itemId, foodDef, isMystery } = await getFoodItemDefinition(asset.uniqueName ?? undefined, credentials);
       if (!foodDef) continue;
 
       // Calculate distance
@@ -100,8 +82,7 @@ export const handleGetNearbyItems = async (req: Request, res: Response) => {
         foodGroup: foodDef.foodGroup, // Keep foodGroup as a hint even for mystery items
         rarity: isMystery ? "mystery" : foodDef.rarity,
         distance: Math.round(distance),
-        matchesIdealMeal: isMystery ? false : idealItemIds.has(itemId),
-        lastDroppedByName: "", // Would need data object; not critical for list view
+        matchesTargetMeal: isMystery ? false : targetItemIds.has(itemId),
         isMystery,
         isComboMatch: !isMystery && comboTargetMap ? comboTargetMap.has(itemId) : false,
         comboMatchPartner: (!isMystery && comboTargetMap?.get(itemId)) || undefined,

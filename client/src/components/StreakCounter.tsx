@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 interface StreakCounterProps {
   currentStreak: number;
   longestStreak?: number;
+  isNewStreakRecord?: boolean;
 }
 
-export const StreakCounter = ({ currentStreak, longestStreak }: StreakCounterProps) => {
+export const StreakCounter = ({ currentStreak, longestStreak, isNewStreakRecord }: StreakCounterProps) => {
   const [displayCount, setDisplayCount] = useState(0);
-  const isNewRecord = longestStreak !== undefined && currentStreak > longestStreak;
 
   // Animate the count up on mount
   useEffect(() => {
@@ -40,31 +40,26 @@ export const StreakCounter = ({ currentStreak, longestStreak }: StreakCounterPro
     <div
       className="grid items-center text-center"
       role="status"
-      aria-label={`Current streak: ${currentStreak} day${currentStreak !== 1 ? "s" : ""}${isNewRecord ? ", new record!" : ""}`}
+      aria-label={`Current streak: ${currentStreak} week${currentStreak !== 1 ? "s" : ""}${isNewStreakRecord ? ", new record!" : ""}`}
     >
-      <div className="flex gap-2 m-auto">
+      <div className="flex gap-2 m-auto items-end justify-center">
         {/* Flame icon via CSS gradient */}
-        <h3
-          className="motion-safe:animate-bounce"
-          role="img"
-          aria-hidden="true"
-          style={{ animationDuration: "1.5s" }}
-        >
+        <h3 className="motion-safe:animate-bounce" role="img" aria-hidden="true" style={{ animationDuration: "1.5s" }}>
           &#128293;
         </h3>
         <h2 className="">{displayCount}</h2>
+        <p className="text-xs text-gray-400">week streak</p>
       </div>
-      <p className="text-xs text-gray-400">day streak</p>
 
-      {isNewRecord && (
+      {isNewStreakRecord && (
         <span className="m-auto inline-flex items-center gap-1 px-3 py-1 mt-4 rounded-full bg-orange-100 text-orange-700 text-xs border border-orange-200 motion-safe:animate-pulse">
           <span aria-hidden="true">&#127942;</span> New Record!
         </span>
       )}
 
-      {longestStreak !== undefined && !isNewRecord && longestStreak > 0 && (
+      {longestStreak !== undefined && !isNewStreakRecord && longestStreak > 0 && (
         <p className="pt-3 text-xs text-gray-400">
-          Best: {longestStreak} day{longestStreak !== 1 ? "s" : ""}
+          Best: {longestStreak} week{longestStreak !== 1 ? "s" : ""}
         </p>
       )}
     </div>

@@ -71,7 +71,6 @@ export const handleSwapItem = async (req: Request, res: Response) => {
         y: visitor.moveTo?.y ?? 0,
       },
       itemId: droppedItem.itemId,
-      rarity: droppedItem.rarity,
       shouldTriggerParticle: true,
       host: req.hostname,
     });
@@ -79,14 +78,14 @@ export const handleSwapItem = async (req: Request, res: Response) => {
     // --- PICKUP phase (mirrors handlePickupItem) ---
 
     // Build bag item and grant to inventory
-    const { bagItem: newBagItem, matchesIdealMeal } = buildBagItemFromDef(foodDef, visitorData.idealMeal);
+    const { bagItem: newBagItem, matchesTargetMeal } = buildBagItemFromDef(foodDef, visitorData.targetMeal);
     await grantFoodToVisitor(visitor, credentials, newBagItem);
 
     // Hot streak logic (mirrors handlePickupItem)
     let xpMultiplier = 1;
-    const currentIdealStreak = visitorData.idealPickupStreak || 0;
+    const currentItemStreak = visitorData.pickupStreak || 0;
     const wasHotStreak = visitorData.hotStreakActive || false;
-    const hotStreakActivated = matchesIdealMeal && currentIdealStreak + 1 >= 3;
+    const hotStreakActivated = matchesTargetMeal && currentItemStreak + 1 >= 3;
 
     // Track mystery reveals and rarity collection
     const prevRarity = visitorData.totalItemsCollectedByRarity || { common: 0, rare: 0, epic: 0 };
@@ -101,7 +100,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       totalDrops: (visitorData.totalDrops || 0) + 1,
       pickupsToday: (visitorData.pickupsToday || 0) + 1,
       totalPickups: (visitorData.totalPickups || 0) + 1,
-      idealPickupStreak: matchesIdealMeal ? currentIdealStreak + 1 : 0,
+      pickupStreak: matchesTargetMeal ? currentItemStreak + 1 : 0,
       hotStreakActive: wasHotStreak ? false : hotStreakActivated,
       totalMysteryItemsRevealed: newMysteryTotal,
       totalItemsCollectedByRarity: newRarityTotals,
@@ -125,10 +124,10 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       ],
     });
 
-    // Calculate XP: DROP + PICKUP (with rarity multiplier, ideal meal bonus, hot streak multiplier)
+    // Calculate XP: DROP + PICKUP (with rarity multiplier, matching meal bonus, hot streak multiplier)
     const buffMultiplier = visitorData.dailyBuff === "double-xp" ? 2 : 1;
     const xpEarned =
-      (XP_ACTIONS.DROP + calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier)) * buffMultiplier;
+      (XP_ACTIONS.DROP + calculatePickupXp(foodDef.rarity, matchesTargetMeal, xpMultiplier)) * buffMultiplier;
 
     // Grant XP to visitor inventory
     const newTotalXp = await grantXp(visitor, credentials, xpEarned);
@@ -164,7 +163,7 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       .catch(() => {});
 
     // Read updated bag from inventory
-    const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
+    const updatedBag = await getVisitorBag(visitor, visitorData.targetMeal, credentials);
 
     // Delete the dropped asset from world (race condition guard)
     const { pickedUp } = await pickupFoodAsset(foodAsset, urlSlug, credentials);
@@ -177,14 +176,14 @@ export const handleSwapItem = async (req: Request, res: Response) => {
       brownBag: updatedBag,
       droppedItem,
       pickedUpItem: newBagItem,
-      matchesIdealMeal,
+      matchesTargetMeal,
       xpEarned,
       xp: newTotalXp,
       level: newLevel,
       funFact: foodDef.funFact,
       isMystery,
       hotStreakActive: updatedData.hotStreakActive,
-      idealPickupStreak: updatedData.idealPickupStreak,
+      pickupStreak: updatedData.pickupStreak,
       xpMultiplier,
       visitorInventory: updatedVisitorInventory,
     });

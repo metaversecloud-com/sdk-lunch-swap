@@ -1,10 +1,13 @@
 import { Request, Response } from "express";
-import { errorHandler, getCredentials, resolveFoodAsset, getVisitor, getFoodItemsById } from "@utils/index.js";
+import { errorHandler, getCredentials, resolveFoodAsset, getVisitor, getFoodItemsById, World } from "@utils/index.js";
 import { BAG_CAPACITY, BAG_CAPACITY_POST_COMPLETION } from "@shared/data/xpConfig.js";
+import { DroppedAssetInterface } from "@rtsdk/topia";
 
 export const handleGetItemDetails = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
+    const { urlSlug } = credentials;
+
     const droppedAssetId = req.query.droppedAssetId as string;
 
     if (!droppedAssetId) {
@@ -13,7 +16,7 @@ export const handleGetItemDetails = async (req: Request, res: Response) => {
 
     // Resolve food asset and fetch visitor in parallel
     const [resolved, { visitorData, brownBag, xp, level, newDay }] = await Promise.all([
-      resolveFoodAsset(droppedAssetId, credentials.urlSlug, credentials),
+      resolveFoodAsset(droppedAssetId, urlSlug, credentials),
       getVisitor(credentials, true),
     ]);
 
@@ -23,14 +26,14 @@ export const handleGetItemDetails = async (req: Request, res: Response) => {
 
     const { foodDef, isMystery } = resolved;
 
-    // Check ideal meal match
-    const idealMeal = visitorData.idealMeal || [];
-    const matchesIdealMeal = idealMeal.some((item) => item.itemId === foodDef.itemId);
+    // Check target meal match
+    const targetMeal = visitorData.targetMeal || [];
+    const matchesTargetMeal = targetMeal.some((item) => item.itemId === foodDef.itemId);
 
-    // Enrich ideal meal items with images (for meals stored before image field existed)
-    if (idealMeal?.length && !idealMeal[0].image) {
+    // Enrich target meal items with images (for meals stored before image field existed)
+    if (targetMeal?.length && !targetMeal[0].image) {
       const foodItemsById = await getFoodItemsById(credentials);
-      for (const item of idealMeal) {
+      for (const item of targetMeal) {
         const def = foodItemsById.get(item.itemId);
         if (def?.image) item.image = def.image;
       }
@@ -41,18 +44,26 @@ export const handleGetItemDetails = async (req: Request, res: Response) => {
     const maxCapacity = (visitorData.completedToday ? BAG_CAPACITY_POST_COMPLETION : BAG_CAPACITY) + bigBagBonus;
     const bagFull = brownBag.length >= maxCapacity;
 
+    const world = World.create(urlSlug, { credentials });
+
+    const keyAssets: DroppedAssetInterface[] = await world.fetchDroppedAssetsWithUniqueName({
+      uniqueName: "LunchSwap_keyAsset",
+      isPartial: false,
+    });
+
     return res.json({
       success: true,
       foodDef,
       isMystery,
-      matchesIdealMeal,
+      matchesTargetMeal,
       bagFull,
       brownBag,
-      idealMeal,
+      targetMeal,
       xp,
       level,
-      newDay: newDay || !visitorData.dayStartTimestamp,
+      newDay,
       completedToday: visitorData.completedToday,
+      keyAssetId: keyAssets[0]?.id,
     });
   } catch (error) {
     return errorHandler({

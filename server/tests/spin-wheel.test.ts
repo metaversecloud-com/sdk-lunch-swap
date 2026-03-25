@@ -20,9 +20,10 @@ const baseCreds = {
 
 // Mock game logic (required because routes.ts imports controllers that use it)
 jest.mock("@utils/gameLogic/index.js", () => ({
-  generateIdealMeal: jest.fn().mockResolvedValue([]),
-  generateBrownBag: jest.fn().mockResolvedValue([]),
+  generateMeal: jest.fn().mockResolvedValue([]),
   getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
+  getCurrentWeekMT: jest.fn().mockReturnValue("2026-W06"),
+  getPreviousWeekMT: jest.fn().mockReturnValue("2026-W05"),
   isNewDay: jest.fn().mockReturnValue(false),
   calculateNutritionScore: jest.fn().mockResolvedValue({
     score: 0,
@@ -58,7 +59,11 @@ jest.mock("@utils/index.js", () => ({
     if (res) return res.status(500).json({ error: "Internal server error" });
   }),
   getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
+  getVisitor: jest.fn(),
+  getVisitorBag: jest.fn().mockResolvedValue([]),
+  grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
+  removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  getAllFoodItems: jest.fn().mockResolvedValue([]),
   Visitor: { get: jest.fn() },
   World: { create: jest.fn() },
   User: { create: jest.fn() },
@@ -72,9 +77,8 @@ function setupMocks(opts: { visitorData?: any } = {}) {
   const {
     visitorData = {
       dailyBuff: null,
-      hasRewardToken: true,
       brownBag: [],
-      idealMeal: [],
+      targetMeal: [],
       completedToday: false,
     },
   } = opts;
@@ -84,16 +88,27 @@ function setupMocks(opts: { visitorData?: any } = {}) {
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
+    fireToast: jest.fn().mockResolvedValue(undefined),
     fetchDataObject: jest.fn().mockImplementation(function (this: any) {
       this.dataObject = visitorData;
       return Promise.resolve();
     }),
+    fetchInventoryItems: jest.fn().mockResolvedValue(undefined),
+    inventoryItems: [],
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
     dataObject: visitorData,
   };
 
-  mockUtils.Visitor.get.mockResolvedValue(mockVisitor);
+  mockUtils.getVisitor.mockResolvedValue({
+    visitor: mockVisitor,
+    visitorData,
+    brownBag: [],
+    visitorInventory: [],
+    xp: 0,
+    level: 1,
+    newDay: false,
+  });
 
   return { mockVisitor };
 }
@@ -117,12 +132,12 @@ describe("POST /api/spin-wheel", () => {
     expect(res.body.buff.name).toBeDefined();
     expect(res.body.buff.description).toBeDefined();
 
-    // Verify updateDataObject was called with a dailyBuff value and hasRewardToken: false
+    // Verify updateDataObject was called with a dailyBuff value
     expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
       expect.objectContaining({
         dailyBuff: expect.any(String),
-        hasRewardToken: false,
       }),
+      expect.anything(),
     );
   });
 
@@ -130,9 +145,8 @@ describe("POST /api/spin-wheel", () => {
     setupMocks({
       visitorData: {
         dailyBuff: "double-xp",
-        hasRewardToken: true,
         brownBag: [],
-        idealMeal: [],
+        targetMeal: [],
         completedToday: false,
       },
     });
@@ -146,46 +160,6 @@ describe("POST /api/spin-wheel", () => {
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
     expect(res.body.message).toBe("Already spun today");
-  });
-
-  test("no Reward Token: returns 400 with 'No Reward Tokens available' when hasRewardToken is false", async () => {
-    setupMocks({
-      visitorData: {
-        dailyBuff: null,
-        hasRewardToken: false,
-        brownBag: [],
-        idealMeal: [],
-        completedToday: false,
-      },
-    });
-
-    const app = makeApp();
-    const res = await request(app)
-      .post("/api/spin-wheel")
-      .query(baseCreds)
-      .send({});
-
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toBe("No Reward Tokens available");
-  });
-
-  test("buff consumed: verifies updateDataObject called with hasRewardToken: false", async () => {
-    const { mockVisitor } = setupMocks();
-
-    const app = makeApp();
-    const res = await request(app)
-      .post("/api/spin-wheel")
-      .query(baseCreds)
-      .send({});
-
-    expect(res.status).toBe(200);
-    expect(mockVisitor.updateDataObject).toHaveBeenCalledTimes(1);
-    expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
-      expect.objectContaining({
-        hasRewardToken: false,
-      }),
-    );
   });
 
   test("returned buff is one of the valid wheel buffs", async () => {

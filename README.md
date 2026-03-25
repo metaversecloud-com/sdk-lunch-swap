@@ -1,26 +1,26 @@
 # Lunch Swap
 
-A daily nutrition-themed collection game built with the Topia SDK. Each day, visitors receive a randomized "ideal meal" and a brown bag of food items. They explore the world to pick up, drop, and swap items — trading with other players' leavings — to assemble the perfect meal before submitting it for a nutrition score.
+A daily nutrition-themed collection game built with the Topia SDK. Each day, visitors receive a randomized meal and a brown bag of food items. They explore the world to pick up, drop, and swap items — trading with other players' leavings — to assemble the perfect meal before submitting it for a nutrition score.
 
 ## How It Works
 
-1. **New Day** — Each visitor gets a daily ideal meal (5 items across food groups) and a brown bag of starting items. Yesterday's leftover bag items are auto-dropped into the world.
+1. **New Day** — Each visitor gets a daily meal (5 items across food groups) and a brown bag of starting items. Yesterday's leftover bag items are auto-dropped into the world.
 2. **Explore & Collect** — Walk near food items scattered in the world. Pick them up to add to your bag, or drop items you don't need for others to find.
 3. **Swap** — When your bag is full, swap an item from your bag with one on the ground.
-4. **Submit Meal** — Once your bag contains all 5 ideal meal items, submit for a nutrition score, XP, and streak bonuses.
+4. **Submit Meal** — Once your bag contains all 5 meal items, submit for a nutrition score, XP, and streak bonuses.
 
 ## Key Features
 
 ### Visitor Features
 
-- **Brown Bag** — Holds up to 8 items (3 after meal completion). Shows food group, rarity, and ideal meal matches.
-- **Ideal Meal Tracker** — Displays the 5 target items with collected/uncollected status derived from inventory.
+- **Brown Bag** — Holds up to 8 items (3 after meal completion). Shows food group, rarity, and meal matches.
+- **Meal Tracker** — Displays the 5 target items with collected/uncollected status derived from inventory.
 - **Nearby Items** — Polls for food items within proximity radius and displays them for pickup.
 - **XP & Leveling** — Earn XP on every action (pickup, drop, swap, submit). XP is stored as an "Experience Points" inventory item. Level derived from XP thresholds.
 - **Streaks** — Complete meals on consecutive days to build a streak and earn bonus XP.
 - **Nutrition Score** — Meal submissions are scored 0–100 based on protein, fiber, vitamin diversity, and balance.
 - **Super Combos** — Certain item pairs trigger bonus XP when both are in your bag at submission.
-- **Hot Streak** — Pick up 3 consecutive ideal meal matches to activate a 3x XP multiplier on the next pickup.
+- **Hot Streak** — Pick up 3 consecutive meal matches to activate a 3x XP multiplier on the next pickup.
 - **Mystery Items** — Some spawned items appear as mystery items, revealed on pickup.
 
 ### Admin Features
@@ -43,15 +43,15 @@ A daily nutrition-themed collection game built with the Topia SDK. Each day, vis
 
 ### Game
 
-| Method | Path            | Description                                            |
-| ------ | --------------- | ------------------------------------------------------ |
-| `GET`  | `/game-state`   | Fetch visitor's game state, bag, ideal meal, XP, level |
-| `GET`  | `/nearby-items` | Get food items near the visitor                        |
-| `POST` | `/pickup-item`  | Pick up a dropped food item                            |
-| `POST` | `/drop-item`    | Drop a food item from bag into world                   |
-| `POST` | `/swap-item`    | Drop one item, pick up another atomically              |
-| `POST` | `/submit-meal`  | Submit completed meal for scoring                      |
-| `POST` | `/spin-wheel`   | Spin the bonus wheel for a daily buff                  |
+| Method | Path            | Description                                             |
+| ------ | --------------- | ------------------------------------------------------- |
+| `GET`  | `/game-state`   | Fetch visitor's game state, bag, target meal, XP, level |
+| `GET`  | `/nearby-items` | Get food items near the visitor                         |
+| `POST` | `/pickup-item`  | Pick up a dropped food item                             |
+| `POST` | `/drop-item`    | Drop a food item from bag into world                    |
+| `POST` | `/swap-item`    | Drop one item, pick up another atomically               |
+| `POST` | `/submit-meal`  | Submit completed meal for scoring                       |
+| `POST` | `/spin-wheel`   | Spin the bonus wheel for a daily buff                   |
 
 ### Admin
 
@@ -70,7 +70,7 @@ Stores daily game progress, streak data, and stats. XP is tracked via the "Exper
 ```ts
 {
   lastPlayedDate: string;
-  idealMeal: IdealMealItem[];
+  targetMeal: TargetMealItem[];
   completedToday: boolean;
   pickupsToday: number;
   dropsToday: number;

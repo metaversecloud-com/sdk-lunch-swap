@@ -6,8 +6,8 @@ import { AdminSettings } from "@/components/AdminSettings";
 import { AdminStats } from "@/components/AdminStats";
 
 // context
-import { GlobalDispatchContext } from "@/context/GlobalContext";
-import { ErrorType } from "@/context/types";
+import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";
+import { ErrorType, FoodItemInWorld, SET_FOOD_ITEMS_IN_WORLD } from "@/context/types";
 
 // utils
 import { backendAPI, setErrorMessage } from "@/utils";
@@ -19,6 +19,7 @@ type ActionStatus = {
 
 export const AdminView = () => {
   const dispatch = useContext(GlobalDispatchContext);
+  const { foodItemsInWorld } = useContext(GlobalStateContext);
 
   // Action loading states
   const [isRemoving, setIsRemoving] = useState(false);
@@ -30,6 +31,7 @@ export const AdminView = () => {
   // Spawn input
   const [showSpawnInput, setShowSpawnInput] = useState(false);
   const [spawnCount, setSpawnCount] = useState(20);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
 
   // Status message
   const [actionStatus, setActionStatus] = useState<ActionStatus>();
@@ -48,6 +50,10 @@ export const AdminView = () => {
           type: "success",
           message: `Removed ${data.removedCount} item${data.removedCount !== 1 ? "s" : ""}.`,
         });
+
+        if (data.foodItemsInWorld && dispatch) {
+          dispatch({ type: SET_FOOD_ITEMS_IN_WORLD, payload: { foodItemsInWorld: data.foodItemsInWorld } });
+        }
       }
     } catch (error) {
       setErrorMessage(dispatch, error as ErrorType);
@@ -60,17 +66,23 @@ export const AdminView = () => {
     }
   };
 
-  const handleSpawnItems = async () => {
+  const handleSpawnItems = async (itemIds?: string[]) => {
     setIsSpawning(true);
     setActionStatus(null);
     try {
-      const { data } = await backendAPI.post("/admin/spawn-items", { count: spawnCount });
+      const body: { count?: number; itemIds?: string[] } = itemIds ? { itemIds } : { count: spawnCount };
+      const { data } = await backendAPI.post("/admin/spawn-items", body);
       if (data.success) {
         setActionStatus({
           type: "success",
           message: `Spawned ${data.spawnedCount} item${data.spawnedCount !== 1 ? "s" : ""}.`,
         });
         setShowSpawnInput(false);
+        setSelectedItemIds(new Set());
+
+        if (data.foodItemsInWorld && dispatch) {
+          dispatch({ type: SET_FOOD_ITEMS_IN_WORLD, payload: { foodItemsInWorld: data.foodItemsInWorld } });
+        }
       }
     } catch (error) {
       setErrorMessage(dispatch, error as ErrorType);
@@ -81,6 +93,18 @@ export const AdminView = () => {
     } finally {
       setIsSpawning(false);
     }
+  };
+
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
   };
 
   const areButtonsDisabled = isRemoving || isSpawning;
@@ -124,45 +148,138 @@ export const AdminView = () => {
             </button>
           ) : (
             <div className="card my-1">
-              <label htmlFor="spawn-count" className="p2">
-                Number of items to spawn
-              </label>
-              <input
-                id="spawn-count"
-                type="number"
-                className="input"
-                min={1}
-                max={50}
-                value={spawnCount}
-                onChange={(e) => {
-                  const val = Math.max(1, Math.min(50, Number(e.target.value)));
-                  setSpawnCount(val);
-                }}
-                disabled={isSpawning}
-                aria-describedby="spawn-count-hint"
-              />
-              <p id="spawn-count-hint" className="p2">
-                Min 1, max 50
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  className="btn grid items-center gap-2"
-                  disabled={areButtonsDisabled}
-                  onClick={handleSpawnItems}
-                  aria-label={`Spawn ${spawnCount} food items`}
-                >
-                  {isSpawning && <Loading isSpinner={true} />}
-                  {isSpawning ? "Spawning..." : `Spawn ${spawnCount}`}
-                </button>
-                <button
-                  className="btn btn-outline"
-                  disabled={isSpawning}
-                  onClick={() => setShowSpawnInput(false)}
-                  aria-label="Cancel spawn"
-                >
-                  Cancel
-                </button>
-              </div>
+              {/* Food Items List */}
+              {foodItemsInWorld && foodItemsInWorld.length > 0 && (
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="p2  flex-shrink-0">Select specific items to spawn</p>
+                    {selectedItemIds.size > 0 && (
+                      <div
+                        className="p3 flex-shrink-1 text-right cursor-pointer"
+                        onClick={() => setSelectedItemIds(new Set())}
+                        aria-label="Clear selection"
+                      >
+                        Clear ({selectedItemIds.size})
+                      </div>
+                    )}
+                  </div>
+                  <div
+                    className="border border-gray-200 rounded-lg overflow-y-auto"
+                    style={{ maxHeight: "200px" }}
+                    role="listbox"
+                    aria-label="Food items in world"
+                    aria-multiselectable="true"
+                  >
+                    {foodItemsInWorld.map((item: FoodItemInWorld) => {
+                      const isSelected = selectedItemIds.has(item.itemId);
+                      // const rarityConf = RARITY_CONFIG[item.rarity as keyof typeof RARITY_CONFIG];
+                      // const groupColor = FOOD_GROUP_COLORS[item.foodGroup as keyof typeof FOOD_GROUP_COLORS];
+                      return (
+                        <button
+                          key={item.itemId}
+                          role="option"
+                          aria-selected={isSelected}
+                          className={`w-full flex items-center justify-between px-3 py-2 text-left border-b border-gray-100 last:border-b-0 transition-colors ${
+                            isSelected ? "bg-blue-50" : "hover:bg-gray-50"
+                          }`}
+                          onClick={() => toggleItemSelection(item.itemId)}
+                          disabled={isSpawning}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <input
+                              type="checkbox"
+                              className="input-checkbox flex-shrink-0"
+                              checked={isSelected}
+                              readOnly
+                              tabIndex={-1}
+                              aria-hidden="true"
+                            />
+                            <div className="tooltip truncate">
+                              <span className="tooltip-content p3">{item.name}</span>
+                              <span className="p2">{item.name}</span>
+                            </div>
+                            {/* <span
+                              className="p3 uppercase px-1.5 py-0.5 rounded-full text-white flex-shrink-0"
+                              style={{ backgroundColor: groupColor || "#6B7280", fontSize: "0.6rem" }}
+                            >
+                              {item.foodGroup}
+                            </span>
+                            <span
+                              className="p3 uppercase px-1.5 py-0.5 rounded-full text-white flex-shrink-0"
+                              style={{ backgroundColor: rarityConf?.color || "#8E8E93", fontSize: "0.6rem" }}
+                            >
+                              {rarityConf?.label || item.rarity}
+                            </span> */}
+                          </div>
+                          <span className="p3 text-gray-500 flex-shrink-0 ml-2">{item.countInWorld} in world</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Spawn Selected or Random */}
+              {selectedItemIds.size > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    className="btn grid items-center gap-2"
+                    disabled={areButtonsDisabled}
+                    onClick={() => handleSpawnItems(Array.from(selectedItemIds))}
+                    aria-label={`Spawn ${selectedItemIds.size} selected items`}
+                  >
+                    {isSpawning && <Loading isSpinner={true} />}
+                    {isSpawning ? "Spawning..." : `Spawn ${selectedItemIds.size}`}
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    disabled={isSpawning}
+                    onClick={() => setShowSpawnInput(false)}
+                    aria-label="Cancel spawn"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <label htmlFor="spawn-count" className="p2">
+                    Or spawn random items (max 60)
+                  </label>
+                  <input
+                    id="spawn-count"
+                    type="number"
+                    className="input"
+                    min={1}
+                    max={60}
+                    value={spawnCount}
+                    onChange={(e) => {
+                      const val = Math.max(1, Math.min(60, Number(e.target.value)));
+                      setSpawnCount(val);
+                    }}
+                    disabled={isSpawning}
+                    aria-describedby="spawn-count-hint"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      className="btn grid items-center gap-2"
+                      disabled={areButtonsDisabled}
+                      onClick={() => handleSpawnItems()}
+                      aria-label={`Spawn ${spawnCount} random food items`}
+                    >
+                      {isSpawning && <Loading isSpinner={true} />}
+                      {isSpawning ? "Spawning..." : `Spawn ${spawnCount}`}
+                    </button>
+                    <button
+                      className="btn btn-outline"
+                      disabled={isSpawning}
+                      onClick={() => setShowSpawnInput(false)}
+                      aria-label="Cancel spawn"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

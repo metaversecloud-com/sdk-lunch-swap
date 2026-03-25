@@ -51,6 +51,14 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     // Fetch visitor with data and bag
     const { visitor, visitorData, visitorInventory, brownBag } = await getVisitor(credentials, true);
 
+    // Prevent picking up a duplicate item already in the bag
+    if (brownBag.some((item) => item.itemId === foodDef.itemId)) {
+      return res.status(400).json({
+        success: false,
+        message: `You already have ${foodDef.name} in your bag!`,
+      });
+    }
+
     // Check bag capacity (8 pre-completion, 3 post-completion; big-bag buff adds 2)
     const bigBagBonus = visitorData.dailyBuff === "big-bag" ? 2 : 0;
     const maxCapacity = (visitorData.completedToday ? BAG_CAPACITY_POST_COMPLETION : BAG_CAPACITY) + bigBagBonus;
@@ -62,14 +70,14 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     }
 
     // Build bag item and grant to inventory
-    const { bagItem: newBagItem, matchesIdealMeal } = buildBagItemFromDef(foodDef, visitorData.idealMeal);
+    const { bagItem: newBagItem, matchesTargetMeal } = buildBagItemFromDef(foodDef, visitorData.targetMeal);
     await grantFoodToVisitor(visitor, credentials, newBagItem);
 
     // Hot streak logic
     let xpMultiplier = 1;
-    const currentIdealStreak = visitorData.idealPickupStreak || 0;
+    const currentItemStreak = visitorData.pickupStreak || 0;
     const wasHotStreak = visitorData.hotStreakActive || false;
-    const hotStreakActivated = matchesIdealMeal && currentIdealStreak + 1 >= 3;
+    const hotStreakActivated = matchesTargetMeal && currentItemStreak + 1 >= 3;
 
     // Track mystery reveals and rarity collection
     const prevRarity = visitorData.totalItemsCollectedByRarity || { common: 0, rare: 0, epic: 0 };
@@ -82,7 +90,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     const updatedData = {
       pickupsToday: (visitorData.pickupsToday || 0) + 1,
       totalPickups: (visitorData.totalPickups || 0) + 1,
-      idealPickupStreak: matchesIdealMeal ? currentIdealStreak + 1 : 0,
+      pickupStreak: matchesTargetMeal ? currentItemStreak + 1 : 0,
       hotStreakActive: wasHotStreak ? false : hotStreakActivated,
       totalMysteryItemsRevealed: newMysteryTotal,
       totalItemsCollectedByRarity: newRarityTotals,
@@ -105,7 +113,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
 
     // Calculate and grant XP (double-xp buff doubles all XP)
     const buffMultiplier = visitorData.dailyBuff === "double-xp" ? 2 : 1;
-    const xpEarned = calculatePickupXp(foodDef.rarity, matchesIdealMeal, xpMultiplier) * buffMultiplier;
+    const xpEarned = calculatePickupXp(foodDef.rarity, matchesTargetMeal, xpMultiplier) * buffMultiplier;
     const newTotalXp = await grantXp(visitor, credentials, xpEarned);
     const newLevel = getLevelForXp(newTotalXp);
 
@@ -133,7 +141,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
     // Fire toast with fun fact
     let title = `Picked up ${foodDef.name}!`;
     if (isMystery) title = `Mystery revealed: ${foodDef?.name ?? "item"}!`;
-    if (matchesIdealMeal) title += " Ideal meal match!";
+    if (matchesTargetMeal) title += " Perfect match!";
     if (xpEarned) title += ` (+${xpEarned} XP)`;
     visitor
       .fireToast({
@@ -143,7 +151,7 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       .catch(() => {});
 
     // Read updated bag from inventory
-    const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
+    const updatedBag = await getVisitorBag(visitor, visitorData.targetMeal, credentials);
 
     // Delete the dropped asset from world (race condition guard)
     const { pickedUp } = await pickupFoodAsset(foodAsset, urlSlug, credentials);
@@ -155,14 +163,14 @@ export const handlePickupItem = async (req: Request, res: Response) => {
       success: true,
       brownBag: updatedBag,
       pickedUpItem: newBagItem,
-      matchesIdealMeal,
+      matchesTargetMeal,
       xpEarned,
       xp: newTotalXp,
       level: newLevel,
       funFact: foodDef.funFact,
       isMystery,
       hotStreakActive: updatedData.hotStreakActive,
-      idealPickupStreak: updatedData.idealPickupStreak,
+      pickupStreak: updatedData.pickupStreak,
       xpMultiplier,
       visitorInventory: updatedVisitorInventory,
     });

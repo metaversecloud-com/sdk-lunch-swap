@@ -7,8 +7,7 @@ export interface NearbyItem {
   foodGroup: FoodGroup;
   rarity: Rarity;
   distance: number;
-  matchesIdealMeal: boolean;
-  lastDroppedByName: string;
+  matchesTargetMeal: boolean;
   isMystery?: boolean;
   isComboMatch?: boolean;
   comboMatchPartner?: string;

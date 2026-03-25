@@ -9,7 +9,7 @@ interface SpinResult {
 }
 
 interface BonusWheelProps {
-  onSkip: () => void;
+  closeModal: () => void;
   onResult: (result: SpinResult) => void;
 }
 
@@ -17,7 +17,7 @@ const SEGMENT_COLORS = ["#FF6B6B", "#ffa94d", "#45B7D1", "#4ECDC4", "#cf8df7"];
 const SPIN_DURATION_MS = 2500;
 const SEGMENT_ANGLE = 360 / WHEEL_BUFFS.length;
 
-export const BonusWheel = ({ onSkip, onResult }: BonusWheelProps) => {
+export const BonusWheel = ({ closeModal, onResult }: BonusWheelProps) => {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [wonBuff, setWonBuff] = useState<{
@@ -123,137 +123,135 @@ export const BonusWheel = ({ onSkip, onResult }: BonusWheelProps) => {
   };
 
   return (
-    <div className="grid gap-4" role="region" aria-label="Bonus wheel spinner">
-      <div
-        className="grid gap-2 p-3 rounded-2xl text-center"
-        style={{ backgroundColor: "#FFF8E1", border: "3px solid #FFD700" }}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="bonus-wheel-title"
-        aria-describedby="bonus-wheel-description"
-      >
-        <h4 id="bonus-wheel-title">You have a Reward Token!</h4>
-
-        <p id="bonus-wheel-description" className="p2">
-          Spin the wheel for today&apos;s bonus?
-        </p>
-      </div>
-
-      {/* Wheel container with pointer */}
-      <div className="relative mt-2">
-        {/* Pointer triangle at top */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10" aria-hidden="true">
-          <div
-            className="w-0 h-0"
-            style={{
-              borderLeft: "10px solid transparent",
-              borderRight: "10px solid transparent",
-              borderTop: "18px solid #333333",
-            }}
+    <div className="modal-container" onClick={closeModal} role="dialog" aria-modal="true" aria-label="Bonus wheel">
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <img
+            className="cursor-pointer ml-auto"
+            src="https://sdk-style.s3.amazonaws.com/icons/x.svg"
+            onClick={closeModal}
           />
         </div>
+        <div className="grid gap-4" role="region" aria-label="Bonus wheel spinner">
+            <div
+              className="grid gap-2 p-3 rounded-2xl text-center"
+              style={{ backgroundColor: "#FFF8E1", border: "3px solid #FFD700" }}
+              aria-labelledby="bonus-wheel-title"
+              aria-describedby="bonus-wheel-description"
+            >
+              <h4 id="bonus-wheel-title">Daily Bonus Spin</h4>
 
-        {/* SVG Wheel */}
-        <svg
-          ref={wheelRef}
-          viewBox="0 0 200 200"
-          className="w-full h-full"
-          style={{
-            transform: `rotate(${rotation}deg)`,
-            transition: reducedMotion ? "none" : `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.17, 0.67, 0.12, 0.99)`,
-          }}
-          aria-hidden="true"
-        >
-          {WHEEL_BUFFS.map((buff, i) => {
-            const textPos = getTextPosition(i);
-            return (
-              <g key={buff.id}>
-                <path d={createSegmentPath(i)} fill={SEGMENT_COLORS[i]} stroke="#FFFFFF" strokeWidth="2" />
-                <text
-                  x={textPos.x}
-                  y={textPos.y}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  transform={`rotate(${textPos.angle}, ${textPos.x}, ${textPos.y})`}
-                  fill="#333333"
-                  fontSize="10"
-                  className="select-none"
+              <p id="bonus-wheel-description" className="p2">
+                Spin the wheel for today&apos;s bonus!
+              </p>
+            </div>
+
+            {/* Wheel container with pointer */}
+            <div className="relative mt-2">
+              {/* Pointer triangle at top */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10" aria-hidden="true">
+                <div
+                  className="w-0 h-0"
+                  style={{
+                    borderLeft: "10px solid transparent",
+                    borderRight: "10px solid transparent",
+                    borderTop: "18px solid #333333",
+                  }}
+                />
+              </div>
+
+              {/* SVG Wheel */}
+              <svg
+                ref={wheelRef}
+                viewBox="0 0 200 200"
+                className="w-full h-full"
+                style={{
+                  transform: `rotate(${rotation}deg)`,
+                  transition: reducedMotion
+                    ? "none"
+                    : `transform ${SPIN_DURATION_MS}ms cubic-bezier(0.17, 0.67, 0.12, 0.99)`,
+                }}
+                aria-hidden="true"
+              >
+                {WHEEL_BUFFS.map((buff, i) => {
+                  const textPos = getTextPosition(i);
+                  return (
+                    <g key={buff.id}>
+                      <path d={createSegmentPath(i)} fill={SEGMENT_COLORS[i]} stroke="#FFFFFF" strokeWidth="2" />
+                      <text
+                        x={textPos.x}
+                        y={textPos.y}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        transform={`rotate(${textPos.angle}, ${textPos.x}, ${textPos.y})`}
+                        fill="#333333"
+                        fontSize="10"
+                        className="select-none"
+                      >
+                        {buff.name}
+                      </text>
+                    </g>
+                  );
+                })}
+                {/* Center circle */}
+                <circle cx="100" cy="100" r="6" fill="#FFFFFF" />
+              </svg>
+            </div>
+
+            {/* Screen reader status */}
+            <div className="sr-only" aria-live="polite" role="status">
+              {spinning && "Wheel is spinning..."}
+              {wonBuff && `You won: ${wonBuff.name}! ${wonBuff.description}`}
+            </div>
+
+            {/* Celebration result */}
+            {wonBuff && (
+              <div
+                className="grid gap-2 p-4 rounded-xl text-center"
+                style={{
+                  backgroundColor: "#E8F5E9",
+                  border: "2px solid #4CAF50",
+                  animation: reducedMotion ? "none" : "bonusWheelCelebrate 0.5s ease-out",
+                }}
+                role="alert"
+              >
+                <h3 aria-hidden="true">{"\u{1F389}"}</h3>
+                <h3>{wonBuff.name}</h3>
+                <p>{wonBuff.description}</p>
+                <button
+                  className="btn text-white mt-1"
+                  style={{
+                    backgroundColor: "#4CAF50",
+                  }}
+                  onClick={handleClaim}
+                  aria-label={`Claim your ${wonBuff.name} buff`}
                 >
-                  {buff.name}
-                </text>
-              </g>
-            );
-          })}
-          {/* Center circle */}
-          <circle cx="100" cy="100" r="6" fill="#FFFFFF" />
-        </svg>
-      </div>
+                  Awesome! Let&apos;s go!
+                </button>
+              </div>
+            )}
 
-      {/* Screen reader status */}
-      <div className="sr-only" aria-live="polite" role="status">
-        {spinning && "Wheel is spinning..."}
-        {wonBuff && `You won: ${wonBuff.name}! ${wonBuff.description}`}
-      </div>
+            {/* Error */}
+            {error && (
+              <div className="p3 text-error" role="alert">
+                {error}
+              </div>
+            )}
 
-      {/* Celebration result */}
-      {wonBuff && (
-        <div
-          className="grid gap-2 p-4 rounded-xl text-center"
-          style={{
-            backgroundColor: "#E8F5E9",
-            border: "2px solid #4CAF50",
-            animation: reducedMotion ? "none" : "bonusWheelCelebrate 0.5s ease-out",
-          }}
-          role="alert"
-        >
-          <h3 aria-hidden="true">{"\u{1F389}"}</h3>
-          <h3>{wonBuff.name}</h3>
-          <p>{wonBuff.description}</p>
-          <button
-            className="btn text-white mt-1"
-            style={{
-              backgroundColor: "#4CAF50",
-            }}
-            onClick={handleClaim}
-            aria-label={`Claim your ${wonBuff.name} buff`}
-          >
-            Awesome! Let&apos;s go!
-          </button>
-        </div>
-      )}
+            {/* Spin button (only shown before spinning) */}
+            {!wonBuff && (
+              <button
+                className="btn"
+                onClick={handleSpin}
+                disabled={spinning}
+                aria-label={spinning ? "Wheel is spinning" : "Spin the bonus wheel"}
+              >
+                {spinning ? "Spinning..." : "Spin to win!"}
+              </button>
+            )}
 
-      {/* Error */}
-      {error && (
-        <div className="p3 text-error" role="alert">
-          {error}
-        </div>
-      )}
-
-      {/* Spin button (only shown before spinning) */}
-      {!wonBuff && (
-        <div className="grid gap-2">
-          <button
-            className="btn"
-            onClick={handleSpin}
-            disabled={spinning}
-            aria-label={spinning ? "Wheel is spinning" : "Spin the bonus wheel"}
-          >
-            {spinning ? "Spinning..." : "Spin to win!"}
-          </button>
-
-          <button
-            className="btn btn-outline"
-            onClick={onSkip}
-            disabled={spinning}
-            aria-label="Save reward token for later"
-          >
-            Save for later
-          </button>
-        </div>
-      )}
-
-      {/* Keyframe styles for celebration */}
-      <style>{`
+            {/* Keyframe styles for celebration */}
+            <style>{`
         @keyframes bonusWheelCelebrate {
           0% { transform: scale(0.8); opacity: 0; }
           60% { transform: scale(1.05); }
@@ -266,6 +264,8 @@ export const BonusWheel = ({ onSkip, onResult }: BonusWheelProps) => {
           }
         }
       `}</style>
+          </div>
+      </div>
     </div>
   );
 };

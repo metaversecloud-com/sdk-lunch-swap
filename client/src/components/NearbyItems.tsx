@@ -13,12 +13,12 @@ interface NearbyItemsProps {
   afterSwap?: (data: {
     brownBag: BagItem[];
     pickedUpItem: BagItem | null;
-    matchesIdealMeal: boolean;
+    matchesTargetMeal: boolean;
     xpEarned: number;
     xp: number;
     level: number;
     hotStreakActive: boolean;
-    idealPickupStreak: number;
+    pickupStreak: number;
     funFact: string | null;
     isMystery: boolean;
   }) => void;
@@ -26,7 +26,7 @@ interface NearbyItemsProps {
 
 export const NearbyItems = ({ onPickup, afterSwap, bagFull = false }: NearbyItemsProps) => {
   const dispatch = useContext(GlobalDispatchContext);
-  const { nearbyItems } = useContext(GlobalStateContext);
+  const { nearbyItems, brownBag } = useContext(GlobalStateContext);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -57,6 +57,7 @@ export const NearbyItems = ({ onPickup, afterSwap, bagFull = false }: NearbyItem
   }, [dispatch]);
 
   const items = nearbyItems ?? [];
+  const bagItemIds = new Set((brownBag ?? []).map((b) => b.itemId));
 
   return (
     <section aria-label="Nearby food items">
@@ -81,7 +82,7 @@ export const NearbyItems = ({ onPickup, afterSwap, bagFull = false }: NearbyItem
         <div className="flex flex-col gap-2" role="list" aria-label="List of nearby food items">
           {items.map((item) => (
             <div key={item.droppedAssetId} role="listitem">
-              <NearbyItemCard item={item} onPickup={onPickup} afterSwap={afterSwap} bagFull={bagFull} />
+              <NearbyItemCard item={item} onPickup={onPickup} afterSwap={afterSwap} bagFull={bagFull} alreadyInBag={bagItemIds.has(item.itemId)} />
             </div>
           ))}
         </div>

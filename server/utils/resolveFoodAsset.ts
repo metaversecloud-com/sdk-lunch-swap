@@ -1,7 +1,7 @@
 import { Credentials } from "../types/index.js";
 import { FoodItemDefinition, Rarity } from "@shared/types/FoodItem.js";
 import { DroppedAsset } from "./topiaInit.js";
-import { getFoodItemsById } from "./foodItemLookup.js";
+import { getFoodItemDefinition } from "./getFoodItemDefinition.js";
 import { DroppedAssetInterface } from "@rtsdk/topia";
 
 export interface ResolvedFoodAsset {
@@ -31,26 +31,10 @@ export const resolveFoodAsset = async (
     return { success: false, status: 409, message: "This item was already picked up" };
   }
 
-  await foodAsset.fetchDataObject();
+  const { itemId, foodDef, isMystery } = await getFoodItemDefinition(foodAsset.uniqueName ?? undefined, credentials);
 
-  // Parse uniqueName: `LunchSwap_foodItem_${itemId}_${mysteryFlag}`
-  const parts = (foodAsset.uniqueName || "").split("_");
-
-  let itemId = "";
-  const dataObj = foodAsset.dataObject as Record<string, any> | null | undefined;
-
-  if (parts.length >= 3) {
-    itemId = parts[2];
-  } else if (dataObj?.itemId) {
-    itemId = dataObj.itemId;
-  }
-
-  const isMystery = parts.length >= 4 ? parts[3] === "1" : false;
-
-  const foodItemsById = await getFoodItemsById(credentials);
-  const foodDef = foodItemsById.get(itemId);
   if (!foodDef) {
-    return { success: false, status: 400, message: "Unknown food item" };
+    return { success: false, status: 400, message: "Invalid food item (definition not found)" };
   }
 
   const rarity: Rarity = foodDef.rarity;

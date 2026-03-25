@@ -20,9 +20,10 @@ const baseCreds = {
 
 // Mock game logic (required by handleGetGameState which shares the route file)
 jest.mock("@utils/gameLogic/index.js", () => ({
-  generateIdealMeal: jest.fn().mockResolvedValue([]),
-  generateBrownBag: jest.fn().mockResolvedValue([]),
+  generateMeal: jest.fn().mockResolvedValue([]),
   getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
+  getCurrentWeekMT: jest.fn().mockReturnValue("2026-W06"),
+  getPreviousWeekMT: jest.fn().mockReturnValue("2026-W05"),
   isNewDay: jest.fn().mockReturnValue(false),
 }));
 
@@ -130,6 +131,15 @@ jest.mock("@utils/index.js", () => ({
   grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
   removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
   dropFoodItem: jest.fn().mockResolvedValue({ id: "new-dropped-asset" }),
+  resolveFoodAsset: jest.fn(),
+  pickupFoodAsset: jest.fn().mockResolvedValue({ pickedUp: true }),
+  buildBagItemFromDef: jest.fn(),
+  calculatePickupXp: jest.fn().mockReturnValue(10),
+  grantXp: jest.fn().mockResolvedValue(0),
+  updateWorldStats: jest.fn().mockResolvedValue(undefined),
+  checkPickupBadges: jest.fn().mockResolvedValue(undefined),
+  checkLevelBadges: jest.fn().mockResolvedValue(undefined),
+  getVisitorBadges: jest.fn().mockReturnValue({ badges: {} }),
   Visitor: { get: jest.fn(), create: jest.fn() },
   World: { create: jest.fn(), deleteDroppedAssets: jest.fn() },
   User: { create: jest.fn() },
@@ -145,49 +155,86 @@ function setupPickupMocks(
     visitorData?: any;
     foodAssetExists?: boolean;
     foodAssetUniqueName?: string;
-    deleteThrows?: boolean;
   } = {},
 ) {
   const {
     brownBag = [],
     visitorData = {
-      idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
+      targetMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
       completedToday: false,
       pickupsToday: 0,
-      idealPickupStreak: 0,
+      pickupStreak: 0,
       hotStreakActive: false,
     },
     foodAssetExists = true,
     foodAssetUniqueName = `LunchSwap_foodItem|apple|common|${Date.now()}|0`,
-    deleteThrows = false,
   } = opts;
 
   mockUtils.getCredentials.mockReturnValue(baseCreds);
   mockUtils.getKeyAsset.mockResolvedValue({ id: "key-asset", position: { x: 0, y: 0 } });
+
+  const foodDef = {
+    itemId: "apple",
+    name: "Apple",
+    foodGroup: "fruit",
+    rarity: "common",
+    nutrition: { calories: 95, protein: 0, carbs: 25, fiber: 4, vitamins: ["C", "K"] },
+    funFact: "Apple fact",
+    superComboPairs: [],
+  };
+
+  const isMystery = foodAssetUniqueName.split("|")[4] === "1";
 
   const mockFoodAsset = foodAssetExists
     ? {
         id: "food-asset-1",
         uniqueName: foodAssetUniqueName,
         position: { x: 110, y: 210 },
-        fetchDataObject: jest.fn().mockImplementation(function (this: any) {
-          this.dataObject = { itemId: "apple", rarity: "common" };
-          return Promise.resolve();
-        }),
-        deleteDroppedAsset: deleteThrows
-          ? jest.fn().mockRejectedValue(new Error("Already deleted"))
-          : jest.fn().mockResolvedValue(undefined),
+        updateDataObject: jest.fn().mockResolvedValue(undefined),
         dataObject: {},
       }
     : null;
 
-  mockUtils.DroppedAsset.get.mockResolvedValue(mockFoodAsset);
+  mockUtils.resolveFoodAsset.mockResolvedValue(
+    foodAssetExists
+      ? { success: true, foodAsset: mockFoodAsset, foodDef, isMystery }
+      : { success: false, status: 404, message: "Food asset not found" },
+  );
+
+  const matchesTarget = visitorData.targetMeal?.some((i: any) => i.itemId === "apple") ?? false;
+  const bagItem = {
+    itemId: "apple",
+    name: "Apple",
+    foodGroup: "fruit",
+    rarity: "common",
+    matchesTargetMeal: matchesTarget,
+  };
+
+  mockUtils.buildBagItemFromDef.mockReturnValue({ bagItem, matchesTargetMeal: matchesTarget });
+
+  // calculatePickupXp: controller does calculatePickupXp(rarity, matchesTargetMeal, xpMultiplier) * buffMultiplier
+  // For hot streak consuming (wasHotStreak=true), xpMultiplier=3
+  // For normal, xpMultiplier=1
+  const wasHotStreak = visitorData.hotStreakActive || false;
+  const currentStreak = visitorData.pickupStreak || 0;
+  const hotStreakActivated = matchesTarget && currentStreak + 1 >= 3;
+  const xpMultiplier = wasHotStreak ? 3 : 1;
+
+  // Base XP: 10 for non-matching, 35 for matching (10 + 25 ideal bonus)
+  const baseXp = matchesTarget ? 35 : 10;
+  mockUtils.calculatePickupXp.mockReturnValue(baseXp * xpMultiplier);
+
+  mockUtils.pickupFoodAsset.mockResolvedValue({ pickedUp: true });
+  mockUtils.grantXp.mockResolvedValue(0);
 
   const mockVisitor = {
     isAdmin: false,
     moveTo: { x: 100, y: 200 },
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
+    fireToast: jest.fn().mockReturnValue(Promise.resolve()),
+    fetchInventoryItems: jest.fn().mockResolvedValue(undefined),
+    inventoryItems: [],
     dataObject: visitorData,
   };
 
@@ -198,18 +245,10 @@ function setupPickupMocks(
     dataObject: {},
   };
 
-  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
+  mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, visitorInventory: [], brownBag });
 
   // After pickup, bag has the new item
-  const matchesIdeal = visitorData.idealMeal?.some((i: any) => i.itemId === "apple") ?? false;
-  const pickedUpItem = {
-    itemId: "apple",
-    name: "Apple",
-    foodGroup: "fruit",
-    rarity: "common",
-    matchesIdealMeal: matchesIdeal,
-  };
-  mockUtils.getVisitorBag.mockResolvedValue([...brownBag, pickedUpItem]);
+  mockUtils.getVisitorBag.mockResolvedValue([...brownBag, bagItem]);
 
   mockUtils.World.create.mockReturnValue(mockWorld);
 
@@ -224,15 +263,16 @@ function setupDropMocks(
 ) {
   const {
     brownBag = [
-      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false },
-      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesIdealMeal: true },
+      { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesTargetMeal: false },
+      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesTargetMeal: true },
     ],
     visitorData = {
-      idealMeal: [],
+      targetMeal: [],
       completedToday: false,
       pickupsToday: 0,
       dropsToday: 0,
-      idealPickupStreak: 2,
+      totalDrops: 0,
+      pickupStreak: 2,
       hotStreakActive: false,
     },
   } = opts;
@@ -245,6 +285,7 @@ function setupDropMocks(
     moveTo: { x: 100, y: 200 },
     updateDataObject: jest.fn().mockResolvedValue(undefined),
     incrementDataObjectValue: jest.fn().mockResolvedValue(undefined),
+    fireToast: jest.fn().mockReturnValue(Promise.resolve()),
     dataObject: visitorData,
   };
 
@@ -261,6 +302,8 @@ function setupDropMocks(
   mockUtils.getVisitor.mockResolvedValue({ visitor: mockVisitor, visitorData, brownBag });
   mockUtils.getVisitorBag.mockResolvedValue(brownBag.filter((i) => i.itemId !== "apple"));
   mockUtils.dropFoodItem.mockResolvedValue({ id: "new-dropped-asset" });
+  mockUtils.grantXp.mockResolvedValue(0);
+  mockUtils.updateWorldStats.mockResolvedValue(undefined);
   mockUtils.World.create.mockReturnValue(mockWorld);
 
   return { mockVisitor, mockWorld };
@@ -270,13 +313,13 @@ describe("Hot Streaks", () => {
   beforeEach(() => jest.clearAllMocks());
 
   describe("POST /api/pickup-item — streak logic", () => {
-    test("picking up ideal-meal-matching item increments idealPickupStreak", async () => {
+    test("picking up ideal-meal-matching item increments pickupStreak", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
+          targetMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 1,
+          pickupStreak: 1,
           hotStreakActive: false,
         },
       });
@@ -285,26 +328,27 @@ describe("Hot Streaks", () => {
       const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      expect(res.body.idealPickupStreak).toBe(2);
+      expect(res.body.pickupStreak).toBe(2);
       expect(res.body.hotStreakActive).toBe(false);
       expect(res.body.xpMultiplier).toBe(1);
 
       // Verify visitor data update includes streak increment
       expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
         expect.objectContaining({
-          idealPickupStreak: 2,
+          pickupStreak: 2,
           hotStreakActive: false,
         }),
+        expect.anything(),
       );
     });
 
-    test("picking up non-matching item resets idealPickupStreak to 0", async () => {
+    test("picking up non-matching item resets pickupStreak to 0", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }],
+          targetMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 2,
+          pickupStreak: 2,
           hotStreakActive: false,
         },
       });
@@ -313,23 +357,24 @@ describe("Hot Streaks", () => {
       const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      expect(res.body.idealPickupStreak).toBe(0);
+      expect(res.body.pickupStreak).toBe(0);
       expect(res.body.xpMultiplier).toBe(1);
 
       expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
         expect.objectContaining({
-          idealPickupStreak: 0,
+          pickupStreak: 0,
         }),
+        expect.anything(),
       );
     });
 
-    test("when idealPickupStreak reaches 3, hotStreakActive is set to true", async () => {
+    test("when pickupStreak reaches 3, hotStreakActive is set to true", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
+          targetMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 2,
+          pickupStreak: 2,
           hotStreakActive: false,
         },
       });
@@ -338,25 +383,26 @@ describe("Hot Streaks", () => {
       const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      expect(res.body.idealPickupStreak).toBe(3);
+      expect(res.body.pickupStreak).toBe(3);
       expect(res.body.hotStreakActive).toBe(true);
       expect(res.body.xpMultiplier).toBe(1); // Not consumed yet
 
       expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
         expect.objectContaining({
-          idealPickupStreak: 3,
+          pickupStreak: 3,
           hotStreakActive: true,
         }),
+        expect.anything(),
       );
     });
 
     test("next pickup with hotStreakActive gets 3x XP, then resets", async () => {
       const { mockVisitor } = setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }],
+          targetMeal: [{ itemId: "water", name: "Water", foodGroup: "drink", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 3,
+          pickupStreak: 3,
           hotStreakActive: true,
         },
       });
@@ -365,28 +411,29 @@ describe("Hot Streaks", () => {
       const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      // apple doesn't match ideal meal (water is ideal), so base XP = 10
+      // apple doesn't match target meal (water is target), so base XP = 10
       // With 3x multiplier: 10 * 3 = 30
       expect(res.body.xpEarned).toBe(30);
       expect(res.body.xpMultiplier).toBe(3);
       expect(res.body.hotStreakActive).toBe(false);
-      expect(res.body.idealPickupStreak).toBe(0);
+      expect(res.body.pickupStreak).toBe(0);
 
       expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
         expect.objectContaining({
           hotStreakActive: false,
-          idealPickupStreak: 0,
+          pickupStreak: 0,
         }),
+        expect.anything(),
       );
     });
 
     test("hot streak 3x multiplier applies to ideal meal bonus XP too", async () => {
       setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
+          targetMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 3,
+          pickupStreak: 3,
           hotStreakActive: true,
         },
       });
@@ -404,10 +451,10 @@ describe("Hot Streaks", () => {
     test("first ideal pickup starts streak at 1", async () => {
       setupPickupMocks({
         visitorData: {
-          idealMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
+          targetMeal: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common" }],
           completedToday: false,
           pickupsToday: 0,
-          idealPickupStreak: 0,
+          pickupStreak: 0,
           hotStreakActive: false,
         },
       });
@@ -416,21 +463,22 @@ describe("Hot Streaks", () => {
       const res = await request(app).post("/api/pickup-item").query(baseCreds).send({ droppedAssetId: "food-asset-1" });
 
       expect(res.status).toBe(200);
-      expect(res.body.idealPickupStreak).toBe(1);
+      expect(res.body.pickupStreak).toBe(1);
       expect(res.body.hotStreakActive).toBe(false);
     });
   });
 
   describe("POST /api/drop-item — streak reset", () => {
-    test("dropping an item resets idealPickupStreak to 0", async () => {
+    test("dropping an item resets pickupStreak to 0", async () => {
       const { mockVisitor } = setupDropMocks({
-        brownBag: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesIdealMeal: false }],
+        brownBag: [{ itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", matchesTargetMeal: false }],
         visitorData: {
-          idealMeal: [],
+          targetMeal: [],
           completedToday: false,
           pickupsToday: 0,
           dropsToday: 0,
-          idealPickupStreak: 2,
+          totalDrops: 0,
+          pickupStreak: 2,
           hotStreakActive: false,
         },
       });
@@ -443,8 +491,9 @@ describe("Hot Streaks", () => {
 
       expect(mockVisitor.updateDataObject).toHaveBeenCalledWith(
         expect.objectContaining({
-          idealPickupStreak: 0,
+          pickupStreak: 0,
         }),
+        expect.anything(),
       );
     });
   });

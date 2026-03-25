@@ -41,15 +41,14 @@ export const handleDropItem = async (req: Request, res: Response) => {
         y: visitor.moveTo?.y ?? 0,
       },
       itemId: droppedItem.itemId,
-      rarity: droppedItem.rarity,
       shouldTriggerParticle: true,
       host: req.hostname,
     });
 
-    // Update visitor data (reset idealPickupStreak on drop)
+    // Update visitor data (reset pickupStreak on drop)
     await visitor.updateDataObject(
       {
-        idealPickupStreak: 0,
+        pickupStreak: 0,
         dropsToday: visitorData.dropsToday + 1,
         totalDrops: visitorData.totalDrops + 1,
       },
@@ -70,7 +69,7 @@ export const handleDropItem = async (req: Request, res: Response) => {
     await updateWorldStats(urlSlug, credentials, { drops: 1 });
 
     // Read updated bag from inventory
-    const updatedBag = await getVisitorBag(visitor, visitorData.idealMeal, credentials);
+    const updatedBag = await getVisitorBag(visitor, visitorData.targetMeal, credentials);
 
     return res.json({
       success: true,

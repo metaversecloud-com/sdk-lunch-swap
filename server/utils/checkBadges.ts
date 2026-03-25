@@ -33,13 +33,11 @@ export const checkSubmitMealBadges = async ({
   nutritionScore,
   currentStreak,
   totalSuperCombos,
-  dayStartTimestamp,
 }: BadgeContext & {
   totalMealsCompleted: number;
   nutritionScore: number;
   currentStreak: number;
   totalSuperCombos: number;
-  dayStartTimestamp: string | null;
 }) => {
   const ctx = { credentials, visitor, visitorInventory };
   const promises: Promise<{ success: boolean }>[] = [];
@@ -64,7 +62,7 @@ export const checkSubmitMealBadges = async ({
     promises.push(awardBadge({ ...ctx, badgeName: BADGES.PERFECT_PLATE }));
   }
 
-  // Streak Starter: Complete a meal 3 days in a row
+  // Streak Starter: Complete a meal 3 weeks in a row
   if (currentStreak >= 3) {
     promises.push(awardBadge({ ...ctx, badgeName: BADGES.STREAK_STARTER }));
   }
@@ -72,14 +70,6 @@ export const checkSubmitMealBadges = async ({
   // Combo Master: Collect 20 super combos
   if (totalSuperCombos >= 20) {
     promises.push(awardBadge({ ...ctx, badgeName: BADGES.COMBO_MASTER }));
-  }
-
-  // Nutrition Ninja: Submit a meal within 1 hour of starting the day
-  if (dayStartTimestamp) {
-    const elapsed = Date.now() - new Date(dayStartTimestamp).getTime();
-    if (elapsed <= 60 * 60 * 1000) {
-      promises.push(awardBadge({ ...ctx, badgeName: BADGES.NUTRITION_NINJA }));
-    }
   }
 
   if (promises.length > 0) {

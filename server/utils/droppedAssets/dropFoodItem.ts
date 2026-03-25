@@ -1,30 +1,30 @@
 import { Credentials } from "../../types/index.js";
 import { Asset, DroppedAsset, World } from "../topiaInit.js";
 import { getCachedInventoryItems } from "../inventoryCache.js";
-import { DroppedAssetClickType } from "@rtsdk/topia";
+import { DroppedAssetClickableLayerType, DroppedAssetClickType } from "@rtsdk/topia";
 
 interface DropFoodItemParams {
   credentials: Credentials;
   position: { x: number; y: number };
   itemId: string;
-  rarity: string;
   offsetRange?: number;
   minOffset?: number;
   mystery?: boolean;
   shouldTriggerParticle?: boolean;
   host: string;
+  worldSize?: { width: number; height: number };
 }
 
 export async function dropFoodItem({
   credentials,
   position,
   itemId,
-  rarity,
   offsetRange = 100,
   minOffset = 0,
   mystery = false,
   shouldTriggerParticle = false,
   host,
+  worldSize,
 }: DropFoodItemParams) {
   const { interactivePublicKey, sceneDropId, urlSlug } = credentials;
 
@@ -57,11 +57,22 @@ export async function dropFoodItem({
     x: position.x + offsetX,
     y: position.y + offsetY,
   };
+  if (worldSize) {
+    const halfW = worldSize.width / 2;
+    const halfH = worldSize.height / 2;
+    if (positionWithOffset.x < -halfW || positionWithOffset.x > halfW) {
+      positionWithOffset.x = Math.max(-halfW, Math.min(halfW, positionWithOffset.x));
+    }
+    if (positionWithOffset.y < -halfH || positionWithOffset.y > halfH) {
+      positionWithOffset.y = Math.max(-halfH, Math.min(halfH, positionWithOffset.y));
+    }
+  }
   const asset = await Asset.create("webImageAsset", { credentials });
   const droppedAsset = await DroppedAsset.drop(asset, {
     clickType: DroppedAssetClickType.LINK,
     clickableLink: `${BASE_URL}/item/${itemId}?mystery=${mysteryFlag}`,
-    clickableLinkTitle: "View Crop",
+    clickableLinkTitle: "View Item",
+    clickableLayer: DroppedAssetClickableLayerType.TOP,
     isOpenLinkInDrawer: true,
     position: positionWithOffset,
     uniqueName: `LunchSwap_foodItem_${itemId}_${mysteryFlag}`,
@@ -69,8 +80,8 @@ export async function dropFoodItem({
     isInteractive: true,
     interactivePublicKey,
     sceneDropId,
-    layer1: inventoryItem.image_path || "",
-    assetScale: 0.5,
+    layer1: mystery ? "https://sdk-lunch-swap.s3.us-east-1.amazonaws.com/mysteryItem.png" : inventoryItem.image_path,
+    assetScale: 0.4,
   });
 
   // Particle effect at drop location

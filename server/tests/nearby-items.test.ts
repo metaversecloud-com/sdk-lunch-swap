@@ -18,24 +18,45 @@ const baseCreds = {
   profileId: "profile-1",
 };
 
-jest.mock("@utils/index.js", () => ({
-  errorHandler: jest.fn().mockImplementation(({ res }: any) => {
-    if (res) return res.status(500).json({ error: "Internal server error" });
-  }),
-  getCredentials: jest.fn(),
-  getDroppedAsset: jest.fn(),
-  Visitor: { get: jest.fn() },
-  World: { create: jest.fn() },
-  User: { create: jest.fn() },
-  DroppedAsset: { get: jest.fn(), drop: jest.fn() },
-  Asset: { create: jest.fn() },
-}));
+jest.mock("@utils/index.js", () => {
+  const _foodItemsMap: Record<string, any> = {
+    apple: { itemId: "apple", name: "Apple", foodGroup: "fruit", rarity: "common", funFact: "Apple fact" },
+    banana: { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", funFact: "Banana fact" },
+    water: { itemId: "water", name: "Water", foodGroup: "drink", rarity: "common", funFact: "Water fact" },
+    milk: { itemId: "milk", name: "Milk", foodGroup: "drink", rarity: "common", funFact: "Milk fact" },
+    sandwich: { itemId: "sandwich", name: "Sandwich", foodGroup: "main", rarity: "common", funFact: "Sandwich fact" },
+    "granola-bar": { itemId: "granola-bar", name: "Granola Bar", foodGroup: "snack", rarity: "common", funFact: "Granola fact" },
+  };
+  return {
+    errorHandler: jest.fn().mockImplementation(({ res }: any) => {
+      if (res) return res.status(500).json({ error: "Internal server error" });
+    }),
+    getCredentials: jest.fn(),
+    getDroppedAsset: jest.fn(),
+    getFoodItemsById: jest.fn().mockResolvedValue(new Map(Object.entries(_foodItemsMap))),
+    getFoodItemDefinition: jest.fn().mockImplementation(async (uniqueName: string) => {
+      if (!uniqueName) return { itemId: "", foodDef: null, isMystery: false };
+      const parts = uniqueName.split("|");
+      if (parts.length < 4) return { itemId: "", foodDef: null, isMystery: false };
+      const itemId = parts[1];
+      const isMystery = parts.length >= 5 && parts[4] === "1";
+      const foodDef = _foodItemsMap[itemId] || null;
+      return { itemId, foodDef, isMystery };
+    }),
+    Visitor: { get: jest.fn() },
+    World: { create: jest.fn() },
+    User: { create: jest.fn() },
+    DroppedAsset: { get: jest.fn(), drop: jest.fn() },
+    Asset: { create: jest.fn() },
+  };
+});
 
 // Mock game logic to prevent import errors in handleGetGameState
 jest.mock("@utils/gameLogic/index.js", () => ({
-  generateIdealMeal: jest.fn().mockResolvedValue([]),
-  generateBrownBag: jest.fn().mockResolvedValue([]),
+  generateMeal: jest.fn().mockResolvedValue([]),
   getCurrentDateMT: jest.fn().mockReturnValue("2026-02-07"),
+  getCurrentWeekMT: jest.fn().mockReturnValue("2026-W06"),
+  getPreviousWeekMT: jest.fn().mockReturnValue("2026-W05"),
   isNewDay: jest.fn().mockReturnValue(false),
 }));
 
@@ -184,7 +205,7 @@ describe("GET /api/nearby-items", () => {
           deleteDroppedAsset: jest.fn(),
         },
       ],
-      visitorData: { idealMeal: [{ itemId: "apple" }] },
+      visitorData: { targetMeal: [{ itemId: "apple" }] },
       worldData: { proximityRadius: 500 },
     });
 
@@ -199,18 +220,17 @@ describe("GET /api/nearby-items", () => {
     expect(res.body.nearbyItems[1].itemId).toBe("apple");
   });
 
-  test("filters out expired items (>24h) and deletes them", async () => {
-    const expired = Date.now() - 25 * 60 * 60 * 1000;
+  test("returns all items regardless of timestamp age", async () => {
+    const oldTimestamp = Date.now() - 25 * 60 * 60 * 1000;
     const fresh = Date.now();
-    const deleteExpired = jest.fn().mockResolvedValue(undefined);
 
     setupMocks({
       foodAssets: [
         {
           id: "fa-1",
-          uniqueName: `LunchSwap_foodItem|apple|common|${expired}`,
+          uniqueName: `LunchSwap_foodItem|apple|common|${oldTimestamp}`,
           position: { x: 110, y: 210 },
-          deleteDroppedAsset: deleteExpired,
+          deleteDroppedAsset: jest.fn(),
         },
         {
           id: "fa-2",
@@ -226,9 +246,7 @@ describe("GET /api/nearby-items", () => {
     const res = await request(app).get("/api/nearby-items").query(baseCreds);
 
     expect(res.body.success).toBe(true);
-    expect(res.body.nearbyItems).toHaveLength(1);
-    expect(res.body.nearbyItems[0].itemId).toBe("banana");
-    expect(deleteExpired).toHaveBeenCalled();
+    expect(res.body.nearbyItems).toHaveLength(2);
   });
 
   test("marks items that match ideal meal", async () => {
@@ -248,7 +266,7 @@ describe("GET /api/nearby-items", () => {
           deleteDroppedAsset: jest.fn(),
         },
       ],
-      visitorData: { idealMeal: [{ itemId: "apple" }, { itemId: "water" }] },
+      visitorData: { targetMeal: [{ itemId: "apple" }, { itemId: "water" }] },
       worldData: { proximityRadius: 500 },
     });
 
@@ -257,8 +275,8 @@ describe("GET /api/nearby-items", () => {
 
     const appleItem = res.body.nearbyItems.find((i: any) => i.itemId === "apple");
     const bananaItem = res.body.nearbyItems.find((i: any) => i.itemId === "banana");
-    expect(appleItem.matchesIdealMeal).toBe(true);
-    expect(bananaItem.matchesIdealMeal).toBe(false);
+    expect(appleItem.matchesTargetMeal).toBe(true);
+    expect(bananaItem.matchesTargetMeal).toBe(false);
   });
 
   test("returns empty array if no items nearby", async () => {
