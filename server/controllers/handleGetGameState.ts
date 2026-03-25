@@ -53,25 +53,12 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       visitorData;
     let brownBag = currentBag;
 
+    // If new day or no target meal, reset progress and generate new meal
     if (newDay || !targetMeal || targetMeal.length === 0) {
-      // Auto-drop yesterday's bag items into world at key asset position
       if (currentBag.length > 0) {
+        // Clear bag items from inventory
         for (const bagItem of currentBag) {
-          try {
-            await removeFoodFromVisitor(visitor, credentials, bagItem.itemId);
-            await dropFoodItem({
-              credentials,
-              position: {
-                x: visitor.moveTo?.x ?? 0,
-                y: visitor.moveTo?.y ?? 0,
-              },
-              itemId: bagItem.itemId,
-              offsetRange: 200,
-              host: req.hostname,
-            });
-          } catch (err) {
-            console.warn("Failed to auto-drop bag item:", bagItem.itemId, err);
-          }
+          await removeFoodFromVisitor(visitor, credentials, bagItem.itemId);
         }
       }
 

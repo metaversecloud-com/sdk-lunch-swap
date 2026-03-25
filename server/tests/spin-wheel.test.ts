@@ -61,7 +61,6 @@ jest.mock("@utils/index.js", () => ({
   getCredentials: jest.fn(),
   getVisitor: jest.fn(),
   getVisitorBag: jest.fn().mockResolvedValue([]),
-  grantRewardToken: jest.fn().mockResolvedValue(undefined),
   grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
   removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
   getAllFoodItems: jest.fn().mockResolvedValue([]),
@@ -78,7 +77,6 @@ function setupMocks(opts: { visitorData?: any } = {}) {
   const {
     visitorData = {
       dailyBuff: null,
-      hasRewardToken: true,
       brownBag: [],
       targetMeal: [],
       completedToday: false,
@@ -110,7 +108,6 @@ function setupMocks(opts: { visitorData?: any } = {}) {
     xp: 0,
     level: 1,
     newDay: false,
-    hasRewardToken: visitorData.hasRewardToken ?? true,
   });
 
   return { mockVisitor };
@@ -142,20 +139,12 @@ describe("POST /api/spin-wheel", () => {
       }),
       expect.anything(),
     );
-
-    // Verify grantRewardToken was called to consume the token
-    expect(mockUtils.grantRewardToken).toHaveBeenCalledWith(
-      mockVisitor,
-      expect.anything(),
-      -1,
-    );
   });
 
   test("already spun today: returns 400 with 'Already spun today' when dailyBuff is set", async () => {
     setupMocks({
       visitorData: {
         dailyBuff: "double-xp",
-        hasRewardToken: true,
         brownBag: [],
         targetMeal: [],
         completedToday: false,
@@ -171,46 +160,6 @@ describe("POST /api/spin-wheel", () => {
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
     expect(res.body.message).toBe("Already spun today");
-  });
-
-  test("no Reward Token: returns 400 with 'No Reward Tokens available' when hasRewardToken is false", async () => {
-    setupMocks({
-      visitorData: {
-        dailyBuff: null,
-        hasRewardToken: false,
-        brownBag: [],
-        targetMeal: [],
-        completedToday: false,
-      },
-    });
-
-    const app = makeApp();
-    const res = await request(app)
-      .post("/api/spin-wheel")
-      .query(baseCreds)
-      .send({});
-
-    expect(res.status).toBe(400);
-    expect(res.body.success).toBe(false);
-    expect(res.body.message).toBe("No Reward Tokens available");
-  });
-
-  test("buff consumed: verifies grantRewardToken called to consume token", async () => {
-    const { mockVisitor } = setupMocks();
-
-    const app = makeApp();
-    const res = await request(app)
-      .post("/api/spin-wheel")
-      .query(baseCreds)
-      .send({});
-
-    expect(res.status).toBe(200);
-    expect(mockVisitor.updateDataObject).toHaveBeenCalledTimes(1);
-    expect(mockUtils.grantRewardToken).toHaveBeenCalledWith(
-      mockVisitor,
-      expect.anything(),
-      -1,
-    );
   });
 
   test("returned buff is one of the valid wheel buffs", async () => {

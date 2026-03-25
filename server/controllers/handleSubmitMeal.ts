@@ -6,7 +6,6 @@ import {
   parseLeaderboard,
   updateLeaderboard,
   World,
-  dropFoodItem,
   getFoodItemsById,
   getVisitor,
   grantXp,
@@ -141,28 +140,6 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
         ],
       },
     );
-
-    // Auto-drop remaining non-meal items into world
-    if (remainingBag.length > 0) {
-      const center = {
-        x: visitor.moveTo?.x ?? 0,
-        y: visitor.moveTo?.y ?? 0,
-      };
-
-      for (const item of remainingBag) {
-        try {
-          await dropFoodItem({
-            credentials,
-            position: center,
-            itemId: item.itemId,
-            offsetRange: 150,
-            host: req.hostname,
-          });
-        } catch (err) {
-          console.warn("Failed to auto-drop remaining item:", item.itemId, err);
-        }
-      }
-    }
 
     // Update world stats
     if (world.incrementDataObjectValue) {

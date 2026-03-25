@@ -145,7 +145,6 @@ jest.mock("@utils/index.js", () => ({
   buildBagItemFromDef: jest.fn(),
   calculatePickupXp: jest.fn().mockReturnValue(10),
   grantXp: jest.fn().mockResolvedValue(10),
-  grantRewardToken: jest.fn().mockResolvedValue(undefined),
   updateWorldStats: jest.fn().mockResolvedValue(undefined),
   checkSubmitMealBadges: jest.fn().mockResolvedValue(undefined),
   checkLevelBadges: jest.fn().mockResolvedValue(undefined),

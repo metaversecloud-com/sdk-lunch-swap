@@ -174,7 +174,6 @@ jest.mock("@utils/index.js", () => ({
   buildBagItemFromDef: jest.fn(),
   calculatePickupXp: jest.fn().mockReturnValue(10),
   grantXp: jest.fn().mockResolvedValue(10),
-  grantRewardToken: jest.fn().mockResolvedValue(undefined),
   updateWorldStats: jest.fn().mockResolvedValue(undefined),
   parseLeaderboard: jest.fn().mockReturnValue([]),
   updateLeaderboard: jest.fn().mockResolvedValue(undefined),
@@ -274,7 +273,6 @@ function setupIntegrationMocks() {
       xp: visitorData.totalXp || 0,
       level: visitorData.level || 1,
       newDay: mockGameLogic.isNewDay(),
-      hasRewardToken: visitorData.hasRewardToken || false,
     });
   });
 
@@ -344,9 +342,6 @@ function setupIntegrationMocks() {
     visitorData.totalXp = (visitorData.totalXp || 0) + xpAmount;
     return Promise.resolve(visitorData.totalXp);
   });
-
-  // grantRewardToken mock
-  mockUtils.grantRewardToken.mockResolvedValue(undefined);
 
   // World mock ---------------------------------------------------------
   const makeWorld = () => ({
