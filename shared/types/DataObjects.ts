@@ -68,8 +68,8 @@ export const VISITOR_DATA_DEFAULTS: VisitorGameData = {
 // --- World Data Object ---
 export interface WorldGameData {
   gameVersion: number;
-  spawnRadiusMin: number;
-  spawnRadiusMax: number;
+  dropRadiusMin: number;
+  dropRadiusMax: number;
   proximityRadius: number;
   currentDate: string;
   totalStartsToday: number;
@@ -81,8 +81,8 @@ export interface WorldGameData {
 
 export const WORLD_DATA_DEFAULTS: WorldGameData = {
   gameVersion: 1,
-  spawnRadiusMin: 200,
-  spawnRadiusMax: 2000,
+  dropRadiusMin: 200,
+  dropRadiusMax: 2000,
   proximityRadius: 300,
   currentDate: "",
   totalStartsToday: 0,
@@ -125,7 +125,7 @@ export interface FoodItemAssetData {
   firstDroppedDateTime: string;
   lastDroppedBy: string;
   lastDroppedDateTime: string;
-  spawnedBySystem: boolean;
+  droppedBySystem: boolean;
   pickupCount: number;
 }
 
@@ -140,6 +140,6 @@ export const FOOD_ITEM_ASSET_DATA_DEFAULTS: FoodItemAssetData = {
   firstDroppedDateTime: "",
   lastDroppedBy: "",
   lastDroppedDateTime: "",
-  spawnedBySystem: false,
+  droppedBySystem: false,
   pickupCount: 0,
 };

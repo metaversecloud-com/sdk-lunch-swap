@@ -12,7 +12,6 @@ export const initialState: InitialState = {
   level: 1,
   currentStreak: 0,
   longestStreak: 0,
-  nearbyItems: [],
   dailyBuff: null,
   hotStreakActive: false,
   pickupStreak: 0,

@@ -13,25 +13,25 @@ export const handleUpdateSettings = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: "Admin access required" });
     }
 
-    const { spawnRadiusMin, spawnRadiusMax, proximityRadius } = req.body;
+    const { dropRadiusMin, dropRadiusMax, proximityRadius } = req.body;
 
     // Validate inputs
     const updates: Record<string, number> = {};
 
-    if (spawnRadiusMin !== undefined) {
-      const val = Number(spawnRadiusMin);
+    if (dropRadiusMin !== undefined) {
+      const val = Number(dropRadiusMin);
       if (isNaN(val) || val < 0 || val > 10000) {
-        return res.status(400).json({ success: false, message: "spawnRadiusMin must be between 0 and 10000" });
+        return res.status(400).json({ success: false, message: "dropRadiusMin must be between 0 and 10000" });
       }
-      updates.spawnRadiusMin = val;
+      updates.dropRadiusMin = val;
     }
 
-    if (spawnRadiusMax !== undefined) {
-      const val = Number(spawnRadiusMax);
+    if (dropRadiusMax !== undefined) {
+      const val = Number(dropRadiusMax);
       if (isNaN(val) || val < 0 || val > 10000) {
-        return res.status(400).json({ success: false, message: "spawnRadiusMax must be between 0 and 10000" });
+        return res.status(400).json({ success: false, message: "dropRadiusMax must be between 0 and 10000" });
       }
-      updates.spawnRadiusMax = val;
+      updates.dropRadiusMax = val;
     }
 
     if (proximityRadius !== undefined) {
@@ -47,13 +47,13 @@ export const handleUpdateSettings = async (req: Request, res: Response) => {
     await world.fetchDataObject();
     const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
 
-    const finalMin = updates.spawnRadiusMin ?? worldData.spawnRadiusMin;
-    const finalMax = updates.spawnRadiusMax ?? worldData.spawnRadiusMax;
+    const finalMin = updates.dropRadiusMin ?? worldData.dropRadiusMin;
+    const finalMax = updates.dropRadiusMax ?? worldData.dropRadiusMax;
 
     if (finalMin > finalMax) {
       return res
         .status(400)
-        .json({ success: false, message: "spawnRadiusMin must be less than or equal to spawnRadiusMax" });
+        .json({ success: false, message: "dropRadiusMin must be less than or equal to dropRadiusMax" });
     }
 
     if (Object.keys(updates).length === 0) {
@@ -67,8 +67,8 @@ export const handleUpdateSettings = async (req: Request, res: Response) => {
     return res.json({
       success: true,
       settings: {
-        spawnRadiusMin: updates.spawnRadiusMin ?? worldData.spawnRadiusMin,
-        spawnRadiusMax: updates.spawnRadiusMax ?? worldData.spawnRadiusMax,
+        dropRadiusMin: updates.dropRadiusMin ?? worldData.dropRadiusMin,
+        dropRadiusMax: updates.dropRadiusMax ?? worldData.dropRadiusMax,
         proximityRadius: updates.proximityRadius ?? worldData.proximityRadius,
       },
     });

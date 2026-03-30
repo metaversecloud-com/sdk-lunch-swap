@@ -19,8 +19,6 @@ export * from "./Leaderboard.js";
 export * from "./Loading.js";
 export * from "./MainGameView.js";
 export * from "./MysteryReveal.js";
-export * from "./NearbyItemCard.js";
-export * from "./NearbyItems.js";
 export * from "./NutritionPreview.js";
 export * from "./PageContainer.js";
 export * from "./PageFooter.js";

@@ -6,7 +6,6 @@ import {
   SET_HAS_INTERACTIVE_PARAMS,
   SET_BROWN_BAG,
   SET_TARGET_MEAL,
-  SET_NEARBY_ITEMS,
   SET_COMPLETED,
   SET_DAILY_BUFF,
   SET_FOOD_ITEMS_IN_WORLD,
@@ -40,8 +39,8 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         badges: payload.badges ?? state.badges,
         visitorInventory: payload.visitorInventory ?? state.visitorInventory,
         leaderboard: payload.leaderboard ?? state.leaderboard,
-        spawnRadiusMin: payload.spawnRadiusMin,
-        spawnRadiusMax: payload.spawnRadiusMax,
+        dropRadiusMin: payload.dropRadiusMin,
+        dropRadiusMax: payload.dropRadiusMax,
         proximityRadius: payload.proximityRadius,
         foodItemsInWorld: payload.foodItemsInWorld ?? state.foodItemsInWorld,
         error: "",
@@ -61,12 +60,6 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
       return {
         ...state,
         targetMeal: payload.targetMeal,
-        error: "",
-      };
-    case SET_NEARBY_ITEMS:
-      return {
-        ...state,
-        nearbyItems: payload.nearbyItems,
         error: "",
       };
     case SET_COMPLETED:

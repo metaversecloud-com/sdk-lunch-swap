@@ -151,8 +151,8 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       hotStreakActive,
       isAdmin,
       dailyBuff,
-      spawnRadiusMin: worldData.spawnRadiusMin,
-      spawnRadiusMax: worldData.spawnRadiusMax,
+      dropRadiusMin: worldData.dropRadiusMin,
+      dropRadiusMax: worldData.dropRadiusMax,
       proximityRadius: worldData.proximityRadius,
       badges,
       visitorInventory: getVisitorBadges(visitor.inventoryItems || []),
@@ -160,7 +160,7 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       foodItemsInWorld,
     });
 
-    // Fire-and-forget: deduplicate items and spawn missing ones in the background
+    // Fire-and-forget: deduplicate items and drop missing ones in the background
     if (newDay || !visitorData.targetMeal || visitorData.targetMeal.length === 0) {
       ensureOneOfEverything(world, credentials, urlSlug, worldData, droppedAsset, req.hostname).catch((err) =>
         console.warn("Background item cleanup failed:", err),
@@ -179,13 +179,13 @@ export const handleGetGameState = async (req: Request, res: Response) => {
 
 /**
  * Background task: ensure exactly one of every food item exists in the world.
- * Deletes duplicates and spawns missing items.
+ * Deletes duplicates and drops missing items.
  */
 async function ensureOneOfEverything(
   world: WorldInterface,
   credentials: Credentials,
   urlSlug: string,
-  worldData: { spawnRadiusMin?: number; spawnRadiusMax?: number },
+  worldData: { dropRadiusMin?: number; dropRadiusMax?: number },
   droppedAsset: { position?: { x: number; y: number } },
   hostname: string,
 ) {
@@ -206,28 +206,28 @@ async function ensureOneOfEverything(
   }
   await Promise.allSettled(deletePromises);
 
-  // Spawn missing items — items with countInWorld === 0
+  // Drop missing items — items with countInWorld === 0
   const missingItems = inWorldData.filter((item) => item.countInWorld === 0);
   if (missingItems.length === 0) return;
 
   await world.fetchDetails();
   const { width, height } = world as WorldInterface;
-  const spawnCenter = {
+  const dropCenter = {
     x: droppedAsset.position?.x ?? 0,
     y: droppedAsset.position?.y ?? 0,
   };
 
-  const spawnPromises = missingItems.map((item) =>
+  const dropPromises = missingItems.map((item) =>
     dropFoodItem({
       credentials,
-      position: spawnCenter,
+      position: dropCenter,
       itemId: item.itemId,
-      minOffset: worldData.spawnRadiusMin,
-      offsetRange: worldData.spawnRadiusMax || 2000,
+      minOffset: worldData.dropRadiusMin,
+      offsetRange: worldData.dropRadiusMax || 2000,
       mystery: Math.random() < 0.15,
       host: hostname,
       worldSize: width && height ? { width, height } : undefined,
-    }).catch((err) => console.warn("Failed to spawn item:", item.itemId, err)),
+    }).catch((err) => console.warn("Failed to drop item:", item.itemId, err)),
   );
-  await Promise.allSettled(spawnPromises);
+  await Promise.allSettled(dropPromises);
 }

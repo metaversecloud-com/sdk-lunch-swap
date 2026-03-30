@@ -53,13 +53,13 @@ export const RARITY_CONFIG: Record<
   {
     label: string;
     color: string;
-    spawnMultiplier: number;
+    dropMultiplier: number;
     xpMultiplier: number;
   }
 > = {
-  common: { label: "Common", color: "#8E8E93", spawnMultiplier: 3, xpMultiplier: 1.0 },
-  rare: { label: "Rare", color: "#83d5ec", spawnMultiplier: 2, xpMultiplier: 1.5 },
-  epic: { label: "Epic", color: "#df6dc7", spawnMultiplier: 1, xpMultiplier: 2.5 },
-  legendary: { label: "Legendary", color: "#F5A623", spawnMultiplier: 0, xpMultiplier: 5.0 },
-  mystery: { label: "Mystery", color: "#000000", spawnMultiplier: 0, xpMultiplier: 0.0 },
+  common: { label: "Common", color: "#8E8E93", dropMultiplier: 3, xpMultiplier: 1.0 },
+  rare: { label: "Rare", color: "#83d5ec", dropMultiplier: 2, xpMultiplier: 1.5 },
+  epic: { label: "Epic", color: "#df6dc7", dropMultiplier: 1, xpMultiplier: 2.5 },
+  legendary: { label: "Legendary", color: "#F5A623", dropMultiplier: 0, xpMultiplier: 5.0 },
+  mystery: { label: "Mystery", color: "#000000", dropMultiplier: 0, xpMultiplier: 0.0 },
 };

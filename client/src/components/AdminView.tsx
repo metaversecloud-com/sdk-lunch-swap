@@ -23,14 +23,14 @@ export const AdminView = () => {
 
   // Action loading states
   const [isRemoving, setIsRemoving] = useState(false);
-  const [isSpawning, setIsSpawning] = useState(false);
+  const [isDropping, setIsDropping] = useState(false);
 
   // Confirmation modal
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
 
-  // Spawn input
-  const [showSpawnInput, setShowSpawnInput] = useState(false);
-  const [spawnCount, setSpawnCount] = useState(20);
+  // Drop input
+  const [showDropInput, setShowDropInput] = useState(false);
+  const [dropCount, setDropCount] = useState(20);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
 
   // Status message
@@ -66,18 +66,18 @@ export const AdminView = () => {
     }
   };
 
-  const handleSpawnItems = async (itemIds?: string[]) => {
-    setIsSpawning(true);
+  const handleDropItems = async (itemIds?: string[]) => {
+    setIsDropping(true);
     setActionStatus(null);
     try {
-      const body: { count?: number; itemIds?: string[] } = itemIds ? { itemIds } : { count: spawnCount };
-      const { data } = await backendAPI.post("/admin/spawn-items", body);
+      const body: { count?: number; itemIds?: string[] } = itemIds ? { itemIds } : { count: dropCount };
+      const { data } = await backendAPI.post("/admin/drop-items", body);
       if (data.success) {
         setActionStatus({
           type: "success",
-          message: `Spawned ${data.spawnedCount} item${data.spawnedCount !== 1 ? "s" : ""}.`,
+          message: `Dropped ${data.droppedCount} item${data.droppedCount !== 1 ? "s" : ""}.`,
         });
-        setShowSpawnInput(false);
+        setShowDropInput(false);
         setSelectedItemIds(new Set());
 
         if (data.foodItemsInWorld && dispatch) {
@@ -88,10 +88,10 @@ export const AdminView = () => {
       setErrorMessage(dispatch, error as ErrorType);
       setActionStatus({
         type: "error",
-        message: "Failed to spawn items. Please try again.",
+        message: "Failed to drop items. Please try again.",
       });
     } finally {
-      setIsSpawning(false);
+      setIsDropping(false);
     }
   };
 
@@ -107,7 +107,7 @@ export const AdminView = () => {
     });
   };
 
-  const areButtonsDisabled = isRemoving || isSpawning;
+  const areButtonsDisabled = isRemoving || isDropping;
 
   return (
     <div className="grid gap-6">
@@ -136,15 +136,15 @@ export const AdminView = () => {
             </div>
           )}
 
-          {/* Spawn Items */}
-          {!showSpawnInput ? (
+          {/* Drop Items */}
+          {!showDropInput ? (
             <button
               className="btn"
               disabled={areButtonsDisabled}
-              onClick={() => setShowSpawnInput(true)}
-              aria-label="Spawn food items into the world"
+              onClick={() => setShowDropInput(true)}
+              aria-label="Drop food items into the world"
             >
-              Spawn Items
+              Drop Items
             </button>
           ) : (
             <div className="card my-1">
@@ -152,7 +152,7 @@ export const AdminView = () => {
               {foodItemsInWorld && foodItemsInWorld.length > 0 && (
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="p2  flex-shrink-0">Select specific items to spawn</p>
+                    <p className="p2  flex-shrink-0">Select specific items to drop</p>
                     {selectedItemIds.size > 0 && (
                       <div
                         className="p3 flex-shrink-1 text-right cursor-pointer"
@@ -183,7 +183,7 @@ export const AdminView = () => {
                             isSelected ? "bg-blue-50" : "hover:bg-gray-50"
                           }`}
                           onClick={() => toggleItemSelection(item.itemId)}
-                          disabled={isSpawning}
+                          disabled={isDropping}
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <input
@@ -219,61 +219,61 @@ export const AdminView = () => {
                 </div>
               )}
 
-              {/* Spawn Selected or Random */}
+              {/* Drop Selected or Random */}
               {selectedItemIds.size > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     className="btn grid items-center gap-2"
                     disabled={areButtonsDisabled}
-                    onClick={() => handleSpawnItems(Array.from(selectedItemIds))}
-                    aria-label={`Spawn ${selectedItemIds.size} selected items`}
+                    onClick={() => handleDropItems(Array.from(selectedItemIds))}
+                    aria-label={`Drop ${selectedItemIds.size} selected items`}
                   >
-                    {isSpawning && <Loading isSpinner={true} />}
-                    {isSpawning ? "Spawning..." : `Spawn ${selectedItemIds.size}`}
+                    {isDropping && <Loading isSpinner={true} />}
+                    {isDropping ? "Dropping..." : `Drop ${selectedItemIds.size}`}
                   </button>
                   <button
                     className="btn btn-outline"
-                    disabled={isSpawning}
-                    onClick={() => setShowSpawnInput(false)}
-                    aria-label="Cancel spawn"
+                    disabled={isDropping}
+                    onClick={() => setShowDropInput(false)}
+                    aria-label="Cancel drop"
                   >
                     Cancel
                   </button>
                 </div>
               ) : (
                 <>
-                  <label htmlFor="spawn-count" className="p2">
-                    Or spawn random items (max 60)
+                  <label htmlFor="drop-count" className="p2">
+                    Or drop random items (max 60)
                   </label>
                   <input
-                    id="spawn-count"
+                    id="drop-count"
                     type="number"
                     className="input"
                     min={1}
                     max={60}
-                    value={spawnCount}
+                    value={dropCount}
                     onChange={(e) => {
                       const val = Math.max(1, Math.min(60, Number(e.target.value)));
-                      setSpawnCount(val);
+                      setDropCount(val);
                     }}
-                    disabled={isSpawning}
-                    aria-describedby="spawn-count-hint"
+                    disabled={isDropping}
+                    aria-describedby="drop-count-hint"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       className="btn grid items-center gap-2"
                       disabled={areButtonsDisabled}
-                      onClick={() => handleSpawnItems()}
-                      aria-label={`Spawn ${spawnCount} random food items`}
+                      onClick={() => handleDropItems()}
+                      aria-label={`Drop ${dropCount} random food items`}
                     >
-                      {isSpawning && <Loading isSpinner={true} />}
-                      {isSpawning ? "Spawning..." : `Spawn ${spawnCount}`}
+                      {isDropping && <Loading isSpinner={true} />}
+                      {isDropping ? "Dropping..." : `Drop ${dropCount}`}
                     </button>
                     <button
                       className="btn btn-outline"
-                      disabled={isSpawning}
-                      onClick={() => setShowSpawnInput(false)}
-                      aria-label="Cancel spawn"
+                      disabled={isDropping}
+                      onClick={() => setShowDropInput(false)}
+                      aria-label="Cancel drop"
                     >
                       Cancel
                     </button>

@@ -1,20 +1,17 @@
 import { useContext, useEffect, useState } from "react";
 
 // components
-import { BonusWheel, BrownBag, Divider, HotStreakIndicator, MealTracker, NearbyItems, PageFooter } from "@/components";
+import { BonusWheel, BrownBag, Divider, HotStreakIndicator, MealTracker, PageFooter } from "@/components";
 
 // context
 import { GlobalDispatchContext, GlobalStateContext } from "@/context/GlobalContext";
-import { SET_BROWN_BAG, SET_COMPLETED, SET_DAILY_BUFF, ErrorType, PostPickupResponseType } from "@/context/types";
+import { SET_BROWN_BAG, SET_COMPLETED, SET_DAILY_BUFF, ErrorType } from "@/context/types";
 
 // utils
 import { backendAPI, setErrorMessage } from "@/utils";
 import { getLevelTitle } from "@shared/data/xpConfig";
 import { WHEEL_BUFFS } from "@shared/data/wheelBuffs";
 import InstructionsModal from "./InstructionsModal";
-
-const BASE_BAG_CAPACITY = 8;
-const BIG_BAG_BONUS = 2;
 
 export const MainGameView = () => {
   const dispatch = useContext(GlobalDispatchContext);
@@ -32,12 +29,10 @@ export const MainGameView = () => {
 
   const activeBuffName = dailyBuff ? WHEEL_BUFFS.find((b) => b.id === dailyBuff)?.name ?? dailyBuff : null;
 
-  const bagCapacity = BASE_BAG_CAPACITY + (dailyBuff === "big-bag" ? BIG_BAG_BONUS : 0);
   const bagItems = brownBag ?? [];
   const mealItems = targetMeal ?? [];
-  const bagFull = bagItems.length >= bagCapacity;
-  const bagItemIds = new Set(bagItems.map((b) => b.itemId));
-  const allCollected = mealItems.length > 0 && mealItems.every((item) => bagItemIds.has(item.itemId));
+  const allCollected =
+    mealItems.length > 0 && mealItems.every((item) => bagItems.some((b) => b.itemId === item.itemId));
 
   const showTemporaryMessage = (message: string) => {
     setActionMessage(message);
@@ -88,45 +83,6 @@ export const MainGameView = () => {
       dispatch!({ type: SET_BROWN_BAG, payload: { brownBag: previousBag } });
       setErrorMessage(dispatch, error as ErrorType);
     }
-  };
-
-  const handlePickup = async (droppedAssetId: string) => {
-    try {
-      const response = await backendAPI.post("/pickup-item", { droppedAssetId });
-      handleAfterPickup(response.data);
-    } catch (error) {
-      setErrorMessage(dispatch, error as ErrorType);
-    }
-  };
-
-  const handleAfterPickup = async (data: PostPickupResponseType) => {
-    const {
-      brownBag: updatedBag,
-      pickedUpItem,
-      xpEarned,
-      xp: newXp,
-      level: newLevel,
-      hotStreakActive,
-      pickupStreak,
-      visitorInventory,
-    } = data;
-
-    dispatch!({
-      type: SET_BROWN_BAG,
-      payload: {
-        brownBag: updatedBag,
-        xp: newXp,
-        level: newLevel,
-        hotStreakActive,
-        pickupStreak,
-        visitorInventory,
-      },
-    });
-
-    let message = `Picked up ${pickedUpItem?.name ?? "item"}`;
-    if (xpEarned) message += ` (+${xpEarned} XP)`;
-
-    showTemporaryMessage(message);
   };
 
   const handleSubmit = async () => {
@@ -244,8 +200,6 @@ export const MainGameView = () => {
       <BrownBag onDrop={handleDrop} onDropAllNonMatches={handleDropAllNonMatches} />
 
       <Divider />
-
-      <NearbyItems onPickup={handlePickup} afterSwap={handleAfterPickup} bagFull={bagFull} />
 
       {/* Submit button — shown when all meal items are collected */}
       {allCollected && (
