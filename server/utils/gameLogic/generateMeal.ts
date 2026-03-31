@@ -12,16 +12,17 @@ export async function generateMeal(credentials: Credentials): Promise<TargetMeal
 
   const drink = pickRandom(foodItemsByGroup.drink, 1)[0];
   const main = pickRandom(foodItemsByGroup.main, 1)[0];
+  const fruit = pickRandom(foodItemsByGroup.fruit, 1)[0];
+  const veggie = pickRandom(foodItemsByGroup.veggie, 1)[0];
+  const snack = pickRandom(foodItemsByGroup.snack, 1)[0];
 
-  // "other 4" slots must include at least 2 distinct food groups
-  const otherGroups: FoodGroup[] = ["fruit", "veggie", "snack"];
-  const otherPool = otherGroups.flatMap((g) => foodItemsByGroup[g]);
-  let others: typeof otherPool;
-  do {
-    others = pickRandom(otherPool, 4);
-  } while (new Set(others.map((i) => i.foodGroup)).size < 2);
+  const bonusGroup: FoodGroup = pickRandom<FoodGroup>(["fruit", "veggie", "snack"], 1)[0];
+  const bonusPool = foodItemsByGroup[bonusGroup].filter(
+    (i) => i.itemId !== fruit.itemId && i.itemId !== veggie.itemId && i.itemId !== snack.itemId,
+  );
+  const bonus = bonusPool.length > 0 ? pickRandom(bonusPool, 1)[0] : pickRandom(foodItemsByGroup[bonusGroup], 1)[0];
 
-  return [drink, main, ...others].map((item) => ({
+  return [drink, main, fruit, veggie, snack, bonus].map((item) => ({
     itemId: item.itemId,
     name: item.name,
     foodGroup: item.foodGroup,

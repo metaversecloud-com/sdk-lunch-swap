@@ -2,7 +2,6 @@ import express from "express";
 import {
   handleGetGameState,
   handleGetItemDetails,
-  handleGetNearbyItems,
   handlePickupItem,
   handleDropItem,
   handleDropAllNonMatches,
@@ -10,7 +9,7 @@ import {
   handleSubmitMeal,
   handleSpinWheel,
   handleAdminRemoveAllItems,
-  handleAdminSpawnItems,
+  handleAdminDropItems,
   handleAdminGetStats,
   handleUpdateSettings,
   handleTeleportPlayer,
@@ -41,7 +40,6 @@ router.get("/system/health", (req, res) => {
 router.get("/game-state", handleGetGameState);
 router.get("/item-details", handleGetItemDetails);
 router.post("/spin-wheel", handleSpinWheel);
-router.get("/nearby-items", handleGetNearbyItems);
 router.post("/pickup-item", handlePickupItem);
 router.post("/drop-item", handleDropItem);
 router.post("/drop-all-non-matches", handleDropAllNonMatches);
@@ -51,7 +49,7 @@ router.post("/teleport-player", handleTeleportPlayer);
 
 // Admin routes
 router.post("/admin/remove-all-items", handleAdminRemoveAllItems);
-router.post("/admin/spawn-items", handleAdminSpawnItems);
+router.post("/admin/drop-items", handleAdminDropItems);
 router.get("/admin/stats", handleAdminGetStats);
 router.post("/admin/update-settings", handleUpdateSettings);
 

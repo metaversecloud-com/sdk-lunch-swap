@@ -248,31 +248,31 @@ describe("Admin Routes", () => {
   });
 
   // ═══════════════════════════════════════════════════════════════
-  // POST /api/admin/spawn-items
+  // POST /api/admin/drop-items
   // ═══════════════════════════════════════════════════════════════
-  describe("POST /api/admin/spawn-items", () => {
+  describe("POST /api/admin/drop-items", () => {
     test("non-admin returns 403", async () => {
       setupMocks({ isAdmin: false });
 
       const app = makeApp();
-      const res = await request(app).post("/api/admin/spawn-items").query(baseCreds).send({ count: 5 });
+      const res = await request(app).post("/api/admin/drop-items").query(baseCreds).send({ count: 5 });
 
       expect(res.status).toBe(403);
       expect(res.body.success).toBe(false);
       expect(res.body.message).toBe("Admin access required");
     });
 
-    test("admin spawns requested number of items", async () => {
+    test("admin drops requested number of items", async () => {
       setupMocks({ isAdmin: true });
 
       const app = makeApp();
-      const res = await request(app).post("/api/admin/spawn-items").query(baseCreds).send({ count: 3 });
+      const res = await request(app).post("/api/admin/drop-items").query(baseCreds).send({ count: 3 });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.spawnedCount).toBe(3);
-      expect(res.body.spawnedItems).toHaveLength(3);
-      for (const item of res.body.spawnedItems) {
+      expect(res.body.droppedCount).toBe(3);
+      expect(res.body.droppedItems).toHaveLength(3);
+      for (const item of res.body.droppedItems) {
         expect(item).toHaveProperty("itemId");
         expect(item).toHaveProperty("name");
         expect(item).toHaveProperty("rarity");
@@ -284,28 +284,28 @@ describe("Admin Routes", () => {
       setupMocks({ isAdmin: true });
 
       const app = makeApp();
-      const res = await request(app).post("/api/admin/spawn-items").query(baseCreds).send({ count: 100 });
+      const res = await request(app).post("/api/admin/drop-items").query(baseCreds).send({ count: 100 });
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      // The controller caps at 60 and spawns from the mock food items map (6 unique items)
-      // Since we only have 6 unique items in the mock, it will spawn 6
-      expect(res.body.spawnedCount).toBeLessThanOrEqual(60);
-      expect(res.body.spawnedItems.length).toBeLessThanOrEqual(60);
+      // The controller caps at 60 and drops from the mock food items map (6 unique items)
+      // Since we only have 6 unique items in the mock, it will drop 6
+      expect(res.body.droppedCount).toBeLessThanOrEqual(60);
+      expect(res.body.droppedItems.length).toBeLessThanOrEqual(60);
     });
 
     test("defaults to 10 items when count not provided", async () => {
       setupMocks({ isAdmin: true });
 
       const app = makeApp();
-      const res = await request(app).post("/api/admin/spawn-items").query(baseCreds).send({});
+      const res = await request(app).post("/api/admin/drop-items").query(baseCreds).send({});
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       // Controller defaults to min(10, 60) = 10, but limited by unique items in mock (6)
-      expect(res.body.spawnedCount).toBeLessThanOrEqual(10);
-      expect(res.body.spawnedItems.length).toBeLessThanOrEqual(10);
-      expect(res.body.spawnedCount).toBeGreaterThan(0);
+      expect(res.body.droppedCount).toBeLessThanOrEqual(10);
+      expect(res.body.droppedItems.length).toBeLessThanOrEqual(10);
+      expect(res.body.droppedCount).toBeGreaterThan(0);
     });
   });
 

@@ -33,8 +33,8 @@ export const AdminSettings = () => {
   const state = useContext(GlobalStateContext);
   const dispatch = useContext(GlobalDispatchContext);
 
-  const [spawnRadiusMin, setSpawnRadiusMin] = useState(state.spawnRadiusMin ?? 200);
-  const [spawnRadiusMax, setSpawnRadiusMax] = useState(state.spawnRadiusMax ?? 2000);
+  const [dropRadiusMin, setDropRadiusMin] = useState(state.dropRadiusMin ?? 200);
+  const [dropRadiusMax, setDropRadiusMax] = useState(state.dropRadiusMax ?? 2000);
   const [proximityRadius, setProximityRadius] = useState(state.proximityRadius ?? 300);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>(null);
@@ -44,8 +44,8 @@ export const AdminSettings = () => {
     setSaveStatus(null);
     try {
       const { data } = await backendAPI.post("/admin/update-settings", {
-        spawnRadiusMin,
-        spawnRadiusMax,
+        dropRadiusMin,
+        dropRadiusMax,
         proximityRadius,
       });
       if (data.success) {
@@ -53,8 +53,8 @@ export const AdminSettings = () => {
           type: SET_GAME_STATE,
           payload: {
             ...state,
-            spawnRadiusMin: data.settings.spawnRadiusMin,
-            spawnRadiusMax: data.settings.spawnRadiusMax,
+            dropRadiusMin: data.settings.dropRadiusMin,
+            dropRadiusMax: data.settings.dropRadiusMax,
             proximityRadius: data.settings.proximityRadius,
           },
         });
@@ -87,35 +87,35 @@ export const AdminSettings = () => {
         )}
 
         <div>
-          <label htmlFor="spawn-radius-min" className="p2 flex items-center">
-            Spawn Radius Min
-            <InfoTooltip text="Minimum distance (in pixels) from the key asset where items can spawn." />
+          <label htmlFor="drop-radius-min" className="p2 flex items-center">
+            Drop Radius Min
+            <InfoTooltip text="Minimum distance (in pixels) from the key asset where items can be dropped." />
           </label>
           <input
-            id="spawn-radius-min"
+            id="drop-radius-min"
             type="number"
             className="input"
             min={0}
             max={10000}
-            value={spawnRadiusMin}
-            onChange={(e) => setSpawnRadiusMin(Math.max(0, Math.min(10000, Number(e.target.value))))}
+            value={dropRadiusMin}
+            onChange={(e) => setDropRadiusMin(Math.max(0, Math.min(10000, Number(e.target.value))))}
             disabled={isSaving}
           />
         </div>
 
         <div>
-          <label htmlFor="spawn-radius-max" className="p2 flex items-center">
-            Spawn Radius Max
-            <InfoTooltip text="Maximum distance (in pixels) from the key asset where items can spawn." />
+          <label htmlFor="drop-radius-max" className="p2 flex items-center">
+            Drop Radius Max
+            <InfoTooltip text="Maximum distance (in pixels) from the key asset where items can be dropped." />
           </label>
           <input
-            id="spawn-radius-max"
+            id="drop-radius-max"
             type="number"
             className="input"
             min={0}
             max={10000}
-            value={spawnRadiusMax}
-            onChange={(e) => setSpawnRadiusMax(Math.max(0, Math.min(10000, Number(e.target.value))))}
+            value={dropRadiusMax}
+            onChange={(e) => setDropRadiusMax(Math.max(0, Math.min(10000, Number(e.target.value))))}
             disabled={isSaving}
           />
         </div>

@@ -1,13 +1,10 @@
 import { BagItem, TargetMealItem } from "@shared/types/FoodItem";
 import { LeaderboardEntry } from "@shared/types/DataObjects";
-import { NearbyItem } from "@shared/types/NearbyItem";
-
 export const SET_HAS_INTERACTIVE_PARAMS = "SET_HAS_INTERACTIVE_PARAMS";
 export const SET_GAME_STATE = "SET_GAME_STATE";
 export const SET_ERROR = "SET_ERROR";
 export const SET_BROWN_BAG = "SET_BROWN_BAG";
 export const SET_TARGET_MEAL = "SET_TARGET_MEAL";
-export const SET_NEARBY_ITEMS = "SET_NEARBY_ITEMS";
 export const SET_COMPLETED = "SET_COMPLETED";
 export const SET_DAILY_BUFF = "SET_DAILY_BUFF";
 export const SET_FOOD_ITEMS_IN_WORLD = "SET_FOOD_ITEMS_IN_WORLD";
@@ -57,15 +54,14 @@ export interface InitialState {
   level?: number;
   currentStreak?: number;
   longestStreak?: number;
-  nearbyItems?: NearbyItem[];
   dailyBuff?: string | null;
   hotStreakActive?: boolean;
   pickupStreak?: number;
   badges?: { [name: string]: BadgeType };
   visitorInventory?: VisitorInventoryType;
   leaderboard?: LeaderboardEntry[];
-  spawnRadiusMin?: number;
-  spawnRadiusMax?: number;
+  dropRadiusMin?: number;
+  dropRadiusMax?: number;
   proximityRadius?: number;
   foodItemsInWorld?: FoodItemInWorld[];
   isNewStreakRecord?: boolean;

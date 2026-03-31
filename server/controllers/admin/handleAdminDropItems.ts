@@ -12,7 +12,7 @@ import { getFoodItemsById } from "@utils/foodItemLookup.js";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { VisitorInterface, WorldInterface } from "@rtsdk/topia";
 
-export const handleAdminSpawnItems = async (req: Request, res: Response) => {
+export const handleAdminDropItems = async (req: Request, res: Response) => {
   try {
     const credentials = getCredentials(req.query);
     const { urlSlug, visitorId } = credentials;
@@ -25,31 +25,31 @@ export const handleAdminSpawnItems = async (req: Request, res: Response) => {
     const itemIds: string[] | undefined = req.body.itemIds;
     const count = Math.min(req.body.count || 10, 60); // Cap at 60
 
-    // Get key asset position as spawn center
+    // Get key asset position as drop center
     const droppedAsset = await getKeyAsset(credentials);
     const centerX = droppedAsset.position?.x ?? 0;
     const centerY = droppedAsset.position?.y ?? 0;
 
-    // Get world data for spawn radius
+    // Get world data for drop radius
     const world: WorldInterface = World.create(urlSlug, { credentials });
     await world.fetchDetails();
     const { width, height } = world;
     await world.fetchDataObject();
     const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
-    const radius = worldData.spawnRadiusMax || 2000;
+    const radius = worldData.dropRadiusMax || 2000;
 
     const foodItemsById = await getFoodItemsById(credentials);
 
-    let spawnList: { itemId: string; name: string; rarity: string }[];
+    let dropList: { itemId: string; name: string; rarity: string }[];
 
     if (itemIds && itemIds.length > 0) {
-      // Spawn specific items selected by admin
-      spawnList = itemIds
+      // Drop specific items selected by admin
+      dropList = itemIds
         .map((id) => foodItemsById.get(id))
         .filter(Boolean)
         .map((def) => ({ itemId: def!.itemId, name: def!.name, rarity: def!.rarity }));
     } else {
-      // Spawn random items weighted by rarity: 50% common, 30% rare, 20% epic
+      // Drop random items weighted by rarity: 50% common, 30% rare, 20% epic
       const allItems = Array.from(foodItemsById.values());
       const itemsByRarity: Record<string, typeof allItems> = {};
       for (const item of allItems) {
@@ -93,14 +93,14 @@ export const handleAdminSpawnItems = async (req: Request, res: Response) => {
       }
 
       tempList.sort(() => Math.random() - 0.5);
-      spawnList = tempList;
+      dropList = tempList;
     }
 
-    // Spawn in batches of 30
+    // Drop in batches of 30
     const BATCH_SIZE = 30;
     const results: PromiseSettledResult<{ itemId: string; name: string; rarity: string }>[] = [];
-    for (let i = 0; i < spawnList.length; i += BATCH_SIZE) {
-      const batch = spawnList.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < dropList.length; i += BATCH_SIZE) {
+      const batch = dropList.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.allSettled(
         batch.map((foodDef) =>
           dropFoodItem({
@@ -108,7 +108,7 @@ export const handleAdminSpawnItems = async (req: Request, res: Response) => {
             position: { x: centerX, y: centerY },
             itemId: foodDef.itemId,
             offsetRange: radius,
-            minOffset: worldData.spawnRadiusMin,
+            minOffset: worldData.dropRadiusMin,
             mystery: Math.random() < 0.05,
             host: req.hostname,
             worldSize: width && height ? { width, height } : undefined,
@@ -118,27 +118,27 @@ export const handleAdminSpawnItems = async (req: Request, res: Response) => {
       results.push(...batchResults);
     }
 
-    const spawnedItems = results
+    const droppedItems = results
       .filter((r) => r.status === "fulfilled")
       .map((r) => (r as PromiseFulfilledResult<{ itemId: string; name: string; rarity: string }>).value);
 
     for (const r of results) {
-      if (r.status === "rejected") console.warn("Failed to spawn item:", r.reason);
+      if (r.status === "rejected") console.warn("Failed to drop item:", r.reason);
     }
 
     const foodItemsInWorld = await getFoodItemsInWorld(world, credentials);
 
     return res.json({
       success: true,
-      spawnedCount: spawnedItems.length,
-      spawnedItems,
+      droppedCount: droppedItems.length,
+      droppedItems,
       foodItemsInWorld,
     });
   } catch (error) {
     return errorHandler({
       error,
-      functionName: "handleAdminSpawnItems",
-      message: "Error spawning items",
+      functionName: "handleAdminDropItems",
+      message: "Error dropping items",
       req,
       res,
     });
