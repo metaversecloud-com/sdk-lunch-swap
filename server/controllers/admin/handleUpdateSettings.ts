@@ -13,7 +13,7 @@ export const handleUpdateSettings = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: "Admin access required" });
     }
 
-    const { dropRadiusMin, dropRadiusMax, proximityRadius } = req.body;
+    const { dropRadiusMin, dropRadiusMax } = req.body;
 
     // Validate inputs
     const updates: Record<string, number> = {};
@@ -32,14 +32,6 @@ export const handleUpdateSettings = async (req: Request, res: Response) => {
         return res.status(400).json({ success: false, message: "dropRadiusMax must be between 0 and 10000" });
       }
       updates.dropRadiusMax = val;
-    }
-
-    if (proximityRadius !== undefined) {
-      const val = Number(proximityRadius);
-      if (isNaN(val) || val < 0 || val > 10000) {
-        return res.status(400).json({ success: false, message: "proximityRadius must be between 0 and 10000" });
-      }
-      updates.proximityRadius = val;
     }
 
     // Validate min <= max if both are being set or one is changing
@@ -69,7 +61,6 @@ export const handleUpdateSettings = async (req: Request, res: Response) => {
       settings: {
         dropRadiusMin: updates.dropRadiusMin ?? worldData.dropRadiusMin,
         dropRadiusMax: updates.dropRadiusMax ?? worldData.dropRadiusMax,
-        proximityRadius: updates.proximityRadius ?? worldData.proximityRadius,
       },
     });
   } catch (error) {

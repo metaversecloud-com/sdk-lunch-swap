@@ -153,7 +153,6 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       dailyBuff,
       dropRadiusMin: worldData.dropRadiusMin,
       dropRadiusMax: worldData.dropRadiusMax,
-      proximityRadius: worldData.proximityRadius,
       badges,
       visitorInventory: getVisitorBadges(visitor.inventoryItems || []),
       leaderboard,

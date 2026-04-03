@@ -62,7 +62,6 @@ export interface InitialState {
   leaderboard?: LeaderboardEntry[];
   dropRadiusMin?: number;
   dropRadiusMax?: number;
-  proximityRadius?: number;
   foodItemsInWorld?: FoodItemInWorld[];
   isNewStreakRecord?: boolean;
 }
