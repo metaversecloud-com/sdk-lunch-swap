@@ -41,7 +41,6 @@ const globalReducer = (state: InitialState, action: ActionType): InitialState =>
         leaderboard: payload.leaderboard ?? state.leaderboard,
         dropRadiusMin: payload.dropRadiusMin,
         dropRadiusMax: payload.dropRadiusMax,
-        proximityRadius: payload.proximityRadius,
         foodItemsInWorld: payload.foodItemsInWorld ?? state.foodItemsInWorld,
         error: "",
       };

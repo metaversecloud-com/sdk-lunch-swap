@@ -35,7 +35,6 @@ export const AdminSettings = () => {
 
   const [dropRadiusMin, setDropRadiusMin] = useState(state.dropRadiusMin ?? 200);
   const [dropRadiusMax, setDropRadiusMax] = useState(state.dropRadiusMax ?? 2000);
-  const [proximityRadius, setProximityRadius] = useState(state.proximityRadius ?? 300);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>(null);
 
@@ -46,7 +45,6 @@ export const AdminSettings = () => {
       const { data } = await backendAPI.post("/admin/update-settings", {
         dropRadiusMin,
         dropRadiusMax,
-        proximityRadius,
       });
       if (data.success) {
         dispatch!({
@@ -55,7 +53,6 @@ export const AdminSettings = () => {
             ...state,
             dropRadiusMin: data.settings.dropRadiusMin,
             dropRadiusMax: data.settings.dropRadiusMax,
-            proximityRadius: data.settings.proximityRadius,
           },
         });
         setSaveStatus({ type: "success", message: "Settings saved." });
@@ -116,23 +113,6 @@ export const AdminSettings = () => {
             max={10000}
             value={dropRadiusMax}
             onChange={(e) => setDropRadiusMax(Math.max(0, Math.min(10000, Number(e.target.value))))}
-            disabled={isSaving}
-          />
-        </div>
-
-        <div>
-          <label htmlFor="proximity-radius" className="p2 flex items-center">
-            Proximity Radius
-            <InfoTooltip text="How close (in pixels) a player must be to an item for it to appear in their nearby list." />
-          </label>
-          <input
-            id="proximity-radius"
-            type="number"
-            className="input"
-            min={0}
-            max={10000}
-            value={proximityRadius}
-            onChange={(e) => setProximityRadius(Math.max(0, Math.min(10000, Number(e.target.value))))}
             disabled={isSaving}
           />
         </div>

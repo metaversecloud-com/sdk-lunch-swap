@@ -70,7 +70,6 @@ export interface WorldGameData {
   gameVersion: number;
   dropRadiusMin: number;
   dropRadiusMax: number;
-  proximityRadius: number;
   currentDate: string;
   totalStartsToday: number;
   totalCompletionsToday: number;
@@ -83,7 +82,6 @@ export const WORLD_DATA_DEFAULTS: WorldGameData = {
   gameVersion: 1,
   dropRadiusMin: 200,
   dropRadiusMax: 2000,
-  proximityRadius: 300,
   currentDate: "",
   totalStartsToday: 0,
   totalCompletionsToday: 0,
