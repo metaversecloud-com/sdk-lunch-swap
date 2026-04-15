@@ -62,18 +62,27 @@ jobs:
             echo "::error::Build failed"
             exit 1
           fi
-                  
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3.0.0
         with:
           platforms: arm64,amd64
-                    
+
+      - name: Get role ARN
+        id: get_role
+        env:
+          ARN_JSON: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          arn=$(echo "$ARN_JSON" | jq -r '.dev')
+          echo "::add-mask::$arn"
+          echo "arn=$arn" >> $GITHUB_OUTPUT
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ fromJSON(secrets.AWS_ROLE_ARN).prod }}
+          role-to-assume: ${{ steps.get_role.outputs.arn }}
           aws-region: us-east-1
-                    
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -115,13 +124,21 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.Build.outputs.service) }}
     steps:
+      - name: Get role ARN
+        id: get_role
+        env:
+          ARN_JSON: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          arn=$(echo "$ARN_JSON" | jq -r '.prod')
+          echo "::add-mask::$arn"
+          echo "arn=$arn" >> $GITHUB_OUTPUT
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ fromJSON(secrets.AWS_ROLE_ARN).prod }}
+          role-to-assume: ${{ steps.get_role.outputs.arn }}
           aws-region: us-east-1
 
       - name: deploy
         run: |
-          aws ecs update-service --cluster ${{ env.ECS_Cluster }} --service topia-${{ env.ENV }}-${{ matrix.service }}0 --force-new-deployment  
-                
+          aws ecs update-service --cluster ${{ env.ECS_Cluster }} --service topia-${{ env.ENV }}-${{ matrix.service }}0 --force-new-deployment
+
