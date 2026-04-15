@@ -155,7 +155,7 @@ jobs:
         if: steps.auth_check.outputs.is_authorized == 'true' && steps.check.outputs.should_release == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 20.10
+          node-version: ${{ vars.node_version }}
 
       - name: Calculate new version with cumulative bumps
         if: steps.auth_check.outputs.is_authorized == 'true' && steps.check.outputs.should_release == 'true'
