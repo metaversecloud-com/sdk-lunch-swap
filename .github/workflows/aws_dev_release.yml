@@ -48,19 +48,28 @@ jobs:
           node-version: 20.10
           cache: 'npm'
       - run: npm i
-      - run: CI=false npm run build
-                  
+      - name: Build
+        run: |
+          set +e
+          CI=false npm run build 2>&1 | tee /tmp/build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          set -e
+          if [ $BUILD_EXIT -ne 0 ] || grep -q "npm ERR!" /tmp/build.log; then
+            echo "::error::Build failed"
+            exit 1
+          fi
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64,amd64
-                    
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::368076259134:role/github-actions-role
           aws-region: us-east-1
-                    
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -79,7 +88,7 @@ jobs:
           tags: |
             type=raw,value=${{ github.event.repository.name }}
 
-                
+
 
       - name: Build and push multi-platform images to ECR
         uses: docker/build-push-action@v5
