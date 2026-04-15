@@ -46,7 +46,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.10
+          node-version: ${{ vars.node_version }}
           cache: 'npm'
       - run: git config --global user.email devops@topia.io
       - run: git config --global user.name Devops
@@ -71,7 +71,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::368076259134:role/github-actions-role
+          role-to-assume: ${{ fromJSON(secrets.AWS_ROLE_ARN).prod }}
           aws-region: us-east-1
                     
       - name: Login to Amazon ECR
@@ -118,7 +118,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::471112828260:role/github-actions-role
+          role-to-assume: ${{ fromJSON(secrets.AWS_ROLE_ARN).prod }}
           aws-region: us-east-1
 
       - name: deploy
