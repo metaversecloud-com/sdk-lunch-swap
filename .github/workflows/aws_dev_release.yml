@@ -64,10 +64,18 @@ jobs:
         with:
           platforms: arm64,amd64
 
+      - name: Get role ARN
+        id: get_role
+        env:
+          ARN_JSON: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          arn=$(echo "$ARN_JSON" | jq -r '.dev')
+          echo "::add-mask::$arn"
+          echo "arn=$arn" >> $GITHUB_OUTPUT
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ fromJSON(secrets.AWS_ROLE_ARN).dev }}
+          role-to-assume: ${{ steps.get_role.outputs.arn }}
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
@@ -112,10 +120,18 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.Build.outputs.service) }}
     steps:
+      - name: Get role ARN
+        id: get_role
+        env:
+          ARN_JSON: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          arn=$(echo "$ARN_JSON" | jq -r '.dev')
+          echo "::add-mask::$arn"
+          echo "arn=$arn" >> $GITHUB_OUTPUT
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ fromJSON(secrets.AWS_ROLE_ARN).dev }}
+          role-to-assume: ${{ steps.get_role.outputs.arn }}
           aws-region: us-east-1
 
       - name: deploy
