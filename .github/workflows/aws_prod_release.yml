@@ -52,7 +52,16 @@ jobs:
       - run: git config --global user.name Devops
       - run: npm version --no-git-tag-version --workspaces --include-workspace-root true ${{ github.event.release.tag_name }}
       - run: npm i
-      - run: CI=false npm run build
+      - name: Build
+        run: |
+          set +e
+          CI=false npm run build 2>&1 | tee /tmp/build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          set -e
+          if [ $BUILD_EXIT -ne 0 ] || grep -q "npm ERR!" /tmp/build.log; then
+            echo "::error::Build failed"
+            exit 1
+          fi
                   
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3.0.0
