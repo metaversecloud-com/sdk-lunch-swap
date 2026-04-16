@@ -45,22 +45,39 @@ jobs:
                   
       - uses: actions/setup-node@v4
         with:
-          node-version: 20.10
+          node-version: ${{ vars.node_version }}
           cache: 'npm'
       - run: npm i
-      - run: CI=false npm run build
-                  
+      - name: Build
+        run: |
+          set +e
+          CI=false npm run build 2>&1 | tee /tmp/build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          set -e
+          if [ $BUILD_EXIT -ne 0 ] || grep -q "npm ERR!" /tmp/build.log; then
+            echo "::error::Build failed"
+            exit 1
+          fi
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64,amd64
-                    
+
+      - name: Get role ARN
+        id: get_role
+        env:
+          ARN_JSON: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          arn=$(echo "$ARN_JSON" | jq -r '.dev')
+          echo "::add-mask::$arn"
+          echo "arn=$arn" >> $GITHUB_OUTPUT
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::368076259134:role/github-actions-role
+          role-to-assume: ${{ steps.get_role.outputs.arn }}
           aws-region: us-east-1
-                    
+
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -79,7 +96,7 @@ jobs:
           tags: |
             type=raw,value=${{ github.event.repository.name }}
 
-                
+
 
       - name: Build and push multi-platform images to ECR
         uses: docker/build-push-action@v5
@@ -103,10 +120,18 @@ jobs:
       matrix:
         service: ${{ fromJson(needs.Build.outputs.service) }}
     steps:
+      - name: Get role ARN
+        id: get_role
+        env:
+          ARN_JSON: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          arn=$(echo "$ARN_JSON" | jq -r '.dev')
+          echo "::add-mask::$arn"
+          echo "arn=$arn" >> $GITHUB_OUTPUT
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::368076259134:role/github-actions-role
+          role-to-assume: ${{ steps.get_role.outputs.arn }}
           aws-region: us-east-1
 
       - name: deploy
