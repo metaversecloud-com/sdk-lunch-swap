@@ -144,6 +144,7 @@ jest.mock("@utils/index.js", () => ({
   getFoodItemsById: jest.fn().mockResolvedValue(new Map()),
   grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
   removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  ensureOneOfEverything: jest.fn().mockResolvedValue(undefined),
   dropFoodItem: jest.fn().mockResolvedValue(undefined),
   getBadges: jest.fn().mockResolvedValue([]),
   getVisitorBadges: jest.fn().mockReturnValue([]),

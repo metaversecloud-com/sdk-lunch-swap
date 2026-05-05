@@ -12,7 +12,9 @@ import {
   checkSubmitMealBadges,
   checkLevelBadges,
   getVisitorBadges,
+  ensureOneOfEverything,
 } from "@utils/index.js";
+import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
 import { XP_ACTIONS, getLevelForXp } from "@shared/data/xpConfig.js";
 import { RARITY_CONFIG } from "@shared/types/FoodItem.js";
 import {
@@ -170,8 +172,9 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
 
     // Update leaderboard on key asset and return parsed result
     let leaderboard;
+    let keyAsset;
     try {
-      const keyAsset = await getKeyAsset(credentials);
+      keyAsset = await getKeyAsset(credentials);
       await updateLeaderboard(keyAsset, profileId, credentials.displayName, newTotalMeals, newLongestStreak);
       await keyAsset.fetchDataObject();
       leaderboard = parseLeaderboard(keyAsset);
@@ -187,7 +190,7 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
       })
       .catch(() => {});
 
-    return res.json({
+    res.json({
       success: true,
       nutritionScore: nutritionResult.score,
       nutritionBreakdown: nutritionResult.breakdown,
@@ -202,6 +205,22 @@ export const handleSubmitMeal = async (req: Request, res: Response) => {
       ...(leaderboard && { leaderboard }),
       isNewStreakRecord,
     });
+
+    // Fire-and-forget: deduplicate items and drop missing ones in the background
+    if (keyAsset) {
+      (async () => {
+        await world.fetchDataObject();
+        const worldData = { ...WORLD_DATA_DEFAULTS, ...world.dataObject };
+        await ensureOneOfEverything({
+          world,
+          credentials,
+          worldData,
+          droppedAsset: keyAsset,
+          hostname: req.hostname,
+        });
+      })().catch((err) => console.warn("Background item cleanup failed:", err));
+    }
+    return;
   } catch (error) {
     return errorHandler({
       error,

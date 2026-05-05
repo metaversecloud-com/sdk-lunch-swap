@@ -138,6 +138,7 @@ jest.mock("@utils/index.js", () => ({
   grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
   removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
   dropFoodItem: jest.fn().mockResolvedValue(undefined),
+  ensureOneOfEverything: jest.fn().mockResolvedValue(undefined),
   grantXp: jest.fn().mockResolvedValue(0),
   checkSubmitMealBadges: jest.fn().mockResolvedValue(undefined),
   checkLevelBadges: jest.fn().mockResolvedValue(undefined),
