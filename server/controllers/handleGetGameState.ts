@@ -157,8 +157,12 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       foodItemsInWorld,
     });
 
-    // Fire-and-forget: deduplicate items and drop missing ones in the background
-    if (newDay || !visitorData.targetMeal || visitorData.targetMeal.length === 0) {
+    // Fire-and-forget: deduplicate items and drop missing ones in the background.
+    // Throttle to at most once every 5 minutes (also runs on new day / first play).
+    const REPLENISH_COOLDOWN_MS = 5 * 60 * 1000;
+    const lastReplenishedAt = worldData.lastReplenishedDate ? new Date(worldData.lastReplenishedDate).getTime() : 0;
+    const replenishCooldownExpired = Date.now() - lastReplenishedAt > REPLENISH_COOLDOWN_MS;
+    if (newDay || !visitorData.targetMeal || visitorData.targetMeal.length === 0 || replenishCooldownExpired) {
       Promise.resolve()
         .then(() =>
           ensureOneOfEverything({

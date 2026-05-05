@@ -76,6 +76,7 @@ export interface WorldGameData {
   totalPickups: number;
   totalDrops: number;
   totalMealSubmissions: number;
+  lastReplenishedDate: string;
 }
 
 export const WORLD_DATA_DEFAULTS: WorldGameData = {
@@ -88,6 +89,7 @@ export const WORLD_DATA_DEFAULTS: WorldGameData = {
   totalPickups: 0,
   totalDrops: 0,
   totalMealSubmissions: 0,
+  lastReplenishedDate: "",
 };
 
 // --- Key Asset Data Object ---

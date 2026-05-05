@@ -64,4 +64,6 @@ export async function ensureOneOfEverything({
     }).catch((err) => console.warn("Failed to drop item:", item.itemId, err)),
   );
   await Promise.allSettled(dropPromises);
+
+  await world.updateDataObject({ lastReplenishedDate: new Date().toISOString() }, {});
 }
