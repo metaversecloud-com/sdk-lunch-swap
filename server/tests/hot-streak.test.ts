@@ -130,6 +130,7 @@ jest.mock("@utils/index.js", () => ({
   getVisitorBag: jest.fn(),
   grantFoodToVisitor: jest.fn().mockResolvedValue(undefined),
   removeFoodFromVisitor: jest.fn().mockResolvedValue(undefined),
+  ensureOneOfEverything: jest.fn().mockResolvedValue(undefined),
   dropFoodItem: jest.fn().mockResolvedValue({ id: "new-dropped-asset" }),
   resolveFoodAsset: jest.fn(),
   pickupFoodAsset: jest.fn().mockResolvedValue({ pickedUp: true }),

@@ -16,6 +16,7 @@ export * from "./getVisitorBadges.js";
 export * from "./foodItemLookup.js";
 export * from "./getFoodItemDefinition.js";
 export * from "./getFoodItemsInWorld.js";
+export * from "./ensureOneOfEverything.js";
 export * from "./resolveFoodAsset.js";
 export * from "./updateWorldStats.js";
 export * from "./leaderboard.js";

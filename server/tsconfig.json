@@ -27,15 +27,17 @@
     /* Modules */
     "module": "ESNext" /* Specify what module code is generated. */,
     // "rootDir": "./",                                  /* Specify the root folder within your source files. */
-    "moduleResolution": "Node" /* Specify how TypeScript looks up a file from a given module specifier. */,
-    "baseUrl": "./",                                     /* Specify the base directory to resolve non-relative module names. */
+    "moduleResolution": "bundler" /* Specify how TypeScript looks up a file from a given module specifier. */,
     "paths": {
       "@shared/*": ["../shared/*"],
       "@utils/*": ["./utils/*"]
-    },                                                   /* Specify a set of entries that re-map imports to additional lookup locations. */
+    } /* Specify a set of entries that re-map imports to additional lookup locations. */,
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
-    // "typeRoots": [],                                  /* Specify multiple folders that act like './node_modules/@types'. */
-    // "types": [],                                      /* Specify type package names to be included without being referenced in a source file. */
+    "typeRoots": [
+      "./node_modules/@types",
+      "../node_modules/@types"
+    ] /* Workspace hoists @types/* to the repo root, so look there too. */,
+    "types": ["jest", "node"] /* Explicitly include jest & node globals for tests. */,
     // "allowUmdGlobalAccess": true,                     /* Allow accessing UMD globals from modules. */
     // "moduleSuffixes": [],                             /* List of file name suffixes to search when resolving a module. */
     // "allowImportingTsExtensions": true,               /* Allow imports to include TypeScript file extensions. Requires '--moduleResolution bundler' and either '--noEmit' or '--emitDeclarationOnly' to be set. */
@@ -59,6 +61,7 @@
     // "inlineSourceMap": true,                          /* Include sourcemap files inside the emitted JavaScript. */
     // "outFile": "./",                                  /* Specify a file that bundles all outputs into one JavaScript file. If 'declaration' is true, also designates a file that bundles all .d.ts output. */
     "outDir": "./dist" /* Specify an output folder for all emitted files. */,
+    "rootDir": ".." /* Explicitly set the root directory to resolve common source directory error. */,
     // "removeComments": true,                           /* Disable emitting comments. */
     // "noEmit": true,                                   /* Disable emitting files from a compilation. */
     // "importHelpers": true,                            /* Allow importing helper functions from tslib once per project, instead of including them per-file. */

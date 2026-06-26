@@ -6,19 +6,17 @@ import {
   getFoodItemsById,
   parseLeaderboard,
   World,
-  dropFoodItem,
   getVisitor,
   getVisitorBag,
   removeFoodFromVisitor,
   getBadges,
   getVisitorBadges,
   getFoodItemsInWorld,
-  DroppedAsset,
+  ensureOneOfEverything,
 } from "@utils/index.js";
 import { generateMeal, getCurrentDateMT, getCurrentWeekMT, getPreviousWeekMT } from "@utils/gameLogic/index.js";
-import { VisitorInterface, WorldInterface } from "@rtsdk/topia";
+import { VisitorInterface } from "@rtsdk/topia";
 import { WORLD_DATA_DEFAULTS } from "@shared/types/DataObjects.js";
-import { Credentials } from "../types/Credentials.js";
 
 export const handleGetGameState = async (req: Request, res: Response) => {
   try {
@@ -159,11 +157,23 @@ export const handleGetGameState = async (req: Request, res: Response) => {
       foodItemsInWorld,
     });
 
-    // Fire-and-forget: deduplicate items and drop missing ones in the background
-    if (newDay || !visitorData.targetMeal || visitorData.targetMeal.length === 0) {
-      ensureOneOfEverything(world, credentials, urlSlug, worldData, droppedAsset, req.hostname).catch((err) =>
-        console.warn("Background item cleanup failed:", err),
-      );
+    // Fire-and-forget: deduplicate items and drop missing ones in the background.
+    // Throttle to at most once every 5 minutes (also runs on new day / first play).
+    const REPLENISH_COOLDOWN_MS = 5 * 60 * 1000;
+    const lastReplenishedAt = worldData.lastReplenishedDate ? new Date(worldData.lastReplenishedDate).getTime() : 0;
+    const replenishCooldownExpired = Date.now() - lastReplenishedAt > REPLENISH_COOLDOWN_MS;
+    if (newDay || !visitorData.targetMeal || visitorData.targetMeal.length === 0 || replenishCooldownExpired) {
+      Promise.resolve()
+        .then(() =>
+          ensureOneOfEverything({
+            world,
+            credentials,
+            worldData,
+            droppedAsset,
+            hostname: req.hostname,
+          }),
+        )
+        .catch((err) => console.warn("Background item cleanup failed:", err));
     }
   } catch (error) {
     return errorHandler({
@@ -175,58 +185,3 @@ export const handleGetGameState = async (req: Request, res: Response) => {
     });
   }
 };
-
-/**
- * Background task: ensure exactly one of every food item exists in the world.
- * Deletes duplicates and drops missing items.
- */
-async function ensureOneOfEverything(
-  world: WorldInterface,
-  credentials: Credentials,
-  urlSlug: string,
-  worldData: { dropRadiusMin?: number; dropRadiusMax?: number },
-  droppedAsset: { position?: { x: number; y: number } },
-  hostname: string,
-) {
-  const inWorldData = await getFoodItemsInWorld(world, credentials);
-
-  // Delete duplicates — for items with countInWorld > 1, remove extras
-  const deletePromises: Promise<unknown>[] = [];
-  for (const item of inWorldData) {
-    if (item.countInWorld > 1) {
-      for (const assetId of item.droppedAssetIds.slice(1)) {
-        deletePromises.push(
-          DroppedAsset.create(assetId, urlSlug, { credentials })
-            .deleteDroppedAsset()
-            .catch(() => {}),
-        );
-      }
-    }
-  }
-  await Promise.allSettled(deletePromises);
-
-  // Drop missing items — items with countInWorld === 0
-  const missingItems = inWorldData.filter((item) => item.countInWorld === 0);
-  if (missingItems.length === 0) return;
-
-  await world.fetchDetails();
-  const { width, height } = world as WorldInterface;
-  const dropCenter = {
-    x: droppedAsset.position?.x ?? 0,
-    y: droppedAsset.position?.y ?? 0,
-  };
-
-  const dropPromises = missingItems.map((item) =>
-    dropFoodItem({
-      credentials,
-      position: dropCenter,
-      itemId: item.itemId,
-      minOffset: worldData.dropRadiusMin,
-      offsetRange: worldData.dropRadiusMax || 2000,
-      mystery: Math.random() < 0.15,
-      host: hostname,
-      worldSize: width && height ? { width, height } : undefined,
-    }).catch((err) => console.warn("Failed to drop item:", item.itemId, err)),
-  );
-  await Promise.allSettled(dropPromises);
-}
