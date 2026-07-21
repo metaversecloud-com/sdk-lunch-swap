@@ -1,0 +1,33 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# No `namespace:` directive: the interceptor Ingress must stay in `keda`; the
+# workload resources carry no namespace and Argo injects the Application's
+# destination namespace (sdk-apps-dev).
+
+resources:
+  - ../../services/lunch-swap0
+  - lunch-swap0-config.yaml
+  - lunch-swap0-sealedsecret.yaml
+  - lunch-swap0-httpscaledobject.yaml
+  - lunch-swap0-interceptor-ingress.yaml
+
+patches:
+  # Drop the direct ALB Ingress: in dev the app is fronted through the KEDA
+  # interceptor so a scaled-to-zero Deployment is woken by the first request.
+  - target:
+      kind: Ingress
+      name: lunch-swap0
+    patch: |
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: lunch-swap0
+
+# Per-service image (defaults to the shared dev ECR sdk-example:<repo>; an
+# independent deployment may pin a different tag/image).
+images:
+  - name: lunch-swap0
+    newName: 368076259134.dkr.ecr.us-east-1.amazonaws.com/sdk-example
+    newTag: sdk-lunch-swap
