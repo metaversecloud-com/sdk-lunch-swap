@@ -1,0 +1,175 @@
+name: AWS-Build-Push-Dev (GitOps)
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+# GitOps deploy. Build pushes the image to the shared dev ECR repo
+# (sdk-example:<repo-name>); the deploy job drives Argo CD. It discovers every
+# Application in argo/applications/*.yaml whose source.targetRevision matches the
+# pushed branch (one per env/tenant) and syncs each. Per-env/tenant specifics ?
+# image repo, version/tag, namespace, app name, workload ? are NOT pinned here:
+# they live in the repo's argo/ overlays + Application manifests (git is the
+# source of truth). Adding an env/tenant = adding an overlay + Application.
+env:
+  REPOSITORY: 'sdk-example'
+  ENV: 'dev'
+  CLUSTER: 'Topia-dev-SDK-Apps'
+  AWS_REGION: 'us-east-1'
+
+concurrency:
+  group: ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ vars.node_version }}
+          cache: 'npm'
+      - run: npm i
+      - name: Build
+        env:
+          VITE_S3_BUCKET_URL: ${{ vars.VITE_S3_BUCKET_URL }}
+        run: |
+          set +e
+          CI=false npm run build 2>&1 | tee /tmp/build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          set -e
+          if [ $BUILD_EXIT -ne 0 ] || grep -q "npm ERR!" /tmp/build.log; then
+            echo "::error::Build failed"
+            exit 1
+          fi
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64,amd64
+      - name: Get role ARN
+        id: get_role
+        env:
+          ARN_JSON: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          arn=$(echo "$ARN_JSON" | jq -r ".$ENV")
+          echo "::add-mask::$arn"
+          echo "arn=$arn" >> $GITHUB_OUTPUT
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.get_role.outputs.arn }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
+          driver-opts: image=moby/buildkit:latest
+      - name: Image Metadata
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}
+          tags: |
+            type=raw,value=${{ github.event.repository.name }}
+      - name: Build and push multi-platform images to ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          build-args: |
+            REF=${{ github.ref }}
+            COMMIT_HASH=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+
+  deploy:
+    # In-VPC self-hosted runner (metaversecloud org). Cluster auth is via the AWS
+    # role (OIDC) + EKS access entry, NOT the runner SA. The role needs RBAC for
+    # configmaps/secrets/deployments in the app namespaces and patch on
+    # applications in argocd.
+    runs-on: topia-dev-sdk-apps-metaversecloud-com
+    needs: Build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install kubectl + yq + aws cli
+        run: |
+          set -euo pipefail
+          # Map the runner CPU arch to each tool's release naming. The runner arch
+          # can change between runs; a stale wrong-arch binary left in place would
+          # otherwise surface as "Exec format error". Gate each install on actually
+          # EXECUTING the binary (not `command -v`, which only checks the path) so a
+          # present-but-unrunnable binary from a prior arch is detected and replaced.
+          case "$(uname -m)" in
+            x86_64)          K8S_ARCH=amd64; YQ_ARCH=amd64; AWS_ARCH=x86_64 ;;
+            aarch64|arm64)   K8S_ARCH=arm64; YQ_ARCH=arm64; AWS_ARCH=aarch64 ;;
+            *) echo "::error::Unsupported arch $(uname -m)"; exit 1 ;;
+          esac
+          if ! kubectl version --client &>/dev/null; then
+            curl -sSLo /tmp/kubectl https://dl.k8s.io/release/v1.34.0/bin/linux/$K8S_ARCH/kubectl
+            sudo install -m0755 /tmp/kubectl /usr/local/bin/kubectl
+          fi
+          if ! yq --version &>/dev/null; then
+            curl -sSLo /tmp/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$YQ_ARCH
+            sudo install -m0755 /tmp/yq /usr/local/bin/yq
+          fi
+          if ! aws --version &>/dev/null; then
+            sudo apt-get update -y && sudo apt-get install -y unzip
+            curl -sSL https://awscli.amazonaws.com/awscli-exe-linux-$AWS_ARCH.zip -o /tmp/aws.zip
+            unzip -q /tmp/aws.zip -d /tmp && sudo /tmp/aws/install --update
+          fi
+      - name: Get role ARN
+        id: get_role
+        env:
+          ARN_JSON: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          arn=$(echo "$ARN_JSON" | jq -r ".$ENV")
+          echo "::add-mask::$arn"
+          echo "arn=$arn" >> $GITHUB_OUTPUT
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.get_role.outputs.arn }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name "$CLUSTER" --region "$AWS_REGION"
+      - name: Deploy each Application targeting this branch (one per env/tenant)
+        env:
+          CONFIG_ENV: ${{ secrets.DEV_CONFIG_ENV }}
+          INTERACTIVE_SECRET: ${{ secrets.DEV_INTERACTIVE_SECRET }}
+        run: |
+          set -euo pipefail
+          # Workload + config/secret names come from the repo's base manifest, so
+          # this template is not app-specific.
+          dep=$(yq '.metadata.name' argo/base/deployment.yaml)
+          cm=$(yq '.spec.template.spec.containers[0].envFrom[] | select(has("configMapRef")) | .configMapRef.name' argo/base/deployment.yaml)
+          sec=$(yq '.spec.template.spec.containers[0].envFrom[] | select(has("secretRef")) | .secretRef.name' argo/base/deployment.yaml)
+          printf '%s' "$CONFIG_ENV" > /tmp/cfg.env
+          shopt -s nullglob
+          for app in argo/applications/*.yaml; do
+            rev=$(yq '.spec.source.targetRevision' "$app")
+            [ "$rev" = "$GITHUB_REF_NAME" ] || continue
+            name=$(yq '.metadata.name' "$app")
+            ns=$(yq '.spec.destination.namespace' "$app")
+            echo "Deploying $name -> namespace $ns (workload $dep)"
+            kubectl create configmap "$cm" --from-env-file=/tmp/cfg.env -n "$ns" --dry-run=client -o yaml | kubectl apply -f -
+            kubectl create secret generic "$sec" --from-literal=INTERACTIVE_SECRET="$INTERACTIVE_SECRET" -n "$ns" --dry-run=client -o yaml | kubectl apply -f -
+            kubectl -n argocd patch application "$name" --type merge -p "{\"operation\":{\"initiatedBy\":{\"username\":\"github-actions\"},\"sync\":{\"revision\":\"$GITHUB_REF_NAME\"}}}"
+            kubectl -n "$ns" rollout restart deployment/"$dep"
+            kubectl -n "$ns" rollout status deployment/"$dep" --timeout=300s
+          done
+          rm -f /tmp/cfg.env
