@@ -1,0 +1,181 @@
+name: AWS-Build-Push-Dev (GitOps)
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+# GitOps deploy, git as the source of truth. Build pushes to the shared dev ECR
+# repo under the mutable tag sdk-example:<repo> (kept mutable so the ECR
+# lifecycle policy manages it; the commit sha is baked into the image via
+# COMMIT_HASH, not the tag). The sdk-apps ApplicationSet (in
+# metaversecloud-com/sdk-gitops) creates one Application per env from this repo's
+# argo/envs/<env>/config.json, named "<app>-<env>", tracking the deploy branch
+# (automated + selfHeal). The deploy job does NOT touch the cluster: it pins the
+# env overlay's images[].digest to the digest just built (immutable, changes
+# every build even though the tag is reused) and commits it to the deploy branch
+# - that manifest change is what rolls the workload - then triggers `argocd app
+# sync` via the Argo CD API with a token. No kubectl, no EKS/AWS auth, no
+# config/secret seeding (kustomize ConfigMap + SealedSecret are Argo-managed).
+# Adding an env = committing argo/envs/<env>/config.json on the inventory ref.
+env:
+  REPOSITORY: 'sdk-example'
+  ENV: 'dev'
+  AWS_REGION: 'us-east-1'
+
+concurrency:
+  group: ${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write   # Build: OIDC -> AWS role for ECR push
+  contents: write   # deploy: commit the image-tag bump to the deploy branch
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ vars.node_version }}
+          cache: 'npm'
+      - run: npm i
+      - name: Build
+        env:
+          VITE_S3_BUCKET_URL: ${{ vars.VITE_S3_BUCKET_URL }}
+        run: |
+          set +e
+          CI=false npm run build 2>&1 | tee /tmp/build.log
+          BUILD_EXIT=${PIPESTATUS[0]}
+          set -e
+          if [ $BUILD_EXIT -ne 0 ] || grep -q "npm ERR!" /tmp/build.log; then
+            echo "::error::Build failed"
+            exit 1
+          fi
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64,amd64
+      - name: Get role ARN
+        id: get_role
+        env:
+          ARN_JSON: ${{ secrets.AWS_ROLE_ARN }}
+        run: |
+          arn=$(echo "$ARN_JSON" | jq -r ".$ENV")
+          echo "::add-mask::$arn"
+          echo "arn=$arn" >> $GITHUB_OUTPUT
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.get_role.outputs.arn }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
+          driver-opts: image=moby/buildkit:latest
+      - name: Image Metadata
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.REPOSITORY }}
+          tags: |
+            type=raw,value=${{ github.event.repository.name }}
+      - name: Build and push multi-platform images to ECR
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          build-args: |
+            REF=${{ github.ref }}
+            COMMIT_HASH=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          sbom: false
+
+  deploy:
+    # In-VPC self-hosted runner (reaches the internal Argo CD API). This job
+    # never talks to the cluster: it commits the new image tag to the deploy
+    # branch (git = source of truth) and asks Argo CD to sync. Auth is an Argo CD
+    # API token (secret ARGOCD_AUTH_TOKEN) whose account needs applications
+    # get+sync on sdk-apps/* in argocd-rbac-cm - widen that policy to cover all
+    # apps. No EKS access entry / k8s RBAC / AWS creds needed here.
+    runs-on: topia-dev-sdk-apps-metaversecloud-com
+    needs: Build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install argocd + yq
+        run: |
+          set -euo pipefail
+          # Arch-aware; gate on executing the binary so a stale wrong-arch binary
+          # from a prior run is replaced (avoids "Exec format error").
+          case "$(uname -m)" in
+            x86_64)          ARCH=amd64 ;;
+            aarch64|arm64)   ARCH=arm64 ;;
+            *) echo "::error::Unsupported arch $(uname -m)"; exit 1 ;;
+          esac
+          if ! yq --version &>/dev/null; then
+            curl -sSLo /tmp/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_$ARCH
+            sudo install -m0755 /tmp/yq /usr/local/bin/yq
+          fi
+          # Pinned to the Argo CD server version (argo.topia.io reports v3.4.2);
+          # bump this when the server is upgraded.
+          ARGOCD_VERSION=v3.4.2
+          if [ "$(argocd version --client --short 2>/dev/null | grep -o 'v[0-9.]*' | head -1)" != "$ARGOCD_VERSION" ]; then
+            curl -sSLo /tmp/argocd https://github.com/argoproj/argo-cd/releases/download/$ARGOCD_VERSION/argocd-linux-$ARCH
+            sudo install -m0755 /tmp/argocd /usr/local/bin/argocd
+          fi
+      - name: Pin image digest in the env overlay and commit
+        env:
+          DIGEST: ${{ needs.Build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [ -n "$DIGEST" ] || { echo "::error::empty image digest from Build"; exit 1; }
+          k="argo/overlays/$ENV/kustomization.yaml"
+          # Pin every image that tracks the shared dev ECR repo (newName .../sdk-example)
+          # to the digest just built - immutable and unique per build even though the
+          # tag is reused - and drop any mutable newTag. Images pinned elsewhere are
+          # left untouched. This manifest change is what makes Argo roll the workload.
+          DIGEST="$DIGEST" yq -i \
+            '(.images[] | select(.newName | test("/sdk-example$")) | .digest) = strenv(DIGEST)' "$k"
+          yq -i 'del(.images[] | select(.newName | test("/sdk-example$")) | .newTag)' "$k"
+          git config user.email devops@topia.io
+          git config user.name Devops
+          if git diff --quiet -- "$k"; then
+            echo "No image-digest change in $k"
+          else
+            git add "$k"
+            # [skip ci] + the GITHUB_TOKEN push both keep this commit from
+            # retriggering the workflow.
+            git commit -m "chore(deploy): ${GITHUB_REPOSITORY##*/} image $DIGEST [skip ci]"
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin HEAD:"$GITHUB_REF_NAME"
+          fi
+      - name: Trigger Argo CD sync
+        env:
+          ARGOCD_SERVER: ${{ vars.ARGOCD_SERVER }}
+          ARGOCD_AUTH_TOKEN: ${{ secrets.ARGOCD_AUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          app="${GITHUB_REPOSITORY##*/}-$ENV"
+          export ARGOCD_SERVER ARGOCD_AUTH_TOKEN
+          # In-cluster argocd-server endpoint with its self-signed cert: --insecure
+          # skips cert verify, --grpc-web works either way. Refresh so Argo sees the
+          # commit just pushed, then sync and wait for health.
+          argocd app get "$app" --refresh --grpc-web --insecure >/dev/null
+          argocd app sync "$app" --grpc-web --insecure --timeout 300
+          argocd app wait "$app" --health --grpc-web --insecure --timeout 300
