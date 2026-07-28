@@ -173,9 +173,12 @@ jobs:
           set -euo pipefail
           app="${GITHUB_REPOSITORY##*/}-$ENV"
           export ARGOCD_SERVER ARGOCD_AUTH_TOKEN
-          # In-cluster argocd-server endpoint with its self-signed cert: --insecure
-          # skips cert verify, --grpc-web works either way. Refresh so Argo sees the
-          # commit just pushed, then sync and wait for health.
-          argocd app get "$app" --refresh --grpc-web --insecure >/dev/null
-          argocd app sync "$app" --grpc-web --insecure --timeout 300
-          argocd app wait "$app" --health --grpc-web --insecure --timeout 300
+          # argocd-server runs with server.insecure=true (plaintext HTTP/2; TLS
+          # is terminated upstream, not on the pod), so the CLI must use
+          # --plaintext (no TLS) rather than --insecure (which still does a TLS
+          # handshake and gets reset by the plaintext port). --grpc-web over
+          # cleartext. Refresh so Argo sees the commit just pushed, then sync and
+          # wait for health.
+          argocd app get "$app" --refresh --grpc-web --plaintext >/dev/null
+          argocd app sync "$app" --grpc-web --plaintext --timeout 300
+          argocd app wait "$app" --health --grpc-web --plaintext --timeout 300
