@@ -26,4 +26,4 @@ patches:
 images:
   - name: lunch-swap0
     newName: 368076259134.dkr.ecr.us-east-1.amazonaws.com/sdk-example
-    digest: sha256:768a678d32a651d8babddb17eb230080a89b264118ba225771c744974223f3fa
+    digest: sha256:090cc2afab9ff0e14df6dc614819d235c6bef6b5503d02ab47527bf71417e8c9
