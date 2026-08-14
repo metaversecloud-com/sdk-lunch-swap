@@ -1,7 +1,6 @@
 {
   "app": "sdk-lunch-swap",
   "env": "dev",
-  "targetRevision": "dev",
   "clusterName": "Topia-dev-SDK-Apps",
   "clusterType": "eks",
   "namespace": "sdk-apps-dev",
