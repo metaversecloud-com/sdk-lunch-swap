@@ -102,6 +102,9 @@ jobs:
             type=raw,value=${{ github.event.repository.name }}-${{ github.event.release.tag_name }}
             type=raw,value=${{ github.event.repository.name }}-latest
 
+      - name: Compute image build timestamp
+        id: buildtime
+        run: echo "value=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
       - name: Build and push multi-platform images to ECR
         uses: docker/build-push-action@v5
         with:
@@ -112,6 +115,7 @@ jobs:
           build-args: |
             REF=${{ github.ref }}
             COMMIT_HASH=${{ github.sha }}
+            BUILD_TIME=${{ steps.buildtime.outputs.value }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
