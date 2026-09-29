@@ -3,37 +3,25 @@ on:
   push:
     branches:
       - dev
-    # Image Updater's write-back lands on this same branch. paths-ignore is
-    # what stops build -> push -> digest write-back -> build looping: the
-    # write-back only ever touches argo/ (its writeBackTarget is pinned to
-    # kustomization:/argo/overlays/dev), so it can never match this trigger.
-    # A push touching both argo/ and app code still builds, which is correct.
-    #
-    # This replaces the old [skip ci] guard. [skip ci] worked, but GitHub
-    # applies it to pull_request events too, keyed on the HEAD commit of the
-    # PR - so once a write-back commit was the tip of dev, every dev -> main
-    # release PR was silently skipped and Auto Release never fired. Guarding
-    # on paths instead of on a magic string keeps that blast radius out of PRs.
-    paths-ignore:
-      - 'argo/**'
   workflow_dispatch:
 
 # GitOps deploy, git as the source of truth. This workflow only BUILDS: it
 # pushes to the shared dev ECR repo under the mutable tag sdk-example:<repo>
 # (kept mutable so the ECR lifecycle policy manages it; the commit sha is baked
-# into the image via COMMIT_HASH, not the tag). Nothing here deploys.
+# into the image via COMMIT_HASH, not the tag). Nothing here deploys, and
+# nothing writes back to this repo: no automation commits to dev.
 #
 # Argo CD Image Updater owns the deploy half. It watches that tag, and when the
-# digest behind it changes it commits images[].digest into this repo's
-# argo/overlays/<env>/kustomization.yaml on the deploy branch. That manifest
-# change is what rolls the workload - the sdk-apps ApplicationSet's Applications
-# are automated + selfHeal, so no explicit `argocd app sync` is needed. Config
-# lives in metaversecloud-com/sdk-gitops (bootstrap/imageupdater-sdk-apps.yaml).
+# digest behind it changes it commits images[].digest into
+# metaversecloud-com/sdk-gitops apps/<repo>/envs/dev/kustomization.yaml on that
+# repo's main. That manifest change is what rolls the workload - the sdk-apps
+# ApplicationSet's Applications are automated + selfHeal, so no explicit
+# `argocd app sync` is needed. Config: sdk-gitops bootstrap/imageupdater-sdk-apps.yaml.
 #
-# The sdk-apps ApplicationSet creates one Application per env from this repo's
-# argo/envs/<env>/config.json, named "<app>-<env>". Adding an env = committing
-# argo/envs/<env>/config.json on the inventory ref. No kubectl, no EKS/AWS auth,
-# no config/secret seeding (kustomize ConfigMap + SealedSecret are Argo-managed).
+# This repo carries NO Kubernetes manifests. Every env of every SDK app is a
+# directory in sdk-gitops (apps/<repo>/services/<svc>, apps/<repo>/envs/<env>),
+# rendered by the single sdk-apps ApplicationSet. Adding an env or changing
+# config/secrets/hosts is a pull request to sdk-gitops, never a change here.
 env:
   REPOSITORY: 'sdk-example'
   ENV: 'dev'
@@ -45,7 +33,7 @@ concurrency:
 
 permissions:
   id-token: write   # Build: OIDC -> AWS role for ECR push
-  contents: read    # checkout only; the deploy-branch commit is Image Updater's
+  contents: read    # checkout only; nothing in this workflow writes to git
 
 jobs:
   Build:
