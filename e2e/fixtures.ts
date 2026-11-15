@@ -49,10 +49,20 @@ export type SeedOptions = {
   inventoryItems?: InventoryItem[];
   /** Unlockable expressions (GET /expressions, grant-expression). Default: the mock's Wave and Dance. */
   expressions?: Array<{ id: string; name: string } & Record<string, unknown>>;
+  /**
+   * The world's user group data objects, as Visitor.fetchUserGroupDataObject returns them (default none).
+   */
+  userGroupDataObjects?: Array<Record<string, unknown>>;
   /** Extra fields for GET /world-details (World.fetchDetails); default { urlSlug, name, width, height }. */
   worldDetails?: Record<string, unknown>;
-  /** Further dropped assets in the world, keyed by id. */
+  /** Further dropped assets in the world, keyed by id (their `id` defaults to the key). */
   extraAssets?: Record<string, Record<string, unknown>>;
+  /**
+   * Scenes GET /scenes/:sceneId (Scene.get / fetchSceneById) knows, keyed by scene id (their `id` is the key).
+   * Read from the caller's world (the InteractiveJWT's urlSlug); an unknown id answers 200 with a null body,
+   * like the real getSceneById.
+   */
+  scenes?: Record<string, Record<string, unknown>>;
   /** Delay for every public-API call into the world, so concurrent requests overlap. */
   latencyMs?: number;
   /**
@@ -77,7 +87,10 @@ export type SeedOptions = {
 /** A catalog item a visitor owns: catalog id or name, quantity (default 1), user item metadata (default {}). */
 export type OwnedItem = { item: string; quantity?: number; metadata?: Record<string, unknown> };
 
-/** Another player in the world. Defaults: profileId "<world.profileId>-v<id>", displayName "Player <id>". */
+/**
+ * Another player in the world. Defaults: profileId "<world.profileId>-v<id>", displayName "Player <id>",
+ * username "player-<id>".
+ */
 export type OtherVisitor = {
   profileId?: string;
   displayName?: string;
@@ -143,14 +156,18 @@ export class TopiaWorld {
     inventoryItems,
     expressions,
     worldDetails,
+    userGroupDataObjects,
     extraAssets = {},
+    scenes,
     latencyMs = 0,
     delays = {},
     failures = {},
     holdLocksDuringDelay = false,
   }: SeedOptions = {}) {
     this.others = otherVisitors;
-    const assets: Record<string, any> = { ...extraAssets };
+    const assets: Record<string, any> = Object.fromEntries(
+      Object.entries(extraAssets).map(([id, fields]) => [id, { id, ...fields }]),
+    );
     if (withAsset) {
       assets[this.assetId] = {
         id: this.assetId,
@@ -172,6 +189,8 @@ export class TopiaWorld {
         failures,
         holdLocksDuringDelay,
         worldDetails,
+        userGroupDataObjects,
+        scenes,
         assets,
         users,
         inventoryItems,
@@ -193,6 +212,8 @@ export class TopiaWorld {
                 id,
                 {
                   ...this.player(Number(id)),
+                  // Real visitors always have one; the same as world.as(id) sends.
+                  username: `player-${id}`,
                   isAdmin: admin,
                   landmarkZonesString: zoned ? Object.keys(assets).join(",") : "",
                   privateZoneId: "",
@@ -208,6 +229,8 @@ export class TopiaWorld {
             isAdmin,
             profileId: this.profileId,
             displayName: this.displayName,
+            // The same as world.credentials() sends.
+            username: "e2e-player",
             landmarkZonesString: inZone ? Object.keys(assets).join(",") : "",
             privateZoneId: "",
             dataObject: visitorData,
