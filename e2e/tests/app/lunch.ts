@@ -1,7 +1,7 @@
-// Lunch Swap test data: the mock's food catalog (mock-topia/catalog.json), inventory entries, food assets
+// Lunch Swap test data: the mock's food catalog (mock-topia/catalog.json), inventory seeds, food assets
 // and the visitor data of a game in progress.
 import catalog from "../../mock-topia/catalog.json" with { type: "json" };
-import type { SeedOptions, TopiaWorld } from "../../fixtures";
+import type { OwnedItem, SeedOptions, TopiaWorld } from "../../fixtures";
 
 type CatalogItem = (typeof catalog)[number];
 export type FoodId =
@@ -31,29 +31,13 @@ export const food = (itemId: FoodId) => {
   return { ...m, item };
 };
 
-/** A visitor inventory entry as get-visitor-inventory-items returns it (mock-topia's ownedItem). */
-const owned = (item: CatalogItem, quantity: number) => ({
-  id: `owned-${item.id}`,
-  item_id: item.id,
-  itemId: item.id,
-  quantity,
-  name: item.name,
-  type: item.type,
-  status: item.status,
-  image_url: item.image_path,
-  metadata: item.metadata,
-  item: { id: item.id, name: item.name, description: item.description, type: item.type, image_url: item.image_path, metadata: item.metadata },
-});
+const XP = catalog.find((i) => i.name === "Experience Points")!;
 
-export const ownedFood = (itemId: FoodId, quantity = 1) => owned(food(itemId).item, quantity);
-export const ownedXp = (quantity: number) => owned(catalog.find((i) => i.name === "Experience Points")!, quantity);
-export const ownedBadge = (name: string) => owned(catalog.find((i) => i.name === name)!, 1);
-
-/** The visitor's inventory: bag items, XP and badges. */
-export const inventory = ({ bag = [], xp = 0, badges = [] }: { bag?: FoodId[]; xp?: number; badges?: string[] }) => [
-  ...bag.map((id) => ownedFood(id)),
-  ...(xp ? [ownedXp(xp)] : []),
-  ...badges.map(ownedBadge),
+/** The visitor's inventory (seed's `inventory`): bag items, XP and badges. */
+export const inventory = ({ bag = [], xp = 0, badges = [] }: { bag?: FoodId[]; xp?: number; badges?: string[] }): OwnedItem[] => [
+  ...bag.map((id) => ({ item: food(id).item.id })),
+  ...(xp ? [{ item: XP.id, quantity: xp }] : []),
+  ...badges.map((name) => ({ item: name })),
 ];
 
 /** Today in Mountain Time, the app's game day (getCurrentDateMT). */
@@ -150,17 +134,19 @@ export const seedGame = (
     worldData: { ...QUIET_WORLD(), ...worldData },
     visitorData: playing(visitorData),
     extraAssets: Object.fromEntries(Object.entries(assets).map(([id, a]) => [id, { id, ...a }])),
+    inventory: inventory({ bag, xp, badges }),
     ...rest,
-    visitor: { moveTo: { x: 640, y: 480 }, inventory: inventory({ bag, xp, badges }), ...rest.visitor },
+    visitor: { moveTo: { x: 640, y: 480 }, ...rest.visitor },
   });
 
 /** The bag (food itemIds with quantity) and XP in the visitor's inventory. */
 export const visitorInventory = async (world: TopiaWorld, visitorId = 42) => {
-  const items: any[] = (await world.state()).visitors[visitorId].inventory ?? [];
-  const bag = items.filter((i) => i.metadata?.itemId).map((i) => i.metadata.itemId as string).sort();
+  // Like the platform's reads, entries at quantity 0 or below don't count; the food id is catalog metadata.
+  const items: any[] = ((await world.state()).visitors[visitorId].inventory ?? []).filter((i: any) => i.quantity > 0);
+  const bag = items.filter((i) => i.item.metadata?.itemId).map((i) => i.item.metadata.itemId as string).sort();
   const xp = items.find((i) => i.name === "Experience Points")?.quantity ?? 0;
   const badges = items.filter((i) => i.type === "BADGE").map((i) => i.name as string);
-  const quantities = Object.fromEntries(items.filter((i) => i.metadata?.itemId).map((i) => [i.metadata.itemId, i.quantity]));
+  const quantities = Object.fromEntries(items.filter((i) => i.item.metadata?.itemId).map((i) => [i.item.metadata.itemId, i.quantity]));
   return { bag, xp, badges, quantities };
 };
 

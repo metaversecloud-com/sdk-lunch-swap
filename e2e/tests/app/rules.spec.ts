@@ -32,6 +32,23 @@ test.describe("races", () => {
     expect(await visitorInventory(world)).toMatchObject({ quantities: { mango: 1 }, xp: 25 });
   });
 
+  test("dropping the same item twice at once drops it once", async ({ request, world }) => {
+    test.fail(true, "EXP-456: concurrent drops duplicate the item and leave its quantity at -1");
+    await seedGame(world, { bag: ["mango"], delays: { "/update-visitor-inventory-item-quantity": 300 } });
+
+    const responses = await Promise.all([
+      request.post(world.api("/drop-item"), { data: { itemId: "mango" } }),
+      request.post(world.api("/drop-item"), { data: { itemId: "mango" } }),
+    ]);
+
+    expect(responses.map((r) => r.status()).sort()).toEqual([200, 400]);
+    expect((await foodInWorld(world)).map((f) => f.itemId)).toEqual(["mango"]);
+    // The platform has no floor at 0: a second -1 leaves the stored quantity at -1, so the next mango the
+    // player picks up only brings it back to 0 and never shows in the bag.
+    const stored = (await world.state()).visitors[42].inventory.filter((i: any) => i.item.metadata?.itemId === "mango");
+    expect(stored.map((i: any) => i.quantity)).toEqual([0]);
+  });
+
   test("submitting the meal twice at once awards it once", async ({ request, world }) => {
     test.fail(true, "EXP-456: concurrent submits both pay out");
     await seedGame(world, { bag: MEAL, delays: { "/update-visitor-inventory-item-quantity": 300 } });
