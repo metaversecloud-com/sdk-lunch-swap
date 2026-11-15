@@ -157,3 +157,13 @@ export const foodInWorld = async (world: TopiaWorld) => {
     .filter((a: any) => String(a.uniqueName ?? "").startsWith("LunchSwap_foodItem_"))
     .map((a: any) => ({ id: a.id as string, itemId: String(a.uniqueName).split("_")[2], asset: a }));
 };
+
+/**
+ * Waits until the app's per-minute lock ids (lockId ends in the time rounded to the nearest minute, so they
+ * change at :30 of every minute) won't change in the next few seconds: two calls that must share a lock id
+ * would otherwise straddle the rollover and get different ones.
+ */
+export const awayFromLockRollover = async (marginMs = 5000) => {
+  const untilRollover = (90_000 - (Date.now() % 60_000)) % 60_000;
+  if (untilRollover < marginMs) await new Promise((resolve) => setTimeout(resolve, untilRollover + 100));
+};

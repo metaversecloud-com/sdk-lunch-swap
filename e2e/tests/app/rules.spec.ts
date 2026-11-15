@@ -2,7 +2,7 @@
 // forged display names, failed Topia calls.
 import { expect, test } from "../../fixtures";
 import { forgeDisplayName } from "../../helpers/leaderboardForgery";
-import { FoodId, MEAL, foodAsset, foodInWorld, playing, seedGame, visitorInventory } from "./lunch";
+import { FoodId, MEAL, awayFromLockRollover, foodAsset, foodInWorld, playing, seedGame, visitorInventory } from "./lunch";
 
 const FULL: FoodId[] = ["milk", "burrito", "apple", "carrots", "mango", "corn", "yogurt", "pasta"];
 
@@ -93,6 +93,7 @@ test.describe("item locks", () => {
     test.fail(true, "EXP-456: refused pickup keeps the item lock");
     await seedGame(world, { bag: FULL, otherVisitors: { 43: { visitorData: playing() } }, assets: { "food-1": foodAsset("granola-bar") } });
 
+    await awayFromLockRollover();
     const refused = await request.post(world.api("/pickup-item"), { data: { droppedAssetId: "food-1" } });
     expect(refused.status()).toBe(400);
 
@@ -104,6 +105,7 @@ test.describe("item locks", () => {
     test.fail(true, "EXP-456: refused pickup keeps the item lock");
     await seedGame(world, { bag: ["mango"], otherVisitors: { 43: { visitorData: playing() } }, assets: { "food-1": foodAsset("mango") } });
 
+    await awayFromLockRollover();
     const refused = await request.post(world.api("/pickup-item"), { data: { droppedAssetId: "food-1" } });
     expect(refused.status()).toBe(400);
 
@@ -115,6 +117,7 @@ test.describe("item locks", () => {
     test.fail(true, "EXP-456: refused swap keeps the item lock");
     await seedGame(world, { bag: FULL, assets: { "food-1": foodAsset("granola-bar") } });
 
+    await awayFromLockRollover();
     const refused = await request.post(world.api("/swap-item"), { data: { dropItemId: "popcorn", pickupDroppedAssetId: "food-1" } });
     expect(refused.status()).toBe(400);
 
