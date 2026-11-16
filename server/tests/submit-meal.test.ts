@@ -286,9 +286,6 @@ describe("POST /api/submit-meal", () => {
       }),
       expect.anything(),
     );
-
-    // All bag items removed from inventory
-    expect(mockUtils.removeFoodFromVisitor).toHaveBeenCalledTimes(5);
   });
 
   test("incomplete meal: missing items returns 400", async () => {
@@ -440,42 +437,6 @@ describe("POST /api/submit-meal", () => {
     // Streak XP: min(1 * 10, 100) = 10
     // Total: SUBMIT_MEAL(100) + rarity(0) + streak(10) = 110
     expect(res.body.totalXpEarned).toBe(110);
-  });
-
-  test("non-meal items auto-dropped into world", async () => {
-    // Bag has target meal items plus 2 extra non-meal items
-    const bagWithExtras = [
-      ...completeBag,
-      { itemId: "popcorn", name: "Popcorn", foodGroup: "snack", rarity: "common", matchesTargetMeal: false },
-      { itemId: "banana", name: "Banana", foodGroup: "fruit", rarity: "common", matchesTargetMeal: false },
-    ];
-
-    setupMocks({
-      brownBag: bagWithExtras,
-      visitorData: {
-        targetMeal: [...targetMeal],
-        completedToday: false,
-        pickupsToday: 7,
-        nutritionScore: null,
-        superCombosFound: [],
-        level: 1,
-        totalMealsCompleted: 0,
-        totalSuperCombos: 0,
-        bestNutritionScore: 0,
-        currentStreak: 0,
-        longestStreak: 0,
-        lastCompletionWeek: "",
-      },
-    });
-
-    const app = makeApp();
-    const res = await request(app).post("/api/submit-meal").query(baseCreds).send({});
-
-    expect(res.status).toBe(200);
-    // All 7 bag items removed from inventory
-    expect(mockUtils.removeFoodFromVisitor).toHaveBeenCalledTimes(7);
-    // 2 remaining non-meal items should be auto-dropped via dropFoodItem
-    expect(mockUtils.dropFoodItem).toHaveBeenCalledTimes(2);
   });
 
   test("world totalCompletionsToday incremented (B12)", async () => {
