@@ -1,0 +1,551 @@
+[
+  {
+    "id": "food-milk",
+    "name": "Milk",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Milk",
+    "image_path": "https://example.invalid/food/milk.png",
+    "metadata": {
+      "itemId": "milk",
+      "name": "Milk",
+      "foodGroup": "drink",
+      "rarity": "common",
+      "nutrition": {
+        "calories": 120,
+        "protein": 8,
+        "carbs": 12,
+        "fiber": 0,
+        "vitamins": [
+          "D",
+          "B12"
+        ]
+      },
+      "funFact": "Milk has calcium.",
+      "sortOrder": 0
+    }
+  },
+  {
+    "id": "food-apple-juice",
+    "name": "Apple Juice",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Apple Juice",
+    "image_path": "https://example.invalid/food/apple-juice.png",
+    "metadata": {
+      "itemId": "apple-juice",
+      "name": "Apple Juice",
+      "foodGroup": "drink",
+      "rarity": "common",
+      "nutrition": {
+        "calories": 110,
+        "protein": 0,
+        "carbs": 28,
+        "fiber": 0,
+        "vitamins": [
+          "C"
+        ]
+      },
+      "funFact": "Apple juice is mostly water.",
+      "sortOrder": 1
+    }
+  },
+  {
+    "id": "food-coconut-water",
+    "name": "Coconut Water",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Coconut Water",
+    "image_path": "https://example.invalid/food/coconut-water.png",
+    "metadata": {
+      "itemId": "coconut-water",
+      "name": "Coconut Water",
+      "foodGroup": "drink",
+      "rarity": "rare",
+      "nutrition": {
+        "calories": 45,
+        "protein": 1,
+        "carbs": 9,
+        "fiber": 3,
+        "vitamins": [
+          "C"
+        ]
+      },
+      "funFact": "Coconut water has potassium.",
+      "sortOrder": 2
+    }
+  },
+  {
+    "id": "food-burrito",
+    "name": "Burrito",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Burrito",
+    "image_path": "https://example.invalid/food/burrito.png",
+    "metadata": {
+      "itemId": "burrito",
+      "name": "Burrito",
+      "foodGroup": "main",
+      "rarity": "common",
+      "nutrition": {
+        "calories": 400,
+        "protein": 18,
+        "carbs": 50,
+        "fiber": 6,
+        "vitamins": [
+          "B6"
+        ]
+      },
+      "funFact": "Burritos come from Mexico.",
+      "sortOrder": 3
+    }
+  },
+  {
+    "id": "food-pasta",
+    "name": "Pasta",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Pasta",
+    "image_path": "https://example.invalid/food/pasta.png",
+    "metadata": {
+      "itemId": "pasta",
+      "name": "Pasta",
+      "foodGroup": "main",
+      "rarity": "rare",
+      "nutrition": {
+        "calories": 350,
+        "protein": 12,
+        "carbs": 60,
+        "fiber": 3,
+        "vitamins": [
+          "B1"
+        ]
+      },
+      "funFact": "Pasta was eaten in ancient Rome.",
+      "sortOrder": 4
+    }
+  },
+  {
+    "id": "food-sushi-roll",
+    "name": "Sushi Roll",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Sushi Roll",
+    "image_path": "https://example.invalid/food/sushi-roll.png",
+    "metadata": {
+      "itemId": "sushi-roll",
+      "name": "Sushi Roll",
+      "foodGroup": "main",
+      "rarity": "epic",
+      "nutrition": {
+        "calories": 300,
+        "protein": 14,
+        "carbs": 40,
+        "fiber": 2,
+        "vitamins": [
+          "B12",
+          "D"
+        ]
+      },
+      "funFact": "Sushi started as a way to keep fish.",
+      "sortOrder": 5
+    }
+  },
+  {
+    "id": "food-apple",
+    "name": "Apple",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Apple",
+    "image_path": "https://example.invalid/food/apple.png",
+    "metadata": {
+      "itemId": "apple",
+      "name": "Apple",
+      "foodGroup": "fruit",
+      "rarity": "common",
+      "nutrition": {
+        "calories": 95,
+        "protein": 0,
+        "carbs": 25,
+        "fiber": 4,
+        "vitamins": [
+          "C"
+        ]
+      },
+      "funFact": "Apples float in water.",
+      "sortOrder": 6
+    }
+  },
+  {
+    "id": "food-banana",
+    "name": "Banana",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Banana",
+    "image_path": "https://example.invalid/food/banana.png",
+    "metadata": {
+      "itemId": "banana",
+      "name": "Banana",
+      "foodGroup": "fruit",
+      "rarity": "common",
+      "nutrition": {
+        "calories": 105,
+        "protein": 1,
+        "carbs": 27,
+        "fiber": 3,
+        "vitamins": [
+          "B6",
+          "C"
+        ]
+      },
+      "funFact": "Bananas are berries.",
+      "sortOrder": 7
+    }
+  },
+  {
+    "id": "food-mango",
+    "name": "Mango",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Mango",
+    "image_path": "https://example.invalid/food/mango.png",
+    "metadata": {
+      "itemId": "mango",
+      "name": "Mango",
+      "foodGroup": "fruit",
+      "rarity": "epic",
+      "nutrition": {
+        "calories": 100,
+        "protein": 1,
+        "carbs": 25,
+        "fiber": 3,
+        "vitamins": [
+          "A",
+          "C"
+        ]
+      },
+      "funFact": "Mangoes are the most eaten fruit.",
+      "sortOrder": 8
+    }
+  },
+  {
+    "id": "food-carrots",
+    "name": "Carrots",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Carrots",
+    "image_path": "https://example.invalid/food/carrots.png",
+    "metadata": {
+      "itemId": "carrots",
+      "name": "Carrots",
+      "foodGroup": "veggie",
+      "rarity": "common",
+      "nutrition": {
+        "calories": 50,
+        "protein": 1,
+        "carbs": 12,
+        "fiber": 4,
+        "vitamins": [
+          "A",
+          "K"
+        ]
+      },
+      "funFact": "Carrots used to be purple.",
+      "sortOrder": 9
+    }
+  },
+  {
+    "id": "food-broccoli",
+    "name": "Broccoli",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Broccoli",
+    "image_path": "https://example.invalid/food/broccoli.png",
+    "metadata": {
+      "itemId": "broccoli",
+      "name": "Broccoli",
+      "foodGroup": "veggie",
+      "rarity": "common",
+      "nutrition": {
+        "calories": 55,
+        "protein": 4,
+        "carbs": 11,
+        "fiber": 5,
+        "vitamins": [
+          "C",
+          "K"
+        ]
+      },
+      "funFact": "Broccoli is a flower.",
+      "sortOrder": 10
+    }
+  },
+  {
+    "id": "food-corn",
+    "name": "Corn",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Corn",
+    "image_path": "https://example.invalid/food/corn.png",
+    "metadata": {
+      "itemId": "corn",
+      "name": "Corn",
+      "foodGroup": "veggie",
+      "rarity": "rare",
+      "nutrition": {
+        "calories": 90,
+        "protein": 3,
+        "carbs": 19,
+        "fiber": 2,
+        "vitamins": [
+          "B1"
+        ]
+      },
+      "funFact": "Corn always has an even number of rows.",
+      "sortOrder": 11
+    }
+  },
+  {
+    "id": "food-granola-bar",
+    "name": "Granola Bar",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Granola Bar",
+    "image_path": "https://example.invalid/food/granola-bar.png",
+    "metadata": {
+      "itemId": "granola-bar",
+      "name": "Granola Bar",
+      "foodGroup": "snack",
+      "rarity": "common",
+      "nutrition": {
+        "calories": 190,
+        "protein": 4,
+        "carbs": 29,
+        "fiber": 2,
+        "vitamins": [
+          "E"
+        ]
+      },
+      "funFact": "Granola was invented in 1863.",
+      "sortOrder": 12
+    }
+  },
+  {
+    "id": "food-cheese-stick",
+    "name": "Cheese Stick",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Cheese Stick",
+    "image_path": "https://example.invalid/food/cheese-stick.png",
+    "metadata": {
+      "itemId": "cheese-stick",
+      "name": "Cheese Stick",
+      "foodGroup": "snack",
+      "rarity": "common",
+      "nutrition": {
+        "calories": 80,
+        "protein": 7,
+        "carbs": 1,
+        "fiber": 0,
+        "vitamins": [
+          "A",
+          "B12"
+        ]
+      },
+      "funFact": "Cheese is older than writing.",
+      "sortOrder": 13
+    }
+  },
+  {
+    "id": "food-popcorn",
+    "name": "Popcorn",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Popcorn",
+    "image_path": "https://example.invalid/food/popcorn.png",
+    "metadata": {
+      "itemId": "popcorn",
+      "name": "Popcorn",
+      "foodGroup": "snack",
+      "rarity": "common",
+      "nutrition": {
+        "calories": 100,
+        "protein": 3,
+        "carbs": 20,
+        "fiber": 4,
+        "vitamins": [
+          "B3"
+        ]
+      },
+      "funFact": "Popcorn pops at 180 degrees.",
+      "sortOrder": 14
+    }
+  },
+  {
+    "id": "food-yogurt",
+    "name": "Yogurt",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "Yogurt",
+    "image_path": "https://example.invalid/food/yogurt.png",
+    "metadata": {
+      "itemId": "yogurt",
+      "name": "Yogurt",
+      "foodGroup": "snack",
+      "rarity": "rare",
+      "nutrition": {
+        "calories": 150,
+        "protein": 12,
+        "carbs": 17,
+        "fiber": 0,
+        "vitamins": [
+          "B12",
+          "D"
+        ]
+      },
+      "funFact": "Yogurt has live cultures.",
+      "sortOrder": 15
+    }
+  },
+  {
+    "id": "xp",
+    "name": "Experience Points",
+    "type": "ITEM",
+    "status": "ACTIVE",
+    "description": "XP",
+    "image_path": "https://example.invalid/xp.png",
+    "metadata": {}
+  },
+  {
+    "id": "badge-1",
+    "name": "Brown Bag Beginner",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Brown Bag Beginner badge",
+    "image_path": "https://example.invalid/badges/1.png",
+    "metadata": {
+      "sortOrder": 0
+    }
+  },
+  {
+    "id": "badge-2",
+    "name": "Culinary Connoisseur",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Culinary Connoisseur badge",
+    "image_path": "https://example.invalid/badges/2.png",
+    "metadata": {
+      "sortOrder": 1
+    }
+  },
+  {
+    "id": "badge-3",
+    "name": "Lunchbox Legend",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Lunchbox Legend badge",
+    "image_path": "https://example.invalid/badges/3.png",
+    "metadata": {
+      "sortOrder": 2
+    }
+  },
+  {
+    "id": "badge-4",
+    "name": "Perfect Plate",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Perfect Plate badge",
+    "image_path": "https://example.invalid/badges/4.png",
+    "metadata": {
+      "sortOrder": 3
+    }
+  },
+  {
+    "id": "badge-5",
+    "name": "Streak Starter",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Streak Starter badge",
+    "image_path": "https://example.invalid/badges/5.png",
+    "metadata": {
+      "sortOrder": 4
+    }
+  },
+  {
+    "id": "badge-6",
+    "name": "Mystery Maven",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Mystery Maven badge",
+    "image_path": "https://example.invalid/badges/6.png",
+    "metadata": {
+      "sortOrder": 5
+    }
+  },
+  {
+    "id": "badge-7",
+    "name": "Epic Collector",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Epic Collector badge",
+    "image_path": "https://example.invalid/badges/7.png",
+    "metadata": {
+      "sortOrder": 6
+    }
+  },
+  {
+    "id": "badge-8",
+    "name": "Combo Master",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Combo Master badge",
+    "image_path": "https://example.invalid/badges/8.png",
+    "metadata": {
+      "sortOrder": 7
+    }
+  },
+  {
+    "id": "badge-9",
+    "name": "Nutrition Ninja",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Nutrition Ninja badge",
+    "image_path": "https://example.invalid/badges/9.png",
+    "metadata": {
+      "sortOrder": 8
+    }
+  },
+  {
+    "id": "badge-10",
+    "name": "Master Chef",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Master Chef badge",
+    "image_path": "https://example.invalid/badges/10.png",
+    "metadata": {
+      "sortOrder": 9
+    }
+  },
+  {
+    "id": "badge-11",
+    "name": "Golden Fork",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Golden Fork badge",
+    "image_path": "https://example.invalid/badges/11.png",
+    "metadata": {
+      "sortOrder": 10
+    }
+  },
+  {
+    "id": "badge-12",
+    "name": "Cafeteria Boss",
+    "type": "BADGE",
+    "status": "ACTIVE",
+    "description": "Cafeteria Boss badge",
+    "image_path": "https://example.invalid/badges/12.png",
+    "metadata": {
+      "sortOrder": 11
+    }
+  }
+]
