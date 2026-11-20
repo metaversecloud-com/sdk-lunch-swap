@@ -64,10 +64,6 @@ export type RouteSpec = {
   knownBugs?: KnownBugs;
 };
 
-// getCredentials (protected file) returns { error } instead of throwing, so every route that
-// uses it has this bug until it's fixed there.
-const GET_CREDENTIALS_DOESNT_THROW = "EXP-428 #6: getCredentials doesn't throw";
-
 /**
  * API routes that read the session credentials (getCredentials). Each one must reject missing or
  * foreign credentials and must never send the interactive secret to the browser. List them all.
@@ -76,22 +72,20 @@ const GET_CREDENTIALS_DOESNT_THROW = "EXP-428 #6: getCredentials doesn't throw";
  * the platform tests can't read its body and time out. Cover an SSE route's credential checks in
  * tests/app instead (open it with page.request or fetch + AbortController and check the status).
  */
-const ROUTE = { unnamedCredentialError: GET_CREDENTIALS_DOESNT_THROW };
-
 export const CREDENTIALED_ROUTES: RouteSpec[] = [
-  { method: "get", path: "/game-state", knownBugs: ROUTE },
-  { method: "get", path: "/item-details", knownBugs: ROUTE },
-  { method: "post", path: "/spin-wheel", knownBugs: ROUTE },
-  { method: "post", path: "/pickup-item", data: { droppedAssetId: "food-1" }, knownBugs: ROUTE },
-  { method: "post", path: "/drop-item", data: { itemId: "apple" }, knownBugs: ROUTE },
-  { method: "post", path: "/drop-all-non-matches", knownBugs: ROUTE },
-  { method: "post", path: "/swap-item", data: { dropItemId: "apple", pickupDroppedAssetId: "food-1" }, knownBugs: ROUTE },
-  { method: "post", path: "/submit-meal", knownBugs: ROUTE },
-  { method: "post", path: "/teleport-player", data: { keyAssetId: "key-asset" }, knownBugs: ROUTE },
-  { method: "post", path: "/admin/remove-all-items", knownBugs: ROUTE },
-  { method: "post", path: "/admin/drop-items", data: { count: 2 }, knownBugs: ROUTE },
-  { method: "get", path: "/admin/stats", knownBugs: ROUTE },
-  { method: "post", path: "/admin/update-settings", data: { dropRadiusMin: 100 }, knownBugs: ROUTE },
+  { method: "get", path: "/game-state" },
+  { method: "get", path: "/item-details" },
+  { method: "post", path: "/spin-wheel" },
+  { method: "post", path: "/pickup-item", data: { droppedAssetId: "food-1" } },
+  { method: "post", path: "/drop-item", data: { itemId: "apple" } },
+  { method: "post", path: "/drop-all-non-matches" },
+  { method: "post", path: "/swap-item", data: { dropItemId: "apple", pickupDroppedAssetId: "food-1" } },
+  { method: "post", path: "/submit-meal" },
+  { method: "post", path: "/teleport-player", data: { keyAssetId: "key-asset" } },
+  { method: "post", path: "/admin/remove-all-items" },
+  { method: "post", path: "/admin/drop-items", data: { count: 2 } },
+  { method: "get", path: "/admin/stats" },
+  { method: "post", path: "/admin/update-settings", data: { dropRadiusMin: 100 } },
 ];
 
 /**
@@ -148,10 +142,7 @@ export const HEALTH_KNOWN_BUGS: { incompleteContract?: string } = {};
  * registers its own logging handler. Fix: process.removeAllListeners("unhandledRejection") before
  * registering the app's handler.
  */
-export const PROCESS_KNOWN_BUGS: { exitsOnUnhandledRejection?: string } = {
-  exitsOnUnhandledRejection:
-    "EXP-472: @rtsdk/topia's unhandledRejection hook calls process.exit(1); server/index.ts's handler doesn't stop it",
-};
+export const PROCESS_KNOWN_BUGS: { exitsOnUnhandledRejection?: string } = {};
 
 /**
  * The request system.spec sends a malformed JSON body to. Default: the first POST/PUT route in
@@ -167,9 +158,7 @@ export const MALFORMED_JSON_REQUEST: { method: "post" | "put"; path: string } | 
  * middleware after express.json()). Fix: an error middleware that answers body-parser errors
  * (err.type === "entity.parse.failed") with res.status(400).json({ success: false, error: "Invalid JSON" }).
  */
-export const ERROR_KNOWN_BUGS: { malformedJson?: string } = {
-  malformedJson: "EXP-473: no error middleware: Express' default error page shows the stack trace (NODE_ENV isn't production)",
-};
+export const ERROR_KNOWN_BUGS: { malformedJson?: string } = {};
 
 /**
  * true starts mock-redis/server.mjs (an in-memory Redis) next to mock-topia and points REDIS_URL at it
